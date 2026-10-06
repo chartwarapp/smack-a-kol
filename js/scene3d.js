@@ -331,16 +331,6 @@ SAK.Scene3D = (function () {
       const cut2 = new T.Mesh(new T.BoxGeometry(0.05, 0.15, 0.02), this.cutMat);
       cut2.position.set(-0.26, 0.3, 0.44); cut2.rotation.z = -0.5; this.head.add(cut2);
       this.buildAccessory();
-      // 👁👁 laser eyes, flashed on a PERFECT slap
-      this.lasers = new T.Group(); this.lasers.visible = false; this.head.add(this.lasers);
-      const lm = new T.MeshBasicMaterial({ color: '#ff1a1a', transparent: true, opacity: 0.9 });
-      for (const sx of [-1, 1]) {
-        const beam = new T.Mesh(new T.CylinderGeometry(0.022, 0.04, 4, 6), lm);
-        beam.rotation.x = Math.PI / 2; beam.position.set(sx * 0.18, 0.5, 2.5); this.lasers.add(beam);
-        const glow = new T.Mesh(new T.SphereGeometry(0.11, 8, 6), new T.MeshBasicMaterial({ color: '#ffdddd' }));
-        glow.position.set(sx * 0.18, 0.5, 0.5); this.lasers.add(glow);
-      }
-      this.laserUntil = 0;
       // ⛑ Defense Helmet power-up (hidden until used)
       this.helmet = new T.Group(); this.helmet.visible = false; this.head.add(this.helmet);
       const hm = mat('#ffd23f', {}); hm.emissive = new T.Color('#4a3300');
@@ -430,7 +420,7 @@ SAK.Scene3D = (function () {
         });
         this.root.remove(c);
       });
-      this.look = look; this.laserMat = null; this.hitFX = null; this.fire = false;
+      this.look = look; this.hitFX = null; this.fire = false;
       this.build();
       this.resetPose();
     }
@@ -449,13 +439,15 @@ SAK.Scene3D = (function () {
           add(new T.CylinderGeometry(0.34, 0.36, 0.18, 8, 1, true), mat(a, { side: T.DoubleSide }), 0, 0.97, 0);
           for (let i = 0; i < 6; i++) { const ang = i / 6 * Math.PI * 2; add(new T.ConeGeometry(0.07, 0.18, 4), a, Math.sin(ang) * 0.34, 1.14, Math.cos(ang) * 0.34); }
           add(new T.IcosahedronGeometry(0.06, 0), '#ff2d55', 0, 0.98, 0.36); break; }
-        case 'laser':
-          this.laserMat = new T.MeshBasicMaterial({ color: '#ff1a1a' });
+        case 'laser': {
+          // Red glowing eyes (the meme look) — beams removed, glow stays.
+          const gm = new T.MeshBasicMaterial({ color: '#ff2222' });
+          const gm2 = new T.MeshBasicMaterial({ color: '#ff8888', transparent: true, opacity: 0.75, blending: T.AdditiveBlending, depthWrite: false });
           for (const sx of [-1, 1]) {
-            const beam = new T.Mesh(new T.CylinderGeometry(0.025, 0.025, 2.5, 6), this.laserMat);
-            beam.rotation.x = Math.PI / 2 - 0.15; beam.position.set(sx * 0.18, 0.4, 1.7); H.add(beam);
-            add(new T.SphereGeometry(0.06, 6, 5), this.laserMat, sx * 0.18, 0.5, 0.52);
-          } break;
+            add(new T.SphereGeometry(0.055, 8, 6), gm, sx * 0.18, 0.5, 0.5);
+            const halo = new T.Mesh(new T.SphereGeometry(0.1, 8, 6), gm2);
+            halo.position.set(sx * 0.18, 0.5, 0.5); H.add(halo);
+          } break; }
         case 'headphones':
           add(new T.TorusGeometry(0.56, 0.05, 6, 14, Math.PI), a, 0, 0.42, 0);
           for (const sx of [-1, 1]) add(new T.CylinderGeometry(0.15, 0.15, 0.12, 8), a, sx * 0.54, 0.42, 0, m => { m.rotation.z = Math.PI / 2; }); break;
@@ -530,10 +522,7 @@ SAK.Scene3D = (function () {
       this.applyArm(this.arms[this.armSide], p.lift, p.swing, p.elbow);
       const g = p.guard;
       this.applyArm(this.arms[-this.armSide], 0.12 + idle * 0.03 + g * 0.9, -g * 1.2, 0.15 + g * 1.9);
-      if (this.laserMat) this.laserMat.color.setHSL(0, 1, 0.45 + Math.sin(time * 12) * 0.08);
-      this.lasers.visible = time < this.laserUntil;
       if (this.rage.visible) { const k = 1 + Math.sin(time * 14) * 0.08; this.rage.scale.set(k, k, k); this.rage.material.opacity = 0.18 + Math.random() * 0.12; }
-      if (this.lasers.visible) this.lasers.children.forEach(c => { if (c.geometry.type === 'CylinderGeometry') c.scale.set(1 + Math.random() * 0.6, 1, 1 + Math.random() * 0.6); });
       // Face-squash + dizzy stars from a slap reaction
       if (this.hitFX) {
         const h = this.hitFX;
@@ -612,7 +601,7 @@ SAK.Scene3D = (function () {
     resetPose() {
       Object.assign(this.pose, { lift: 0.12, swing: 0, elbow: 0.15, twist: 0, lean: 0, lunge: 0, guard: 0 });
       this.yaw.x = this.yaw.v = this.roll.x = this.roll.v = 0;
-      this.ko = null; this.xEyes.visible = false; this.eyes.visible = true; this.laserUntil = 0;
+      this.ko = null; this.xEyes.visible = false; this.eyes.visible = true;
       this.mouth.scale.set(1, 1, 1);
       if (this.eyes) this.eyes.scale.set(1, 1, 1);
       this.clearHitFX();
@@ -1173,6 +1162,21 @@ SAK.Scene3D = (function () {
     m.position.copy(pos); m.lookAt(camera.position);
     rings.push({ m, age: 0 }); scene.add(m);
   }
+  // Shared radial-glow texture for impact flashes
+  let glowTex = null;
+  function getGlowTex() {
+    if (glowTex) return glowTex;
+    const c = document.createElement('canvas'); c.width = c.height = 128;
+    const g = c.getContext('2d');
+    const grad = g.createRadialGradient(64, 64, 0, 64, 64, 64);
+    grad.addColorStop(0, 'rgba(255,255,255,1)');
+    grad.addColorStop(0.35, 'rgba(255,244,210,0.85)');
+    grad.addColorStop(1, 'rgba(255,200,80,0)');
+    g.fillStyle = grad; g.fillRect(0, 0, 128, 128);
+    glowTex = new T.CanvasTexture(c);
+    return glowTex;
+  }
+  let flashes = []; // impact glow-flashes {sp, light, age, life, big}
   function updateParticles(dt) {
     particles = particles.filter(p => {
       p.age += dt;
@@ -1195,6 +1199,16 @@ SAK.Scene3D = (function () {
       r.age += dt;
       if (r.age > 0.35) { scene.remove(r.m); r.m.geometry.dispose(); r.m.material.dispose(); return false; }
       const s = 1 + r.age * 14; r.m.scale.set(s, s, s); r.m.material.opacity = 1 - r.age / 0.35;
+      return true;
+    });
+    // impact glow-flashes: pop big, fade fast, light decays
+    flashes = flashes.filter(f => {
+      f.age += dt;
+      const k = f.age / f.life;
+      if (k >= 1) { scene.remove(f.sp); scene.remove(f.light); f.sp.material.dispose(); return false; }
+      const s = (0.5 + k * 2.2) * f.big; f.sp.scale.set(s, s, 1);
+      f.sp.material.opacity = 1 - k * k;
+      f.light.intensity = 4 * f.big * (1 - k);
       return true;
     });
     // golden fire fist trail
@@ -1697,6 +1711,7 @@ SAK.Scene3D = (function () {
       const R = applyHitReact(D, tier, !!opts.fire);
       const hp = D.headWorld();
       if (opts.dmg > 0) damageNumber(hp, '-' + opts.dmg, tier === 'perfect' ? '#39ff88' : tier === 'heavy' ? '#ffd23f' : '#ffffff'); // V2
+      impactFlash(hp, tier); // glow-flash pop on every landed smack, bigger for heavy/perfect
       if (tier === 'heavy' || tier === 'perfect') slowMo(0.3, 0.32); // V2: dramatic beat
       // Style FX: heavy/devastating add shockwave rings + extra shake; devastating gets a big flash
       if (ST.fx >= 1.5) {
@@ -1742,8 +1757,9 @@ SAK.Scene3D = (function () {
    *  light/medium → in place: dead-weight crumple, dizzy spin-out collapse, or
    *  a faceplant flip (picked at random) · heavy/perfect → flying out of the
    *  ring: backflip launch or full aerial ragdoll (the classic, picked at random).
-   *  On some KOs the camera pushes in for a funny loser-face close-up (battered
-   *  face + dizzy stars) before the winner celebrates. */
+   *  EVERY KO ends with the money shot: the loser's head turns to camera so the
+   *  battered face (bruises, black eye, scratches + X eyes) and dizzy stars
+   *  always read — never face-down — before the winner celebrates. */
   async function knockout(who, tier) {
     const F = who === 'player' ? player : kol;
     const finTier = tier || lastSlapTier || 'perfect'; // game.js passes only `loser`
@@ -1836,28 +1852,47 @@ SAK.Scene3D = (function () {
     // Wait until they actually hit the dirt (safety cap ~4s)
     const t0 = time;
     while (!(F.ko && F.ko.phase === 'land') && time - t0 < 4) await wait(0.05);
-    if (koCam && Math.random() < 0.45) {
-      // Funny loser-face zoom on some KOs: push in close on the battered face
-      // (bruises, black eye, scratches + X eyes) with dizzy stars orbiting.
-      const stars = spawnHitStars(F, 6);
-      SAK.Tween.to(koCam.offset, { x: 1.7, y: 1.0, z: 1.2 }, 0.6, SAK.Ease.inOutQuad);
-      const spinUntil = time + 1.7;
-      while (time < spinUntil) {
-        await wait(0.03);
-        if (stars.parent) {
-          stars.rotation.y += 0.28;
-          stars.children.forEach((c, i) => {
-            c.position.y = 0.75 + Math.sin(time * 9 + i * 1.7) * 0.1;
-            c.rotation.z += 0.18; c.rotation.x += 0.12;
-          });
-        }
+    // ---- Face-reveal finale (EVERY KO): the money shot. ----
+    // Turn the loser's head toward the camera so the battered face always reads,
+    // no matter the landing pose — never face-down. Yaw/pitch-only aim (no roll
+    // weirdness), wide cartoon clamps. The per-frame pose driver is parked
+    // during KO, so this tween holds.
+    {
+      const headPos = F.headWorld();
+      const toCam = camera.position.clone().sub(headPos);
+      if (toCam.lengthSq() > 1e-6) {
+        toCam.normalize();
+        const qParent = new T.Quaternion();
+        F.head.parent.getWorldQuaternion(qParent);
+        const local = toCam.applyQuaternion(qParent.invert());
+        // Face is +z: yaw = atan2(x,z), pitch up = negative X rotation
+        const yaw = Math.atan2(local.x, local.z);
+        const pitch = -Math.asin(Math.max(-1, Math.min(1, local.y)));
+        F.head.rotation.order = 'YXZ';
+        SAK.Tween.to(F.head.rotation, {
+          x: Math.max(-2.2, Math.min(2.2, pitch)),
+          y: Math.max(-2.6, Math.min(2.6, yaw)),
+          z: 0
+        }, 0.45, SAK.Ease.outCubic);
       }
-      if (stars.parent) F.head.remove(stars);
-      stars.traverse(o => { if (o.geometry) o.geometry.dispose(); if (o.material) o.material.dispose(); });
-    } else {
-      // Hold on the awkward pose so the gag lands before the result card
-      await wait(0.95);
     }
+    // Push in close on the battered face (bruises, black eye, scratches + X
+    // eyes) with dizzy stars orbiting, hold so the damage reads.
+    const stars = spawnHitStars(F, 6);
+    SAK.Tween.to(koCam.offset, { x: 1.7, y: 1.0, z: 1.2 }, 0.6, SAK.Ease.inOutQuad);
+    const spinUntil = time + 1.7;
+    while (time < spinUntil) {
+      await wait(0.03);
+      if (stars.parent) {
+        stars.rotation.y += 0.28;
+        stars.children.forEach((c, i) => {
+          c.position.y = 0.75 + Math.sin(time * 9 + i * 1.7) * 0.1;
+          c.rotation.z += 0.18; c.rotation.x += 0.12;
+        });
+      }
+    }
+    if (stars.parent) F.head.remove(stars);
+    stars.traverse(o => { if (o.geometry) o.geometry.dispose(); if (o.material) o.material.dispose(); });
     victory(who === 'player' ? 'kol' : 'player'); // V2: winner celebrates
 
     koCam = null;
@@ -1891,13 +1926,25 @@ SAK.Scene3D = (function () {
     kol.yaw.v += 3;
   }
 
-  /** Flash laser eyes on a fighter for `dur` seconds. */
-  function laserEyes(who, dur) {
-    const F = who === 'player' ? player : kol;
-    if (F) F.laserUntil = time + (dur || 1);
+  /** Impact glow-flash at a smack contact point — replaces the old laser eyes. */
+  function impactFlash(pos, tier) {
+    if (!pos) return;
+    const big = tier === 'perfect' ? 1.6 : tier === 'heavy' ? 1.25 : 0.85;
+    const sp = new T.Sprite(new T.SpriteMaterial({
+      map: getGlowTex(), transparent: true,
+      blending: T.AdditiveBlending, depthWrite: false,
+      color: tier === 'perfect' ? '#a8ffc8' : '#ffe9a8'
+    }));
+    sp.position.copy(pos);
+    sp.scale.setScalar(0.5 * big);
+    scene.add(sp);
+    const light = new T.PointLight(tier === 'perfect' ? 0x66ff99 : 0xffd23f, 4 * big, 7);
+    light.position.copy(pos);
+    scene.add(light);
+    flashes.push({ sp, light, age: 0, life: tier === 'perfect' || tier === 'heavy' ? 0.5 : 0.32, big });
   }
 
-  return { init, setPlayer, applyAvatar, createPreview, setOpponent, setMode, resetFight, setRoleCam, slap, knockout, setFireArmed, setBrace, screenPos, taunt, coinRain, laserEyes, setHelmet, setRage, setArena, crowdExcite,
+  return { init, setPlayer, applyAvatar, createPreview, setOpponent, setMode, resetFight, setRoleCam, slap, knockout, setFireArmed, setBrace, screenPos, taunt, coinRain, impactFlash, setHelmet, setRage, setArena, crowdExcite,
     get player() { return player; }, get kol() { return kol; },
     get arena() { return arenaStyle; }, get arenaName() { return ARENA_DEFS[arenaStyle].name; },
     get camDebug() { return { hit: hitCam ? +hitCam.w.toFixed(3) : null, role: roleCam.role, roleW: +roleCam.w.toFixed(3), ko: !!koCam, t: +time.toFixed(2) }; } };

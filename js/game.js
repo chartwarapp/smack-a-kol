@@ -974,7 +974,6 @@
         hapticSlap(slapGrade, fire, atk.dist);
         if (fire) flash('#ffb000'); else if (grade.id === 'perfect') flash('#39ff88');
         else flash('#ffe23d');
-        if (grade.id === 'perfect' && Scene) Scene.laserEyes(slapWho, 1.0);
         const target = slapWho === 'player' ? 'k' : 'p';
         const pk = $(`#${target}-portrait`);
         pk.classList.remove('hit'); void pk.offsetWidth; pk.classList.add('hit');
