@@ -287,7 +287,7 @@ SAK.Scene3D = (function () {
       for (const sx of [-1, 1]) {
         if (eyeStyle === 'dot') {
           this.eyes.add(mesh(new T.SphereGeometry(0.07, 7, 5), pupil, sx * 0.18, 0.5, 0.46));
-        } else {
+        } else if (variant === 'faceplant') {
           const big = eyeStyle === 'big';
           this.eyes.add(mesh(new T.SphereGeometry(big ? 0.13 : 0.1, 8, 6), mat('#ffffff'), sx * 0.18, 0.5, big ? 0.41 : 0.42));
           const pr = big ? 0.068 : eyeStyle === 'angry' ? 0.045 : 0.055, pz = big ? 0.535 : 0.51;
@@ -1670,10 +1670,11 @@ SAK.Scene3D = (function () {
   }
 
   /** KO variations by finishing-blow intensity — resolves when done.
-   *  light/medium → in place: dead-weight crumple or dizzy spin-out collapse
-   *  (picked at random) · heavy/perfect → flying out of the ring: backflip
-   *  launch or full aerial ragdoll (the classic, picked at random).
-   *  Camera hard-tracks through the fall + slapstick landing pose for every variant. */
+   *  light/medium → in place: dead-weight crumple, dizzy spin-out collapse, or
+   *  a faceplant flip (picked at random) · heavy/perfect → flying out of the
+   *  ring: backflip launch or full aerial ragdoll (the classic, picked at random).
+   *  On some KOs the camera pushes in for a funny loser-face close-up (battered
+   *  face + dizzy stars) before the winner celebrates. */
   async function knockout(who, tier) {
     const F = who === 'player' ? player : kol;
     const finTier = tier || lastSlapTier || 'perfect'; // game.js passes only `loser`
@@ -1682,18 +1683,19 @@ SAK.Scene3D = (function () {
     F.mouth.scale.set(1, 3, 1);
 
     // KO variety by hit intensity: light/medium hits drop the loser in place —
-    // dead-weight crumple or a dizzy spin-out collapse — while hard hits
-    // (heavy/perfect) send them flying out of the ring like before.
-    const inPlace = ['crumple', 'spinout'], flyOut = ['launch', 'rocket'];
+    // dead-weight crumple, dizzy spin-out collapse, or a faceplant flip (picked
+    // at random) — while hard hits (heavy/perfect) send them flying out of the
+    // ring like before (backflip launch or ragdoll rocket, picked at random).
+    const inPlace = ['crumple', 'spinout', 'faceplant'], flyOut = ['launch', 'rocket'];
     const hardKO = finTier === 'heavy' || finTier === 'perfect';
     const pool = hardKO ? flyOut : inPlace;
     const variant = pool[(Math.random() * pool.length) | 0];
 
     // Impact beat scaled to the variant (no gore)
     const hp = F.headWorld();
-    shake = variant === 'crumple' ? 0.5 : variant === 'spinout' ? 0.8 : 1.2;
+    shake = variant === 'crumple' ? 0.5 : variant === 'launch' || variant === 'rocket' ? 1.2 : 0.8;
     burst(hp, ['#39ff88', '#ff4fd8', '#ffd23f', '#ffffff', '#ff7a9a'],
-      variant === 'crumple' ? 18 : variant === 'spinout' ? 30 : variant === 'launch' ? 44 : 58, 8.5);
+      variant === 'crumple' ? 18 : variant === 'launch' ? 44 : variant === 'rocket' ? 58 : 30, 8.5);
     ring(hp, '#ffd23f');
     if (variant === 'launch' || variant === 'rocket') ring(hp.clone().add(new T.Vector3(0, 0.12, 0)), '#ff4fd8');
     await wait(0.1); // tiny cartoon hit-stop
@@ -1719,6 +1721,21 @@ SAK.Scene3D = (function () {
       burst(dust, ['#c4a574', '#e8d5a3', '#ffffff'], 16, 2.6);
       ring(dust, '#ffd23f');
       F.ko = { phase: 'land', landPose: LAND_POSES.find(p => p.id === 'heap') || pickLandPose() };
+    } else if (variant === 'faceplant') {
+      // Smacked into a forward flip — lands face-first, butt kicks up
+      // cartoon-style, then flops flat. Stays in the ring.
+      const y0 = F.root.position.y;
+      SAK.Tween.to(F.root.position, { y: y0 + 0.85 }, 0.28, SAK.Ease.outCubic);
+      await SAK.Tween.to(F.root.rotation, { x: Math.PI * 1.5 }, 0.55, SAK.Ease.inCubic);
+      await SAK.Tween.to(F.root.position, { y: 0.12 }, 0.18, SAK.Ease.inCubic);
+      const dust = F.root.position.clone(); dust.y = 0.12;
+      burst(dust, ['#c4a574', '#e8d5a3', '#ffffff'], 18, 2.8);
+      ring(dust, '#ffd23f');
+      // butt pops up, then flops — the gag
+      SAK.Tween.to(F.root.rotation, { x: Math.PI * 1.5 - 0.55 }, 0.16, SAK.Ease.outCubic)
+        .then(() => SAK.Tween.to(F.root.rotation, { x: Math.PI * 1.5 }, 0.32, SAK.Ease.inCubic));
+      await wait(0.55);
+      F.ko = { phase: 'land', landPose: LAND_POSES.find(p => p.id === 'buttup') || pickLandPose() };
     } else {
       // launch: backflip-style backward launch, lands flat on back.
       // rocket: the classic — body goes rigid then ragdoll-spins, random landing.
@@ -1750,8 +1767,28 @@ SAK.Scene3D = (function () {
     // Wait until they actually hit the dirt (safety cap ~4s)
     const t0 = time;
     while (!(F.ko && F.ko.phase === 'land') && time - t0 < 4) await wait(0.05);
-    // Hold on the awkward pose so the gag lands before the result card
-    await wait(0.95);
+    if (koCam && Math.random() < 0.45) {
+      // Funny loser-face zoom on some KOs: push in close on the battered face
+      // (bruises, black eye, scratches + X eyes) with dizzy stars orbiting.
+      const stars = spawnHitStars(F, 6);
+      SAK.Tween.to(koCam.offset, { x: 1.7, y: 1.0, z: 1.2 }, 0.6, SAK.Ease.inOutQuad);
+      const spinUntil = time + 1.7;
+      while (time < spinUntil) {
+        await wait(0.03);
+        if (stars.parent) {
+          stars.rotation.y += 0.28;
+          stars.children.forEach((c, i) => {
+            c.position.y = 0.75 + Math.sin(time * 9 + i * 1.7) * 0.1;
+            c.rotation.z += 0.18; c.rotation.x += 0.12;
+          });
+        }
+      }
+      if (stars.parent) F.head.remove(stars);
+      stars.traverse(o => { if (o.geometry) o.geometry.dispose(); if (o.material) o.material.dispose(); });
+    } else {
+      // Hold on the awkward pose so the gag lands before the result card
+      await wait(0.95);
+    }
     victory(who === 'player' ? 'kol' : 'player'); // V2: winner celebrates
 
     koCam = null;
