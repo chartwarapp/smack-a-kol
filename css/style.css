@@ -223,18 +223,18 @@ h2, h3, .prompt, .vs, .level, .fc-name, .banner, .float-text, .result-title {
 }
 /* Meter row: damage-evolving fighter faces flank the slap meter */
 .meter-row { display: flex; align-items: flex-end; justify-content: center; gap: 10px; width: 100%; }
-.meter-row .private-meter { margin: 0; }
-.meter-face { flex: none; width: 62px; text-align: center; }
+.meter-row .private-meter { margin: 0; width: auto; flex: 1 1 0%; min-width: 140px; max-width: 230px; }
+.meter-face { flex: none; width: 93px; text-align: center; }
 .mf-av {
-  width: 62px; height: 62px; border-radius: 16px; overflow: hidden;
+  width: 93px; height: 93px; border-radius: 20px; overflow: hidden;
   border: 2px solid #ffffff55; box-shadow: 0 4px 0 #0006; background: #1a0b3a;
 }
 .mf-av svg { width: 100%; height: 100%; display: block; }
 .mf-av.hit { animation: hitShake .3s; }
-.mf-name { font-size: 10px; margin-top: 3px; opacity: .85; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mf-name { font-size: 11px; margin-top: 3px; opacity: .85; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 @media (max-width: 360px) {
-  .meter-face { width: 50px; }
-  .mf-av { width: 50px; height: 50px; border-radius: 12px; }
+  .meter-face { width: 72px; }
+  .mf-av { width: 72px; height: 72px; border-radius: 16px; }
   .meter-row { gap: 6px; }
 }
 .meter-panel {
