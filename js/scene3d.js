@@ -1165,8 +1165,9 @@ SAK.Scene3D = (function () {
   function restFraming(out) {
     if (roleCam.w <= 0.0001 || !player) { out.pos.copy(camFight.pos); out.look.copy(camFight.look); return out; }
     if (!player.restHead) player.restHead = new T.Vector3(player.root.position.x, 2.35, player.homeZ);
-    // a touch wider than the impact close-up so the incoming slap reads too
-    faceFraming(player, _brace, 1.14, player.restHead);
+    // Wide enough that the opponent's incoming slap stays in frame — the
+    // brace view frames the player loosely instead of a tight face close-up.
+    faceFraming(player, _brace, 1.8, player.restHead);
     orbitBlend(camFight, _brace, roleCam.w, out);
     return out;
   }
@@ -1478,15 +1479,15 @@ SAK.Scene3D = (function () {
     const tier = reactTier(opts.grade, opts.fire, opts.dist);
     if (opts.fire) A.setFire(true);
 
-    // Face-cam: orbit toward the fighter about to be slapped so the hit
-    // reaction reads on their FACE. Anticipation drift during wind-up, fast
-    // cinematic swing in on the strike, hold through the reaction, ease back.
-    // Stuffed (defender won) / light hits get a shallower swing.
+    // Face-cam: gentle push toward the fighter about to be slapped so the hit
+    // reaction reads on their FACE — kept shallow so the attacker's arm and
+    // the moment of contact stay in frame. Stuffed (defender won) / light
+    // hits get an even shallower swing.
     const landsHit = opts.grade !== 'miss' && !!tier;
-    const peak = !landsHit ? 0.45 : (opts.landed === false ? 0.7 : 1);
+    const peak = !landsHit ? 0.3 : (opts.landed === false ? 0.45 : 0.6);
     const cam = startHitCam(D, peak);
     const windup = opts.windup || 0.42;
-    SAK.Tween.to(cam, { w: peak * 0.4 }, windup + 0.06, E.inOutQuad);
+    SAK.Tween.to(cam, { w: peak * 0.35 }, windup + 0.06, E.inOutQuad);
 
     // 1) V2 wind-up: bigger cock-back + anticipation squash before the release
     SAK.Tween.to(A.root.scale, { x: 1.07, y: 0.92, z: 1.07 }, windup * 0.55, E.outCubic);
