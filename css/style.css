@@ -102,10 +102,23 @@ h2, h3, .prompt, .vs, .level, .fc-name, .banner, .float-text, .result-title {
 
 /* ---------------------------------------------------------------- menu */
 #screen-menu { background: linear-gradient(180deg, #0000 30%, #1a0b3a99 100%); }
-.menu-inner { position: absolute; inset: auto 22px calc(22px + var(--safe-bot)); text-align: center; }
+/* Flex column: logo in flow at top, buttons pushed to bottom. On short
+   viewports (Display Zoom, Safari page zoom, small phones) the button column
+   scrolls internally instead of colliding with the logo. */
+#screen-menu.active { display: flex; flex-direction: column; }
+.menu-inner {
+  position: static; flex: 1 1 auto; min-height: 0; overflow-y: auto;
+  margin: 12px 22px calc(22px + var(--safe-bot)); text-align: center;
+  display: flex; flex-direction: column;
+  scrollbar-width: none;
+}
+.menu-inner::-webkit-scrollbar { display: none; }
+/* margin-top:auto parks the buttons at the bottom when space allows, and
+   collapses to 0 when content overflows so the top stays reachable by scroll */
+.menu-inner > :first-child { margin-top: auto; }
 .logo-splash {
-  position: absolute; left: 16px; right: 16px; top: calc(92px + var(--safe-top));
-  margin: 0; line-height: 0; text-align: center; pointer-events: none; z-index: 11;
+  position: static; flex: none; margin: calc(92px + var(--safe-top)) 16px 0;
+  line-height: 0; text-align: center; pointer-events: none; z-index: 11;
 }
 .logo-title {
   display: block; width: min(100%, 320px); height: auto; margin: 0 auto;
@@ -354,7 +367,7 @@ h2, h3, .prompt, .vs, .level, .fc-name, .banner, .float-text, .result-title {
   .round-score { top: calc(196px + var(--safe-top)); font-size: 22px; }
   .fire-btn { bottom: calc(118px + var(--safe-bot)); width: 56px; height: 56px; }
   .logo-title { width: min(100%, 220px); }
-  .logo-splash { top: calc(78px + var(--safe-top)); }
+  .logo-splash { margin-top: calc(70px + var(--safe-top)); }
   .brand-badge { width: 34px; height: 34px; }
 }
 
@@ -544,7 +557,7 @@ h2, h3, .prompt, .vs, .level, .fc-name, .banner, .float-text, .result-title {
 
 @media (max-height: 700px) {
   .logo-title { width: min(100%, 240px); }
-  .logo-splash { top: calc(84px + var(--safe-top)); }
+  .logo-splash { margin-top: calc(76px + var(--safe-top)); }
   .tagline { margin: 0 0 8px; font-size: 15px; }
   .menu-buttons { gap: 10px; }
 }
