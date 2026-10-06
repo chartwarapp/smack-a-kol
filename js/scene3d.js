@@ -942,32 +942,35 @@ SAK.Scene3D = (function () {
         const hand = new T.Mesh(new T.SphereGeometry(0.075, 6, 5), mat(skin));
         hand.position.set(sx * 0.45, -0.16, 0); g.add(hand);
       }
-      // head
-      const head = new T.Mesh(new T.SphereGeometry(0.26, 10, 8), mat(skin));
-      head.position.y = 0.68; g.add(head);
-      // hair or cap (+z faces the ring after lookAt)
+      // head: big and high-contrast so faces read on phone screens.
+      // A neck separates it from the torso; hair/cap sit strictly ON TOP
+      // (hemisphere) so they can never swallow the face.
+      const neck = new T.Mesh(new T.CylinderGeometry(0.09, 0.1, 0.18, 6), mat(skin));
+      neck.position.y = 0.5; g.add(neck);
+      const head = new T.Mesh(new T.SphereGeometry(0.3, 12, 10), mat(skin));
+      head.position.y = 0.7; g.add(head);
+      // hair or beanie cap (+z faces the ring after lookAt). No brim — brims
+      // shade the eyes out from the fight camera, reading as a missing face.
       if (i % 3 === 2) {
         const capC = capCols[i % capCols.length];
-        const dome = new T.Mesh(new T.SphereGeometry(0.27, 10, 6, 0, Math.PI * 2, 0, Math.PI * 0.5), mat(capC));
-        dome.position.set(0, 0.8, -0.02); g.add(dome);
-        const brim = new T.Mesh(new T.BoxGeometry(0.34, 0.04, 0.26), mat(capC));
-        brim.position.set(0, 0.8, 0.3); g.add(brim);
+        const dome = new T.Mesh(new T.SphereGeometry(0.315, 12, 8, 0, Math.PI * 2, 0, Math.PI * 0.55), mat(capC));
+        dome.position.set(0, 0.78, -0.03); g.add(dome);
       } else {
-        const hair = new T.Mesh(new T.SphereGeometry(0.27, 10, 8), mat(hairCols[(i * 5 + 2) % hairCols.length]));
-        hair.scale.set(1, 0.72, 1); hair.position.set(0, 0.8, -0.07); g.add(hair);
+        const hair = new T.Mesh(new T.SphereGeometry(0.32, 12, 8, 0, Math.PI * 2, 0, Math.PI * 0.5), mat(hairCols[(i * 5 + 2) % hairCols.length]));
+        hair.position.set(0, 0.78, -0.03); g.add(hair);
       }
-      // face: eyes + smile or cheering "O" mouth
-      const eyeMat = mat('#1a1a1a');
+      // face: big unlit eyes + smile or cheering "O" mouth
+      const eyeMat = new T.MeshBasicMaterial({ color: '#0a0a0a' });
       for (const sx of [-1, 1]) {
-        const eye = new T.Mesh(new T.SphereGeometry(0.035, 6, 5), eyeMat);
-        eye.position.set(sx * 0.095, 0.71, 0.245); g.add(eye);
+        const eye = new T.Mesh(new T.SphereGeometry(0.045, 8, 6), eyeMat);
+        eye.position.set(sx * 0.11, 0.73, 0.285); g.add(eye);
       }
       if (i % 2) {
-        const smile = new T.Mesh(new T.TorusGeometry(0.06, 0.014, 4, 10, Math.PI), mat('#7a2a2a'));
-        smile.position.set(0, 0.64, 0.245); smile.rotation.z = Math.PI; g.add(smile);
+        const smile = new T.Mesh(new T.TorusGeometry(0.07, 0.018, 4, 10, Math.PI), new T.MeshBasicMaterial({ color: '#5a1a1a' }));
+        smile.position.set(0, 0.64, 0.29); smile.rotation.z = Math.PI; g.add(smile);
       } else {
-        const ooh = new T.Mesh(new T.CircleGeometry(0.032, 8), mat('#5a1a1a'));
-        ooh.position.set(0, 0.6, 0.25); g.add(ooh);
+        const ooh = new T.Mesh(new T.CircleGeometry(0.04, 10), new T.MeshBasicMaterial({ color: '#4a1414' }));
+        ooh.position.set(0, 0.62, 0.292); g.add(ooh);
       }
       // glow stick waved in the right hand
       const stick = new T.Mesh(new T.CylinderGeometry(0.03, 0.03, 0.5, 4), new T.MeshBasicMaterial({ color: i % 2 ? '#39ff88' : '#ff4fd8' }));
