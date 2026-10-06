@@ -69,21 +69,31 @@ SAK.avatarSVG = function (look, opts) {
     : `<path d="M40 67 Q50 75 60 67" stroke="#5a1a1a" stroke-width="3" fill="none" stroke-linecap="round"/>`;
 
   // Evolving battle damage (0 clean → 3 wrecked), drawn over the face.
-  const dmg = Math.max(0, Math.min(3, opts.dmg | 0));
+  // Wrecked = maximum cartoon damage for the loser: bloodied + bandaged.
+  const wrecked = !!opts.wrecked;
+  const dmg = wrecked ? 3 : Math.max(0, Math.min(3, opts.dmg | 0));
   let dmgFx = '';
-  if (!dead && dmg >= 1) {
+  if ((!dead || wrecked) && dmg >= 1) {
     dmgFx += `<ellipse cx="68" cy="62" rx="9" ry="6" fill="#ff2d2d" opacity="0.45"/>`;
     dmgFx += `<ellipse cx="63" cy="49" rx="8" ry="6.5" fill="#5a2a6a" opacity="0.35"/>`;
   }
-  if (!dead && dmg >= 2) {
+  if ((!dead || wrecked) && dmg >= 2) {
     dmgFx += `<ellipse cx="63" cy="49" rx="10" ry="8" fill="#3d1d55" opacity="0.7"/>`;
     dmgFx += `<ellipse cx="33" cy="64" rx="8" ry="6" fill="#6a2a8a" opacity="0.5"/>`;
     dmgFx += `<path d="M28 56 l11 9 M33 54 l11 9" stroke="#c22" stroke-width="1.6" opacity="0.8" stroke-linecap="round"/>`;
   }
-  if (!dead && dmg >= 3) {
+  if ((!dead || wrecked) && dmg >= 3) {
     dmgFx += `<ellipse cx="37" cy="49" rx="10" ry="8" fill="#3d1d55" opacity="0.65"/>`;
     dmgFx += `<ellipse cx="50" cy="74" rx="12" ry="6" fill="#5a2a6a" opacity="0.5"/>`;
     dmgFx += `<circle cx="73" cy="38" r="6" fill="${s}" stroke="#c22" stroke-width="2"/>`;
+  }
+  if (wrecked) {
+    // Bandage strips: forehead + X on the cheek
+    dmgFx += `<g transform="rotate(-8 50 32)"><rect x="33" y="27.5" width="34" height="9" rx="4" fill="#e8d5b0" stroke="#c9a86a" stroke-width="1.5"/><line x1="42" y1="28" x2="42" y2="36" stroke="#c9a86a" stroke-width="1"/><line x1="58" y1="28" x2="58" y2="36" stroke="#c9a86a" stroke-width="1"/></g>`;
+    dmgFx += `<g><rect x="20" y="61" width="20" height="6" rx="3" fill="#e8d5b0" stroke="#c9a86a" stroke-width="1.5" transform="rotate(28 30 64)"/><rect x="20" y="61" width="20" height="6" rx="3" fill="#e8d5b0" stroke="#c9a86a" stroke-width="1.5" transform="rotate(-28 30 64)"/></g>`;
+    // Bloodied nose: cartoon drip
+    dmgFx += `<ellipse cx="50" cy="63" rx="3" ry="4" fill="#d42a2a"/><path d="M50 66 q-1.5 5 -2.5 8" stroke="#d42a2a" stroke-width="2.5" stroke-linecap="round" fill="none"/>`;
+    dmgFx += `<path d="M60 68 l5 3" stroke="#d42a2a" stroke-width="2" stroke-linecap="round"/>`;
   }
 
   return `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" class="avatar-svg">
