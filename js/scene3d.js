@@ -1669,10 +1669,11 @@ SAK.Scene3D = (function () {
     crowdExcite(4);
   }
 
-  /** KO variations by finishing-blow tier — resolves when done.
-   *  light → crumple in place · medium → stumble + topple · heavy → backflip
-   *  launch · perfect → full aerial ragdoll (the classic). Camera hard-tracks
-   *  through the fall + slapstick landing pose for every variant. */
+  /** KO variations by finishing-blow intensity — resolves when done.
+   *  light/medium → in place: dead-weight crumple or dizzy spin-out collapse
+   *  (picked at random) · heavy/perfect → flying out of the ring: backflip
+   *  launch or full aerial ragdoll (the classic, picked at random).
+   *  Camera hard-tracks through the fall + slapstick landing pose for every variant. */
   async function knockout(who, tier) {
     const F = who === 'player' ? player : kol;
     const finTier = tier || lastSlapTier || 'perfect'; // game.js passes only `loser`
@@ -1680,15 +1681,19 @@ SAK.Scene3D = (function () {
     F.xEyes.visible = true; F.eyes.visible = false;
     F.mouth.scale.set(1, 3, 1);
 
-    const variant = finTier === 'light' ? 'crumple'
-      : finTier === 'medium' ? 'stumble'
-      : finTier === 'heavy' ? 'launch' : 'rocket';
+    // KO variety by hit intensity: light/medium hits drop the loser in place —
+    // dead-weight crumple or a dizzy spin-out collapse — while hard hits
+    // (heavy/perfect) send them flying out of the ring like before.
+    const inPlace = ['crumple', 'spinout'], flyOut = ['launch', 'rocket'];
+    const hardKO = finTier === 'heavy' || finTier === 'perfect';
+    const pool = hardKO ? flyOut : inPlace;
+    const variant = pool[(Math.random() * pool.length) | 0];
 
     // Impact beat scaled to the variant (no gore)
     const hp = F.headWorld();
-    shake = variant === 'crumple' ? 0.5 : variant === 'stumble' ? 0.8 : 1.2;
+    shake = variant === 'crumple' ? 0.5 : variant === 'spinout' ? 0.8 : 1.2;
     burst(hp, ['#39ff88', '#ff4fd8', '#ffd23f', '#ffffff', '#ff7a9a'],
-      variant === 'crumple' ? 18 : variant === 'stumble' ? 30 : variant === 'launch' ? 44 : 58, 8.5);
+      variant === 'crumple' ? 18 : variant === 'spinout' ? 30 : variant === 'launch' ? 44 : 58, 8.5);
     ring(hp, '#ffd23f');
     if (variant === 'launch' || variant === 'rocket') ring(hp.clone().add(new T.Vector3(0, 0.12, 0)), '#ff4fd8');
     await wait(0.1); // tiny cartoon hit-stop
@@ -1700,19 +1705,20 @@ SAK.Scene3D = (function () {
       const dust = F.root.position.clone(); dust.y = 0.12;
       burst(dust, ['#c4a574', '#e8d5a3', '#ffffff'], 14, 2.4);
       F.ko = { phase: 'land', landPose: LAND_POSES.find(p => p.id === 'heap') || pickLandPose() };
-    } else if (variant === 'stumble') {
-      // Spins, staggers a couple of steps, then topples sideways.
-      const dir = F.facing * (Math.random() > 0.5 ? 1 : -1);
-      const x0 = F.root.position.x;
-      SAK.Tween.to(F.root.rotation, { z: dir * 0.35 }, 0.22, SAK.Ease.outCubic);
-      await SAK.Tween.to(F.root.position, { x: x0 + dir * 0.9 }, 0.3, SAK.Ease.inOutQuad);
-      SAK.Tween.to(F.root.rotation, { z: dir * -0.3 }, 0.2, SAK.Ease.outCubic);
-      await SAK.Tween.to(F.root.position, { x: x0 + dir * 1.7 }, 0.28, SAK.Ease.inOutQuad);
-      await SAK.Tween.to(F.root.rotation, { z: dir * 1.45 }, 0.3, SAK.Ease.inCubic); // topple
+    } else if (variant === 'spinout') {
+      // Spins like a top from the slap, wobbles dizzy, then the legs give out
+      // and they flop down in place — never leaves the ring.
+      const dir = Math.random() > 0.5 ? 1 : -1;
+      const y0rot = F.root.rotation.y;
+      SAK.Tween.to(F.root.rotation, { y: y0rot + dir * Math.PI * 4 }, 0.75, SAK.Ease.outCubic);
+      SAK.Tween.to(F.root.rotation, { z: dir * 0.22 }, 0.45, SAK.Ease.outCubic); // dizzy lean
+      await wait(0.75);
+      SAK.Tween.to(F.root.rotation, { x: 0.85, z: dir * 0.5 }, 0.35, SAK.Ease.inCubic); // legs give out
+      await SAK.Tween.to(F.root.position, { y: 0.12 }, 0.35, SAK.Ease.inCubic);
       const dust = F.root.position.clone(); dust.y = 0.12;
-      burst(dust, ['#c4a574', '#e8d5a3', '#ffffff'], 20, 2.8);
+      burst(dust, ['#c4a574', '#e8d5a3', '#ffffff'], 16, 2.6);
       ring(dust, '#ffd23f');
-      F.ko = { phase: 'land', landPose: LAND_POSES.find(p => p.id === 'sideflop') || pickLandPose() };
+      F.ko = { phase: 'land', landPose: LAND_POSES.find(p => p.id === 'heap') || pickLandPose() };
     } else {
       // launch: backflip-style backward launch, lands flat on back.
       // rocket: the classic — body goes rigid then ragdoll-spins, random landing.
