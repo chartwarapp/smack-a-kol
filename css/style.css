@@ -99,7 +99,14 @@ h2, h3, .prompt, .vs, .level, .fc-name, .banner, .float-text, .result-title {
 .btn-red    { background: linear-gradient(#ff6b85, var(--red)); color: #fff; text-shadow: 0 1px 0 rgba(0, 0, 0, .35); }
 .btn-green  { background: linear-gradient(#6bffa0, var(--green)); }
 .btn-purple { background: linear-gradient(#ab7dff, var(--purple)); color: #fff; text-shadow: 0 1px 0 rgba(0, 0, 0, .35); }
+.btn-blue   { background: linear-gradient(#6bb8ff, #2f7fe0); color: #fff; text-shadow: 0 1px 0 rgba(0, 0, 0, .35); }
 .btn-grey   { background: var(--grey); color: var(--ink); text-shadow: none; font-size: 17px; }
+/* Challenge links */
+#pvp-challenge { margin: 10px 0; }
+.pvp-link-box { background: #1a0b3a; border-radius: 10px; padding: 10px 12px; margin: 8px 0; word-break: break-all; }
+.pvp-link-box code { color: #7dffc8; font-size: 13px; }
+#pvp-share .row { display: flex; gap: 8px; }
+#pvp-share .row .btn { font-size: 16px; padding: 12px 10px; }
 .pulse { animation: pulse 1s ease-in-out infinite; }
 @keyframes pulse { 50% { transform: scale(1.06); } }
 

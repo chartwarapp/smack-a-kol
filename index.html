@@ -233,6 +233,20 @@
         <div class="pvp-head"><span>🟢 ONLINE DEGENS</span><span id="pvp-count"></span></div>
         <div id="pvp-list" class="pvp-list"></div>
         <button class="btn btn-yellow" id="pvp-quick">⚡ QUICK MATCH (AI)</button>
+        <div class="pvp-head"><span>🔗 CHALLENGE LINK</span><span>wager SOL · share on X</span></div>
+        <div id="pvp-challenge">
+          <div class="bet-label dark-lbl">WAGER (SOL)</div>
+          <div id="pvp-sol-bets" class="bet-chips light"></div>
+          <button class="btn btn-purple" id="pvp-create-link">CREATE CHALLENGE LINK</button>
+          <div id="pvp-share" class="hidden">
+            <div class="pvp-link-box"><code id="pvp-link"></code></div>
+            <div class="row">
+              <button class="btn btn-blue" id="pvp-post-x">𝕏 POST TO X</button>
+              <button class="btn btn-grey" id="pvp-copy-link">COPY</button>
+            </div>
+            <p class="fine dark" id="pvp-share-hint">Anyone with the link can accept. Wager locks on-chain when contracts deploy — off-chain for now.</p>
+          </div>
+        </div>
         <button class="btn btn-grey" data-close>CLOSE</button>
       </div>
       <div id="pvp-search" class="pvp-search hidden">

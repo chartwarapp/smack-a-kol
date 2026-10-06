@@ -1104,6 +1104,17 @@
 
   function endFight(win, draw) {
     const k = F.kol, st = S.stats, R = SAK.REWARDS, PR = SAK.POINT_REWARDS;
+    // Challenge match: record + resolve on the backend (v1: winner by local result).
+    if (F.opts && F.opts.challengeId && W.address) {
+      const cid = F.opts.challengeId;
+      SAK.Api.recordMatch({
+        challenge_id: cid, player_a_wallet: W.address, player_b_wallet: k.pvp ? 'shadow' : k.id,
+        rounds: [], winner_wallet: win ? W.address : 'opponent', status: 'complete',
+      }).catch(() => {});
+      // NOTE: full async PvP resolution (both players' locks compared server-side)
+      // lands with the realtime backend. v1 resolves by the local match result.
+      SAK.Api.resolveChallenge(cid, win ? W.address : 'opponent').catch(() => {});
+    }
     const modeMult = SAK.MODES[F.mode].ptsMult;
     const boost = V.boost, boostMul = 1 + boost;
     const streakBefore = st.streak;
@@ -1348,6 +1359,8 @@
     A.unlock();
     $('#pvp-lobby').classList.remove('hidden'); $('#pvp-search').classList.add('hidden');
     renderModes($('#pvp-modes'), pvpMode, m => { pvpMode = m; openPvp(); });
+    renderSolBets();
+    $('#pvp-share').classList.add('hidden');
     const wagers = [0, 100, 250, 500, 1000];
     if (!P.canAfford(pvpWager)) pvpWager = 0;
     $('#pvp-bets').innerHTML = wagers.map(b => `<button class="bet-chip ${b === pvpWager ? 'selected' : ''} ${b && !P.canAfford(b) ? 'locked' : ''}" data-bet="${b}">${b ? ptsHTML() + b : 'FREE'}</button>`).join('');
@@ -1401,6 +1414,81 @@
     SAK.Matchmaking.cancel(); clearInterval(pvpTimer);
     $('#pvp-lobby').classList.remove('hidden'); $('#pvp-search').classList.add('hidden');
   });
+
+  /* --- challenge links (wager SOL, share on X) --------------------------- */
+  let solWager = 0.1;
+  const SOL_PRESETS = [0.01, 0.05, 0.1, 0.5, 1];
+  function renderSolBets() {
+    $('#pvp-sol-bets').innerHTML = SOL_PRESETS.map(s =>
+      `<button class="bet-chip ${s === solWager ? 'selected' : ''}" data-sol="${s}">${s} SOL</button>`).join('');
+    $$('#pvp-sol-bets .bet-chip').forEach(c => c.onclick = () => { solWager = +c.dataset.sol; A.click(); renderSolBets(); });
+  }
+  function challengeUrl(code) {
+    return `https://chartwarapp.github.io/smack-a-kol/?challenge=${code}`;
+  }
+  $('#pvp-create-link').addEventListener('click', async () => {
+    if (!W.isConnected) { toast('Connect your wallet first 👛', 2200); openWalletModal(); return; }
+    const btn = $('#pvp-create-link'); btn.disabled = true; btn.textContent = 'CREATING…';
+    try {
+      const cfg = await SAK.Api.getConfig();
+      if (solWager < cfg.wager_min_sol || solWager > cfg.wager_max_sol) {
+        toast(`Wager must be ${cfg.wager_min_sol}–${cfg.wager_max_sol} SOL`, 2400);
+        btn.disabled = false; btn.textContent = 'CREATE CHALLENGE LINK'; return;
+      }
+      const ch = await SAK.Api.createChallenge({
+        challenger: W.address,
+        wager_lamports: Math.round(solWager * 1e9),
+        mint: null, // native SOL
+        ttl_hours: cfg.challenge_ttl_hours,
+      });
+      const url = challengeUrl(ch.x_share_code);
+      $('#pvp-link').textContent = url;
+      $('#pvp-share').classList.remove('hidden');
+      $('#pvp-post-x').onclick = () => {
+        const text = `⚔️ I challenge YOU to a ${solWager} SOL slap match on Smack-a-KOL! Accept if you're not scared 🖐`;
+        window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`, '_blank');
+      };
+      $('#pvp-copy-link').onclick = async () => {
+        try { await navigator.clipboard.writeText(url); toast('Link copied 📋', 1600); }
+        catch (e) { toast('Copy failed — long-press the link', 2000); }
+      };
+      A.perfect(); toast('Challenge link ready 🔗', 2000);
+    } catch (e) { console.warn('[SAK] challenge create failed', e); toast('Could not create challenge', 2000); }
+    btn.disabled = false; btn.textContent = 'CREATE CHALLENGE LINK';
+  });
+
+  // Incoming challenge via ?challenge=CODE link.
+  async function checkIncomingChallenge() {
+    let code = null;
+    try { code = new URLSearchParams(location.search).get('challenge'); } catch (e) {}
+    if (!code) return;
+    // Clean the URL so refreshes don't re-trigger.
+    try { history.replaceState(null, '', location.pathname); } catch (e) {}
+    let ch = null;
+    try { ch = await SAK.Api.getChallenge(code); } catch (e) {}
+    if (!ch || ch.status !== 'open') { setTimeout(() => toast('That challenge is no longer open', 2600), 1200); return; }
+    const sol = (ch.wager_lamports / 1e9).toFixed(3).replace(/0+$/, '').replace(/\.$/, '');
+    const challengerShort = ch.challenger_wallet.slice(0, 4) + '…' + ch.challenger_wallet.slice(-4);
+    // Reuse the wallet modal shell for the accept prompt.
+    const go = async () => {
+      if (!W.isConnected) { openWalletModal(); toast('Connect wallet to accept 👛', 2200); return; }
+      if (W.address === ch.challenger_wallet) { toast("That's your own challenge 😅", 2000); return; }
+      try {
+        await SAK.Api.acceptChallenge(ch.id, W.address);
+        toast(`Challenge accepted! ${sol} SOL on the line ⚔️`, 2600);
+        // v1: play the challenger's shadow (AI stand-in). Async PvP resolution lands with the realtime backend.
+        startFight(pvpShadowKOL(ch), 0, { mode: 'classic', pvp: true, challengeId: ch.id });
+      } catch (e) { toast('Could not accept challenge', 2000); }
+    };
+    setTimeout(() => {
+      if (confirm(`⚔️ CHALLENGE!\n\n${challengerShort} challenges you to a ${sol} SOL slap match.\n\nAccept?`)) go();
+    }, 1500);
+  }
+  // AI stand-in wearing the challenger's wallet tag (until realtime PvP).
+  function pvpShadowKOL(ch) {
+    const base = roster()[0];
+    return Object.assign({}, base, { name: 'Challenger ' + ch.challenger_wallet.slice(0, 4), pvp: true });
+  }
 
   /* --- input: private local meter lock ----------------------------------- */
   function onTap(e) {
@@ -1550,6 +1638,8 @@
     shownPts = S.points; $('#points').textContent = fmt(S.points);
     renderMenu();
     show('menu');
+    // Incoming X challenge link (?challenge=CODE)
+    setTimeout(checkIncomingChallenge, 1800);
     // First launch: create a local account + fighter
     if (!S.profile) setTimeout(() => { if (!S.profile && screen === 'menu') openFighter(false); }, 500);
     // debug hook for console testing / automated smoke tests
