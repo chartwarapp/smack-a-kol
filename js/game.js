@@ -1586,6 +1586,80 @@
     if (!confirm('Reset points, upgrades, fan KOLs and stats?')) return;
     SAK.Storage.reset(); location.reload();
   });
+
+  /* --- admin panel (wallet-gated) ---------------------------------------- */
+  let isAdmin = false;
+  async function refreshAdminAccess() {
+    isAdmin = false;
+    if (W.isConnected && W.address) {
+      try { const p = await SAK.Api.getProfile(W.address); isAdmin = !!(p && p.is_admin); } catch (e) {}
+    }
+    $('#btn-admin').classList.toggle('hidden', !isAdmin);
+  }
+  W.onChange(() => refreshAdminAccess());
+  $('#btn-admin').addEventListener('click', () => { A.click(); openAdmin(); });
+
+  const TUNABLES = [
+    ['wager_min_sol', 'Min wager', 'SOL per challenge'],
+    ['wager_max_sol', 'Max wager', 'SOL per challenge'],
+    ['challenge_ttl_hours', 'Challenge expiry', 'hours before auto-expire'],
+    ['pts_per_win', 'PTS per win', 'free-play reward'],
+  ];
+  const HOUSE_TUNABLES = [
+    ['house_win_bps', 'Player win rate', 'basis points (4500 = 45%)'],
+    ['house_payout_bps', 'Win payout', 'basis points (19000 = 1.9x)'],
+  ];
+  async function openAdmin() {
+    if (!W.isConnected) { toast('Connect wallet first 👛', 2000); return; }
+    const cfg = await SAK.Api.getConfig();
+    $('#admin-who').textContent = `Signed in as ${W.shortAddress()}${W.providerName ? ' · ' + W.providerName : ''}`;
+    // Fee slider
+    const feeEl = $('#admin-fee'), feeLbl = $('#admin-fee-lbl');
+    feeEl.value = cfg.platform_fee_bps_default || 500;
+    const paintFee = () => feeLbl.textContent = `= ${(feeEl.value / 100).toFixed(2)}%`;
+    feeEl.oninput = paintFee; paintFee();
+    // Tunables
+    const tRow = (key, label, unit) => `
+      <div class="tunable"><label>${label}<small>${unit}</small></label>
+      <input data-cfg="${key}" type="number" step="any" value="${cfg[key]}" /></div>`;
+    $('#admin-tunables').innerHTML = TUNABLES.map(([k, l, u]) => tRow(k, l, u)).join('');
+    $('#admin-house').innerHTML = HOUSE_TUNABLES.map(([k, l, u]) => tRow(k, l, u)).join('');
+    const paintEdge = () => {
+      const w = +($('#admin-house [data-cfg="house_win_bps"]').value || 4500);
+      const p = +($('#admin-house [data-cfg="house_payout_bps"]').value || 19000);
+      const edge = (10000 - (w * p) / 10000) / 100;
+      $('#admin-edge').textContent = `House edge: ${edge.toFixed(2)}%`;
+    };
+    $('#admin-house').oninput = paintEdge; paintEdge();
+    // Overview stats
+    try {
+      const open = await SAK.Api.listChallenges('open');
+      $('#admin-stats').innerHTML = `Open challenges: <b>${open.length}</b> · Backend: <b>${SAK.Api.name}</b>`;
+    } catch (e) { $('#admin-stats').textContent = 'Stats unavailable'; }
+    $('#modal-admin').classList.remove('hidden');
+  }
+  $('#admin-save').addEventListener('click', async () => {
+    const btn = $('#admin-save'); btn.disabled = true; btn.textContent = 'SAVING…';
+    try {
+      const fee = +$('#admin-fee').value;
+      await SAK.Api.setConfig('platform_fee_bps_default', fee, W.address);
+      const inputs = $$('#modal-admin [data-cfg]');
+      for (const inp of inputs) {
+        await SAK.Api.setConfig(inp.dataset.cfg, +inp.value, W.address);
+      }
+      A.perfect(); toast('Admin settings saved ✓', 2000);
+      $('#modal-admin').classList.add('hidden');
+    } catch (e) { toast('Save failed', 2000); }
+    btn.disabled = false; btn.textContent = '💾 SAVE ALL';
+  });
+  // Dev bootstrap for the mock backend: claim admin on first use.
+  // (On Supabase, is_admin is set via the dashboard — RLS blocks this path.)
+  window.SAK_DEBUG.claimAdmin = async () => {
+    if (!W.isConnected) return 'connect wallet first';
+    const p = await SAK.Api.saveProfile(W.address, { name: (S.profile && S.profile.name) || 'Admin', is_admin: true });
+    await refreshAdminAccess();
+    return p.is_admin ? 'admin granted' : 'failed';
+  };
   $$('.modal').forEach(m => m.addEventListener('click', e => { if (e.target !== m) return; if (m.id === 'modal-fighter') closeCreator(); else m.classList.add('hidden'); }));
   $$('[data-close]').forEach(b => b.addEventListener('click', () => b.closest('.modal').classList.add('hidden')));
 
@@ -1638,6 +1712,7 @@
     shownPts = S.points; $('#points').textContent = fmt(S.points);
     renderMenu();
     show('menu');
+    refreshAdminAccess();
     // Incoming X challenge link (?challenge=CODE)
     setTimeout(checkIncomingChallenge, 1800);
     // First launch: create a local account + fighter

@@ -345,8 +345,39 @@
       <div class="set-wallet" id="set-wallet"></div>
       <button class="btn btn-red hidden" id="btn-forfeit">🏳 Forfeit fight</button>
       <button class="btn btn-grey" id="btn-disconnect">Disconnect wallet</button>
+      <button class="btn btn-purple hidden" id="btn-admin">🔧 ADMIN PANEL</button>
       <button class="btn btn-grey" id="btn-reset">Reset progress</button>
       <button class="btn btn-yellow" id="btn-close-settings">CLOSE</button>
+    </div>
+  </div>
+
+  <!-- ================= ADMIN PANEL ================= -->
+  <div id="modal-admin" class="modal hidden">
+    <div class="modal-card admin-card">
+      <h3>🔧 ADMIN PANEL</h3>
+      <p class="fine dark" id="admin-who"></p>
+      <div id="admin-body">
+        <div class="admin-sec">
+          <h4>PLATFORM FEE <span id="admin-fee-lbl"></span></h4>
+          <input type="range" id="admin-fee" min="0" max="2000" step="25" />
+          <p class="fine dark">Takes effect on-chain via <code>set_fee</code> once contracts deploy. Saved off-chain now.</p>
+        </div>
+        <div class="admin-sec">
+          <h4>GAME TUNABLES</h4>
+          <div id="admin-tunables"></div>
+        </div>
+        <div class="admin-sec">
+          <h4>HOUSE ODDS (solo vs house)</h4>
+          <div id="admin-house"></div>
+          <p class="fine dark" id="admin-edge"></p>
+        </div>
+        <div class="admin-sec">
+          <h4>OVERVIEW</h4>
+          <div id="admin-stats" class="fine dark"></div>
+        </div>
+        <button class="btn btn-yellow" id="admin-save">💾 SAVE ALL</button>
+        <button class="btn btn-grey" data-close>CLOSE</button>
+      </div>
     </div>
   </div>
 
