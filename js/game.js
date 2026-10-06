@@ -1367,8 +1367,9 @@
   window.__setArenaLabel = () => { const el = $('#arena-label'); if (el && Scene && Scene.arenaName) el.textContent = '\u{1F3DF}\uFE0F ' + Scene.arenaName; };
   $('#set-sound').addEventListener('change', e => { S.settings.sound = e.target.checked; SAK.Storage.save(); });
   $('#set-haptics').addEventListener('change', e => { S.settings.haptics = e.target.checked; SAK.Storage.save(); });
-  // V2: arena picker
-  const ARENAS_UI = [['colosseum', '🕯️ Colosseum'], ['moonshot', '🚀 Moonshot'], ['rekt', '🌃 REKT Alley']];
+  // V2: arena picker — REKT Alley temporarily hidden (2026-10-06): it froze
+  // on smack impacts on iPhone; buildRekt() is kept intact for re-enable.
+  const ARENAS_UI = [['colosseum', '🕯️ Colosseum'], ['moonshot', '🚀 Moonshot']];
   const apick = $('#arena-picks');
   if (apick) {
     const renderArenaPicks = () => {
@@ -1459,6 +1460,7 @@
       SAK.Scene3D.init($('#stage'));
       Scene = SAK.Scene3D;
       Scene.setPlayer(playerAvatar());
+      if (S.settings.arena === 'rekt') { S.settings.arena = 'colosseum'; SAK.Storage.save(); } // REKT temporarily hidden — migrate anyone parked there
       if (Scene.setArena) Scene.setArena(S.settings.arena || 'colosseum'); // V2: saved arena
       if (window.__setArenaLabel) window.__setArenaLabel();
       menuScene();

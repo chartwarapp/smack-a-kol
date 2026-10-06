@@ -1289,6 +1289,7 @@ SAK.Scene3D = (function () {
     return glowTex;
   }
   let flashes = []; // impact glow-flashes {sp, light, age, life, big}
+  let flashLightPool = [], flashLightIdx = 0; // persistent pooled flash lights (see init)
   function updateParticles(dt) {
     particles = particles.filter(p => {
       p.age += dt;
@@ -1317,7 +1318,7 @@ SAK.Scene3D = (function () {
     flashes = flashes.filter(f => {
       f.age += dt;
       const k = f.age / f.life;
-      if (k >= 1) { scene.remove(f.sp); scene.remove(f.light); f.sp.material.dispose(); return false; }
+      if (k >= 1) { scene.remove(f.sp); f.sp.material.dispose(); f.light.intensity = 0; return false; } // pooled light: park at 0, never removed
       const s = (0.5 + k * 2.2) * f.big; f.sp.scale.set(s, s, 1);
       f.sp.material.opacity = 1 - k * k;
       f.light.intensity = 4 * f.big * (1 - k);
@@ -1537,6 +1538,14 @@ SAK.Scene3D = (function () {
     Object.assign(sun.shadow.camera, { left: -4, right: 4, top: 4, bottom: -4, near: 1, far: 25 });
     scene.add(sun);
     const rim = new T.DirectionalLight('#7ad7ff', 1.2); rim.position.set(-5, 4, -6); scene.add(rim);
+    // Pooled impact-flash lights: adding/removing a PointLight mid-fight forces
+    // three.js to recompile every shader (light-count change) — a multi-second
+    // freeze on iPhone GPUs. These two live forever at intensity 0, so the
+    // light count never changes during gameplay; smacks just borrow one.
+    for (let i = 0; i < 2; i++) {
+      const fl = new T.PointLight(0xffd23f, 0, 7);
+      scene.add(fl); flashLightPool.push(fl);
+    }
 
     setArena('colosseum');
     clock = new T.Clock();
@@ -2082,9 +2091,11 @@ SAK.Scene3D = (function () {
     sp.position.copy(pos);
     sp.scale.setScalar(0.5 * big);
     scene.add(sp);
-    const light = new T.PointLight(tier === 'perfect' ? 0x66ff99 : 0xffd23f, 4 * big, 7);
+    // Borrow a pooled light (never create/dispose mid-fight — see init).
+    const light = flashLightPool[flashLightIdx++ % flashLightPool.length];
+    light.color.set(tier === 'perfect' ? 0x66ff99 : 0xffd23f);
+    light.intensity = 4 * big;
     light.position.copy(pos);
-    scene.add(light);
     flashes.push({ sp, light, age: 0, life: tier === 'perfect' || tier === 'heavy' ? 0.5 : 0.32, big });
   }
 
