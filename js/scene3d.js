@@ -1186,7 +1186,7 @@ SAK.Scene3D = (function () {
   // (+x, where every slapping hand enters), slightly above eye level.
   const _faceOff = new T.Vector3(), _sA = new T.Spherical(), _sB = new T.Spherical();
   const _vA = new T.Vector3(), _vB = new T.Vector3(), _face = { pos: new T.Vector3(), look: new T.Vector3() };
-  function faceFraming(F, out, scale, headAt) {
+  function faceFraming(F, out, scale, headAt, ang) {
     const head = headAt || F.homeHead || F.headWorld();
     // Fit ~2.1 units of width (head + slapping hand + FX) for this aspect:
     // portrait phones (the usual case) need more distance than landscape.
@@ -1195,13 +1195,19 @@ SAK.Scene3D = (function () {
     // ~57° off the face normal on the -x side: every slap travels +x → -x, so
     // the struck head snaps TOWARD this camera (full scream/wince face), and the
     // attacker's head/shoulder sits at frame edge instead of masking the face.
-    const ang = -1.0;
+    // For the LOCAL player (opponent's turn) we use PLAYER_FACE_ANG instead:
+    // a much smaller orbit from the default view that still sits on the slapped
+    // side, so the face, the incoming hand and the contact all read clearly.
+    const a = (ang == null ? -1.0 : ang);
     // HUD covers the top, meter the bottom — centre the head in what's left
     out.look.set(head.x, head.y - 0.1, head.z);
-    _faceOff.set(Math.sin(ang), 0, Math.cos(ang) * F.facing).multiplyScalar(dist);
+    _faceOff.set(Math.sin(a), 0, Math.cos(a) * F.facing).multiplyScalar(dist);
     out.pos.set(head.x + _faceOff.x, head.y + 1.2, head.z + _faceOff.z);
     return out;
   }
+  // Face-cam angle for the local player: slight rotate (~45° orbit) instead of
+  // the full ~160° swing, keeping face + slapping hand + contact in frame.
+  const PLAYER_FACE_ANG = 1.05;
 
   /** Blend fight framing → face framing by w, orbiting (spherical) not cutting. */
   function orbitBlend(a, b, w, out) {
@@ -1226,7 +1232,8 @@ SAK.Scene3D = (function () {
     if (!player.restHead) player.restHead = new T.Vector3(player.root.position.x, 2.35, player.homeZ);
     // Wide enough that the opponent's incoming slap stays in frame — the
     // brace view frames the player loosely instead of a tight face close-up.
-    faceFraming(player, _brace, 1.8, player.restHead);
+    // Uses the gentle player angle: slight rotate, not the full face-cam swing.
+    faceFraming(player, _brace, 1.8, player.restHead, PLAYER_FACE_ANG);
     orbitBlend(camFight, _brace, roleCam.w, out);
     return out;
   }
@@ -1277,9 +1284,11 @@ SAK.Scene3D = (function () {
       if (!(hitCam && hitCam.target)) { camBase.pos.copy(_rest.pos); camBase.look.copy(_rest.look); }
     }
     if (!koCam && hitCam && hitCam.target && mode !== 'menu' && mode !== 'pick') {
-      // …and the slap face-cam orbits from there onto the defender's face
+      // …and the slap face-cam orbits from there onto the defender's face.
+      // The local player gets the gentle angle (slight rotate on the
+      // opponent's turn); the KOL keeps the full face-cam swing.
       const F = hitCam.target;
-      faceFraming(F, _face);
+      faceFraming(F, _face, 1, null, F === player ? PLAYER_FACE_ANG : -1.0);
       // follow the head's recoil a little so the reaction stays centred
       const live = F.headWorld(_vA);
       const home = F.homeHead || live;
