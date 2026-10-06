@@ -288,7 +288,7 @@ SAK.Scene3D = (function () {
       for (const sx of [-1, 1]) {
         if (eyeStyle === 'dot') {
           this.eyes.add(mesh(new T.SphereGeometry(0.07, 7, 5), pupil, sx * 0.18, 0.5, 0.46));
-        } else if (variant === 'faceplant') {
+        } else {
           const big = eyeStyle === 'big';
           this.eyes.add(mesh(new T.SphereGeometry(big ? 0.13 : 0.1, 8, 6), mat('#ffffff'), sx * 0.18, 0.5, big ? 0.41 : 0.42));
           const pr = big ? 0.068 : eyeStyle === 'angry' ? 0.045 : 0.055, pz = big ? 0.535 : 0.51;
