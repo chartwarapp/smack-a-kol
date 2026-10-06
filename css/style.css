@@ -688,18 +688,20 @@ h2, h3, .prompt, .vs, .level, .fc-name, .banner, .float-text, .result-title {
   background: #1a0b3a88; padding: 2px 10px; border-radius: 8px; white-space: nowrap;
 }
 
-/* ---- V2 mobile HUD: compact vs-bar, no clipping/overlaps up to large phones ---- */
+/* ---- V2 mobile HUD: compact vs-bar, no clipping/overlaps up to large phones ----
+   Vertical rhythm (ticker occupies 60-82px, so everything starts below it):
+   vs-bar 86 -> stake-tag 130 -> arena-label 153 -> taunt 176 -> round-score 216 */
 @media (max-width: 480px) {
-  .vs-bar { top: calc(52px + var(--safe-top)); left: 6px; right: 6px; gap: 4px; }
+  .vs-bar { top: calc(86px + var(--safe-top)); left: 6px; right: 6px; gap: 4px; }
   .portrait { width: 38px; height: 38px; border-radius: 10px; border-width: 2px; }
   .fc-name { font-size: 12px; }
   .hp { height: 13px; }
   .hp-txt { font-size: 9px; line-height: 10px; }
   .vs { font-size: 22px; }
   .level { font-size: 10px; padding: 1px 6px; }
-  .stake-tag { top: calc(106px + var(--safe-top)); font-size: 11px; max-width: 92vw; overflow: hidden; text-overflow: ellipsis; }
-  .arena-label { top: calc(130px + var(--safe-top)); font-size: 10px; }
-  .taunt { top: calc(156px + var(--safe-top)); max-width: 58%; font-size: 12px; padding: 6px 10px; }
-  .taunt.left { left: 10px; }
-  .round-score { top: calc(190px + var(--safe-top)); font-size: 18px; padding: 2px 10px; }
+  .stake-tag { top: calc(130px + var(--safe-top)); font-size: 11px; max-width: 92vw; overflow: hidden; text-overflow: ellipsis; }
+  .arena-label { top: calc(153px + var(--safe-top)); font-size: 10px; }
+  .taunt { top: calc(176px + var(--safe-top)); max-width: 58%; font-size: 12px; padding: 6px 10px; }
+  .taunt.left { left: 10px; top: calc(176px + var(--safe-top)); }
+  .round-score { top: calc(216px + var(--safe-top)); font-size: 18px; padding: 2px 10px; }
 }
