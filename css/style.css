@@ -19,6 +19,9 @@
 }
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 html, body { margin: 0; height: 100%; overflow: hidden; }
+/* Stop iOS Safari from auto-inflating text sizes (its own text-size adjustment),
+   which would otherwise reflow game UI when the user changes text settings. */
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 body {
   font-family: var(--font); color: #fff;
   background: #1b0a40 radial-gradient(circle at 50% 30%, #4a1aa8 0%, #1b0a40 70%);
