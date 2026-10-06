@@ -257,6 +257,7 @@ SAK.Scene3D = (function () {
       const skin = mat(L.skin), shirt = mat(L.shirt), pants = mat(L.pants), hair = mat(L.hair);
       const B = BODY[L.body] || BODY.classic;
       this.body = B;
+      this.brows = []; // rebuilt with the head (rebuild() disposes old meshes)
 
       // legs
       for (const sx of [-0.22, 0.22]) {
@@ -299,6 +300,8 @@ SAK.Scene3D = (function () {
         const angry = eyeStyle === 'angry';
         const brow = mesh(new T.BoxGeometry(0.27, 0.075, 0.06), hair, sx * 0.19, angry ? 0.63 : 0.67, 0.45); // V2: thicker brows
         brow.rotation.z = sx * (angry ? 0.42 : -0.18); this.head.add(brow);
+        brow.userData.baseY = brow.position.y; brow.userData.baseRotZ = brow.rotation.z;
+        this.brows.push(brow);
       }
       // KO "X" eyes (hidden until knocked out)
       this.xEyes = new T.Group(); this.xEyes.visible = false; this.head.add(this.xEyes);
@@ -306,9 +309,9 @@ SAK.Scene3D = (function () {
         const b = mesh(new T.BoxGeometry(0.2, 0.045, 0.04), mat('#1a1a1a'), sx * 0.18, 0.5, 0.5);
         b.rotation.z = r; this.xEyes.add(b);
       }
-      // nose + mouth
-      this.head.add(mesh(new T.IcosahedronGeometry(0.085, 0), skin, 0, 0.36, 0.52));
-      this.mouth = mesh(new T.BoxGeometry(0.2, 0.05, 0.05), mat('#6b1d1d'), 0, 0.2, 0.46);
+      // nose + mouth — chunkier to read in close-ups
+      this.head.add(mesh(new T.IcosahedronGeometry(0.1, 0), skin, 0, 0.36, 0.53));
+      this.mouth = mesh(new T.BoxGeometry(0.22, 0.07, 0.05), mat('#6b1d1d'), 0, 0.2, 0.46);
       this.head.add(this.mouth);
       // cheeks: blush grows with damage taken (both cheeks so it reads from any angle)
       this.blushMat = new T.MeshBasicMaterial({ color: '#ff2a2a', transparent: true, opacity: 0, depthWrite: false });
@@ -316,15 +319,16 @@ SAK.Scene3D = (function () {
         const c = new T.Mesh(new T.SphereGeometry(0.13, 8, 6), this.blushMat);
         c.position.set(sx * 0.33, 0.3, 0.36); c.scale.set(1, 0.7, 0.4); this.head.add(c);
       }
-      // Progressive battle damage: black-eye ring + cheek scratch, revealed as hits land (cartoon, no gore)
+      // Progressive battle damage: black-eye ring + cheek scratch, revealed as hits land (cartoon, no gore).
+      // Sized to read clearly in face close-ups (hit-cam + loser-face zoom).
       this.bruiseLevel = 0;
-      this.bruiseMat = new T.MeshBasicMaterial({ color: '#4a2560', transparent: true, opacity: 0, depthWrite: false });
-      const bruise = new T.Mesh(new T.SphereGeometry(0.155, 10, 8), this.bruiseMat);
+      this.bruiseMat = new T.MeshBasicMaterial({ color: '#3d1d55', transparent: true, opacity: 0, depthWrite: false });
+      const bruise = new T.Mesh(new T.SphereGeometry(0.185, 10, 8), this.bruiseMat);
       bruise.position.set(0.18, 0.5, 0.44); bruise.scale.set(1, 0.9, 0.45); this.head.add(bruise);
       this.cutMat = new T.MeshBasicMaterial({ color: '#d42a2a', transparent: true, opacity: 0, depthWrite: false });
-      const cut1 = new T.Mesh(new T.BoxGeometry(0.035, 0.17, 0.02), this.cutMat);
+      const cut1 = new T.Mesh(new T.BoxGeometry(0.05, 0.21, 0.02), this.cutMat);
       cut1.position.set(-0.3, 0.26, 0.44); cut1.rotation.z = 0.45; this.head.add(cut1);
-      const cut2 = new T.Mesh(new T.BoxGeometry(0.035, 0.11, 0.02), this.cutMat);
+      const cut2 = new T.Mesh(new T.BoxGeometry(0.05, 0.15, 0.02), this.cutMat);
       cut2.position.set(-0.26, 0.3, 0.44); cut2.rotation.z = -0.5; this.head.add(cut2);
       this.buildAccessory();
       // 👁👁 laser eyes, flashed on a PERFECT slap
@@ -356,9 +360,26 @@ SAK.Scene3D = (function () {
         const elbow = new T.Group(); elbow.position.y = -0.55; shoulder.add(elbow);
         elbow.add(mesh(new T.CylinderGeometry(0.105 * B.arm, 0.09 * B.arm, 0.45, 6), skin, 0, -0.22, 0));
         const handMat = mat(L.skin, {}); // own material so it can turn golden
-        const hand = mesh(new T.IcosahedronGeometry(0.16, 1), handMat, 0, -0.52, 0);
-        hand.scale.set(0.75, 1.1, 1.15);
-        elbow.add(hand);
+        // Open palm with individual fingers (Slap Kings-style readability) —
+        // a Group so the slap squash-scale still flattens the whole hand.
+        const hand = new T.Group(); hand.position.set(0, -0.52, 0); elbow.add(hand);
+        hand.add(mesh(new T.BoxGeometry(0.2, 0.16, 0.09), handMat, 0, -0.02, 0)); // palm
+        const fingerLen = [0.13, 0.155, 0.15, 0.12]; // index..pinky, middle longest
+        for (let f = 0; f < 4; f++) {
+          const fg = new T.Group();
+          fg.position.set((f - 1.5) * 0.052, -0.1, 0);
+          fg.rotation.z = (f - 1.5) * 0.09; // fan out
+          fg.rotation.x = -0.12; // slight natural curl
+          hand.add(fg);
+          fg.add(mesh(new T.CylinderGeometry(0.021, 0.026, fingerLen[f], 5), handMat, 0, -fingerLen[f] / 2, 0));
+          fg.add(mesh(new T.SphereGeometry(0.021, 5, 4), handMat, 0, -fingerLen[f], 0)); // fingertip
+        }
+        const th = new T.Group(); // thumb on the inner side
+        th.position.set(-side * 0.1, -0.03, 0.01);
+        th.rotation.z = -side * 0.85; th.rotation.x = -0.2;
+        hand.add(th);
+        th.add(mesh(new T.CylinderGeometry(0.023, 0.028, 0.11, 5), handMat, 0, -0.055, 0));
+        th.add(mesh(new T.SphereGeometry(0.023, 5, 4), handMat, 0, -0.11, 0));
         this.arms[side] = { shoulder, elbow, hand, handMat, side };
       }
       this.root.traverse(o => { o.userData.fighter = this; });
@@ -560,7 +581,7 @@ SAK.Scene3D = (function () {
       const m = this.arms[this.armSide].handMat;
       if (on) { m.color.set('#ffc21a'); m.emissive.set('#ff6a00'); m.emissiveIntensity = 0.9; }
       else { m.color.set(this.look.skin); m.emissive.set('#000000'); }
-      this.slapHand.scale.set(on ? 1.1 : 0.75, on ? 1.5 : 1.1, on ? 1.6 : 1.15);
+      this.slapHand.scale.set(on ? 1.1 : 1, on ? 1.5 : 1, on ? 1.6 : 1);
     }
 
     /** Snap into a slapstick KO landing pose (root + torso/head/arms). */
@@ -1498,6 +1519,22 @@ SAK.Scene3D = (function () {
     const jit = (v, amt) => v * (1 + (Math.random() * 2 - 1) * amt);
     D.mouth.scale.set(jit(R.mouthX * ouch.mx, 0.12), jit(R.mouthY * ouch.my, 0.12), 1);
     if (D.eyes) D.eyes.scale.set(jit(R.eyeSx * ouch.ex, 0.12), jit(R.eyeSy * ouch.ey, 0.12), 1);
+    // Brows sell the pain: random worried-raise (inner up) or furrow (inner down)
+    if (D.brows && D.brows.length) {
+      const raise = Math.random() < 0.55;
+      D.brows.forEach((b, i) => {
+        const sx = i === 0 ? -1 : 1;
+        SAK.Tween.to(b.position, { y: b.userData.baseY + (raise ? 0.055 : -0.02) }, 0.09, SAK.Ease.outCubic);
+        SAK.Tween.to(b.rotation, { z: sx * (raise ? -0.38 : 0.52) }, 0.09, SAK.Ease.outCubic);
+      });
+      setTimeout(() => {
+        if (D.ko || !D.brows) return;
+        D.brows.forEach(b => {
+          SAK.Tween.to(b.position, { y: b.userData.baseY }, 0.35, SAK.Ease.inOutQuad);
+          SAK.Tween.to(b.rotation, { z: b.userData.baseRotZ }, 0.35, SAK.Ease.inOutQuad);
+        });
+      }, R.mouthMs);
+    }
     setTimeout(() => {
       if (D.ko) return;
       D.mouth.scale.set(1, 1, 1);
