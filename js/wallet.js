@@ -1,40 +1,108 @@
 /* =========================================================================
- * Wallet adapter — MOCK Solana placeholder.
+ * Wallet adapter — real Solana wallet integration.
  * -------------------------------------------------------------------------
- * Today this only simulates a connect/disconnect and a fake base58 address.
- * It holds NO balance: the whole economy runs on in-game PTS (economy.js).
+ * Interface (unchanged from the mock so the game UI keeps working):
+ *   connect()    -> { address, walletName }  (throws {code:'NO_WALLET'} if none)
+ *   disconnect()
+ *   signLogin(nonce) -> { signature (base64), address }  (proves ownership)
+ *   shortAddress()
+ *   onChange(fn) / emit('connect'|'disconnect'|'no-provider')
+ *   isConnected / address
  *
- * Future (see README "Where a token plugs in later"):
- *   connect()    -> window.phantom.solana.connect()
- *   address      -> provider.publicKey.toBase58()
- *   + signMessage() for login, and token-account reads once SAK.SOLANA
- *     .tokenMint exists. The game UI only calls this interface.
+ * Detection order: Phantom > Solflare > Backpack > generic window.solana.
+ * Mobile (no injected provider): the caller should show the "open in wallet
+ * app browser" guidance — see SAK.Wallet.NO_WALLET_HELP.
  * ========================================================================= */
 window.SAK = window.SAK || {};
 
 SAK.Wallet = (function () {
   const S = () => SAK.Storage.state;
   const listeners = [];
-  const emit = () => listeners.forEach(fn => { try { fn(); } catch (e) { console.error(e); } });
+  const emit = (ev, data) => listeners.forEach(fn => { try { fn(ev, data); } catch (e) { console.error(e); } });
 
-  // Fake base58-looking Solana address.
-  function fakeAddress() {
-    const abc = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
-    let s = '';
-    for (let i = 0; i < 44; i++) s += abc[Math.floor(Math.random() * abc.length)];
-    return s;
+  const NO_WALLET_HELP = {
+    title: 'No wallet found',
+    body: 'Open this page inside your wallet app\'s browser (Phantom or Solflare), then tap Connect again.',
+  };
+
+  function getProvider() {
+    const w = window;
+    if (w.phantom && w.phantom.solana && w.phantom.solana.isPhantom)
+      return { name: 'Phantom', provider: w.phantom.solana };
+    if (w.solflare && w.solflare.isSolflare)
+      return { name: 'Solflare', provider: w.solflare };
+    if (w.backpack && w.backpack.isBackpack)
+      return { name: 'Backpack', provider: w.backpack };
+    if (w.solana && w.solana.isPhantom)
+      return { name: 'Phantom', provider: w.solana };
+    if (w.solana && typeof w.solana.connect === 'function')
+      return { name: 'Solana', provider: w.solana };
+    return null;
   }
 
   async function connect() {
-    await new Promise(r => setTimeout(r, 650));   // simulate wallet popup round-trip
-    const st = S();
-    if (!st.wallet.address) st.wallet.address = fakeAddress();
-    st.wallet.connected = true;
-    SAK.Storage.save(); emit();
-    return { address: st.wallet.address };
+    const found = getProvider();
+    if (!found) {
+      const err = new Error('NO_WALLET');
+      err.code = 'NO_WALLET';
+      err.help = NO_WALLET_HELP;
+      emit('no-provider', NO_WALLET_HELP);
+      throw err;
+    }
+    // If already connected, reuse.
+    try {
+      if (found.provider.isConnected && found.provider.publicKey) {
+        const address = found.provider.publicKey.toBase58();
+        persist(found.name, address);
+        emit('connect', { address, walletName: found.name });
+        return { address, walletName: found.name };
+      }
+    } catch (e) { /* fall through to connect() */ }
+    const resp = await found.provider.connect(); // opens the wallet popup
+    const address = resp.publicKey.toBase58();
+    persist(found.name, address);
+    emit('connect', { address, walletName: found.name });
+    // Re-emit if the user switches account / disconnects in the wallet.
+    try {
+      found.provider.on('accountChanged', pk => {
+        if (pk) { persist(found.name, pk.toBase58()); emit('connect', { address: pk.toBase58(), walletName: found.name }); }
+        else { disconnect(); }
+      });
+      found.provider.on('disconnect', () => disconnect());
+    } catch (e) { /* provider without events */ }
+    return { address, walletName: found.name };
   }
 
-  function disconnect() { S().wallet.connected = false; SAK.Storage.save(); emit(); }
+  /** Sign a login challenge to prove wallet ownership. Returns base64 sig. */
+  async function signLogin(nonce) {
+    const found = getProvider();
+    if (!found) throw Object.assign(new Error('NO_WALLET'), { code: 'NO_WALLET' });
+    const msg = `Sign in to Smack-a-KOL\n\nNonce: ${nonce}\nThis proves you own this wallet. No transaction is sent.`;
+    const data = new TextEncoder().encode(msg);
+    const out = await found.provider.signMessage(data, 'utf8');
+    const sig = out.signature || out;
+    let b64;
+    if (typeof sig === 'string') b64 = sig;
+    else b64 = btoa(String.fromCharCode.apply(null, sig));
+    return { signature: b64, address: S().wallet.address, message: msg };
+  }
+
+  function persist(walletName, address) {
+    const st = S();
+    st.wallet.connected = true;
+    st.wallet.address = address;
+    st.wallet.provider = walletName;
+    SAK.Storage.save();
+  }
+
+  function disconnect() {
+    const found = getProvider();
+    if (found) { try { found.provider.disconnect(); } catch (e) {} }
+    S().wallet.connected = false;
+    S().wallet.address = null;
+    SAK.Storage.save();
+    emit('disconnect', {});
+  }
 
   function shortAddress() {
     const a = S().wallet.address;
@@ -42,9 +110,11 @@ SAK.Wallet = (function () {
   }
 
   return {
-    connect, disconnect, shortAddress,
+    connect, disconnect, signLogin, shortAddress,
+    NO_WALLET_HELP,
     onChange(fn) { listeners.push(fn); },
-    get isConnected() { return !!S().wallet.connected; },
-    get address() { return S().wallet.address; }
+    get isConnected() { return !!S().wallet.connected && !!S().wallet.address; },
+    get address() { return S().wallet.address; },
+    get providerName() { return S().wallet.provider || null; },
   };
 })();

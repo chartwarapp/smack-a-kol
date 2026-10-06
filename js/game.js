@@ -179,18 +179,47 @@
   function openWalletModal() { A.unlock(); A.click(); $('#modal-wallet').classList.remove('hidden'); }
 
   $('#btn-connect').addEventListener('click', () => {
-    if (W.isConnected) { toast(`Connected ${W.shortAddress()} (mock placeholder)`); return; }
+    if (W.isConnected) { toast(`Connected ${W.shortAddress()}${W.providerName ? ' · ' + W.providerName : ''}`); return; }
     openWalletModal();
   });
   $('#wallet-cancel').addEventListener('click', () => $('#modal-wallet').classList.add('hidden'));
+  // Wallet login: connect -> look up profile by wallet -> create fighter if new.
+  async function syncProfileFromWallet() {
+    const addr = W.address;
+    if (!addr) return;
+    try {
+      const p = await SAK.Api.getProfile(addr);
+      if (p && p.fighter_look) {
+        S.profile = Object.assign({}, S.profile, { name: p.name, avatar: p.fighter_look, phrase: p.phrase || '' });
+        SAK.Storage.save();
+        if (Scene) { try { Scene.setPlayer(playerAvatar()); } catch (e) {} }
+        renderMenu();
+        toast(`Welcome back, ${p.name} 🫡`, 2200);
+      } else {
+        toast('New wallet — build your fighter 👤', 2200);
+        setTimeout(() => openFighter(false), 400);
+      }
+    } catch (e) { console.warn('[SAK] profile sync failed', e); }
+  }
   $('#wallet-approve').addEventListener('click', async () => {
     const btn = $('#wallet-approve'); btn.disabled = true; btn.textContent = 'Connecting…';
-    await W.connect();
-    btn.disabled = false; btn.textContent = 'Connect';
-    $('#modal-wallet').classList.add('hidden');
-    A.coin();
-    toast(`Wallet ${W.shortAddress()} linked (mock) — on-chain rewards coming later`, 2600);
-    renderMenu();
+    try {
+      const { address, walletName } = await W.connect();
+      $('#modal-wallet').classList.add('hidden');
+      A.coin();
+      toast(`Wallet ${W.shortAddress()} linked · ${walletName}`, 2600);
+      renderMenu();
+      syncProfileFromWallet();
+    } catch (err) {
+      if (err && err.code === 'NO_WALLET') {
+        $('#wallet-help').textContent = (err.help && err.help.body) || SAK.Wallet.NO_WALLET_HELP.body;
+        btn.textContent = 'Try Again';
+      } else {
+        toast('Wallet connection cancelled', 1800);
+        $('#modal-wallet').classList.add('hidden');
+      }
+    }
+    btn.disabled = false; if (btn.textContent !== 'Try Again') btn.textContent = 'Connect';
   });
 
   $('#btn-play').addEventListener('click', () => {
@@ -270,6 +299,12 @@
     if (S.profile) Object.assign(S.profile, { name: v.ok, phrase: ph.ok, avatar: SAK.Account.sanitize(crDraft) });
     else S.profile = SAK.Account.create(v.ok, crDraft, ph.ok);
     SAK.Storage.save();
+    // Persist to backend profile when a wallet is linked.
+    if (W.isConnected && W.address) {
+      SAK.Api.saveProfile(W.address, {
+        name: S.profile.name, phrase: S.profile.phrase, fighter_look: S.profile.avatar,
+      }).catch(e => console.warn('[SAK] profile save failed', e));
+    }
     if (Scene) Scene.setPlayer(playerAvatar());
     closeCreator();
     A.perfect(); toast(crIsNew ? `🪪 Account created. ${v.ok} has entered the arena. LFG 🚀` : `${v.ok}: fresh drip saved 💅`);
