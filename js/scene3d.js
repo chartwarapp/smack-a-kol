@@ -1753,10 +1753,11 @@ SAK.Scene3D = (function () {
     crowdExcite(4);
   }
 
-  /** KO variations by finishing-blow intensity — resolves when done.
-   *  light/medium → in place: dead-weight crumple, dizzy spin-out collapse, or
-   *  a faceplant flip (picked at random) · heavy/perfect → flying out of the
-   *  ring: backflip launch or full aerial ragdoll (the classic, picked at random).
+  /** KO variations — resolves when done.
+   *  Most KOs drop the loser in place (usually a dead-weight crumple, sometimes
+   *  a dizzy spin-out, occasionally a faceplant flip); only sometimes does the
+   *  loser get launched out of the ring (backflip launch or ragdoll rocket),
+   *  slightly more often on heavy/perfect finishing blows.
    *  EVERY KO ends with the money shot: the loser's head turns to camera so the
    *  battered face (bruises, black eye, scratches + X eyes) and dizzy stars
    *  always read — never face-down — before the winner celebrates. */
@@ -1767,14 +1768,19 @@ SAK.Scene3D = (function () {
     F.xEyes.visible = true; F.eyes.visible = false;
     F.mouth.scale.set(1, 3, 1);
 
-    // KO variety by hit intensity: light/medium hits drop the loser in place —
-    // dead-weight crumple, dizzy spin-out collapse, or a faceplant flip (picked
-    // at random) — while hard hits (heavy/perfect) send them flying out of the
-    // ring like before (backflip launch or ragdoll rocket, picked at random).
-    const inPlace = ['crumple', 'spinout', 'faceplant'], flyOut = ['launch', 'rocket'];
+    // KO variety: fly-outs are rare treats now, even on big hits. Most KOs end
+    // with the loser dropping in place — usually a dead-weight crumple, sometimes
+    // a dizzy spin-out, occasionally a faceplant. Only sometimes do they get
+    // launched out of the ring (backflip launch or ragdoll rocket).
     const hardKO = finTier === 'heavy' || finTier === 'perfect';
-    const pool = hardKO ? flyOut : inPlace;
-    const variant = pool[(Math.random() * pool.length) | 0];
+    const flyChance = hardKO ? 0.25 : 0.08;
+    let variant;
+    if (Math.random() < flyChance) {
+      variant = Math.random() < 0.5 ? 'launch' : 'rocket';
+    } else {
+      const r = Math.random();
+      variant = r < 0.5 ? 'crumple' : r < 0.8 ? 'spinout' : 'faceplant';
+    }
 
     // Impact beat scaled to the variant (no gore)
     const hp = F.headWorld();
