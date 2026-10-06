@@ -441,8 +441,8 @@ h2, h3, .prompt, .vs, .level, .fc-name, .banner, .float-text, .result-title {
 /* push HUD rows below the ticker */
 .vs-bar { top: calc(88px + var(--safe-top)); }
 .stake-tag { top: calc(150px + var(--safe-top)); }
-.round-score { top: calc(178px + var(--safe-top)); } /* below stake-tag; clear of meter */
-.taunt { top: calc(226px + var(--safe-top)); }
+.round-score { top: calc(202px + var(--safe-top)); } /* below arena-label; clear of meter */
+.taunt { top: calc(250px + var(--safe-top)); }
 .pick-header { top: calc(88px + var(--safe-top)); }
 .tagline b { color: #39ff88; }
 .level { background: #b44dff; }
@@ -683,13 +683,13 @@ h2, h3, .prompt, .vs, .level, .fc-name, .banner, .float-text, .result-title {
 }
 .arena-picks button.on { background: var(--yellow); transform: translateY(1px); box-shadow: 0 2px 0 var(--ink); }
 .arena-label {
-  position: absolute; top: calc(150px + var(--safe-top)); left: 50%; transform: translateX(-50%);
+  position: absolute; top: calc(174px + var(--safe-top)); left: 50%; transform: translateX(-50%);
   font-size: 11px; font-weight: 800; letter-spacing: 1px; color: #ffffffcc;
   background: #1a0b3a88; padding: 2px 10px; border-radius: 8px; white-space: nowrap;
 }
 
-/* ---- V2 mobile HUD: compact vs-bar, no clipping/overlaps under 420px ---- */
-@media (max-width: 420px) {
+/* ---- V2 mobile HUD: compact vs-bar, no clipping/overlaps up to large phones ---- */
+@media (max-width: 480px) {
   .vs-bar { top: calc(52px + var(--safe-top)); left: 6px; right: 6px; gap: 4px; }
   .portrait { width: 38px; height: 38px; border-radius: 10px; border-width: 2px; }
   .fc-name { font-size: 12px; }
