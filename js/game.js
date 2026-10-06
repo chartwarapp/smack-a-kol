@@ -480,6 +480,24 @@
     if (Scene && Scene.kol) Scene.kol.setDamage(1 - F.kHp / F.kMax);
   }
 
+  /* Meter faces: fighter portraits flanking the slap meter, damage evolving
+     with each smack (driven by the 3D fighters' bruiseLevel, 0→3). */
+  function renderMeterFaces(hitSide, koLoser) {
+    if (!F) return;
+    const bruise = w => (Scene && Scene[w] && Scene[w].bruiseLevel) || 0;
+    const dmgOf = b => (b <= 0 ? 0 : b < 0.35 ? 1 : b < 0.7 ? 2 : 3);
+    const pAv = $('#face-p-av'), kAv = $('#face-k-av');
+    if (pAv) pAv.innerHTML = SAK.avatarSVG(playerLook(), koLoser === 'player' ? { ko: true, dmg: 3 } : { dmg: dmgOf(bruise('player')) });
+    if (kAv) {
+      kAv.innerHTML = SAK.avatarSVG(F.kol.look, koLoser === 'kol' ? { ko: true, dmg: 3 } : { dmg: dmgOf(bruise('kol')) });
+      const kn = $('#face-k-name'); if (kn) kn.textContent = F.kol.name;
+    }
+    if (hitSide) {
+      const el = hitSide === 'player' ? pAv : kAv;
+      if (el) { el.classList.remove('hit'); void el.offsetWidth; el.classList.add('hit'); }
+    }
+  }
+
   function renderUpgrades() {
     $$('.upg-btn').forEach(b => {
       const type = b.dataset.upgrade, lvl = S.upgrades[type], max = lvl >= SAK.PLAYER.maxUpgradeLevel;
@@ -600,6 +618,7 @@
     $('#p-name').textContent = profile().name;
     $('#k-portrait').innerHTML = SAK.avatarSVG(kol.look);
     $('#k-name').textContent = kol.name;
+    renderMeterFaces(); // clean faces at fight start
     const tag = kol.pvp ? 'PVP · PRIVATE' : (kol.custom ? 'FAN KOL' : 'LEVEL ' + kol.level);
     $('#fight-level').textContent = tag;
     const M = SAK.MODES[mode];
@@ -992,6 +1011,7 @@
 
     if (Scene) await Scene.slap(slapWho, { grade: slapGrade, fire, dist: attackerWins ? atk.dist : def.dist, windup: 0.28, landed: attackerWins, dmg: attackerWins ? dmg : 0, onImpact: doImpact }); // V2: dmg -> 3D number
     else { await wait(0.35); doImpact(); }
+    renderMeterFaces(attackerWins ? (slapWho === 'player' ? 'kol' : 'player') : null); // evolve meter-face damage
 
     await wait(0.35);
 
@@ -1036,6 +1056,7 @@
     A.ko(); haptic([60, 40, 120]);
     if (loser === 'kol') $('#k-portrait').innerHTML = SAK.avatarSVG(F.kol.look, { ko: true, blush: true });
     else $('#p-portrait').innerHTML = SAK.avatarSVG(playerLook(), { ko: true, blush: true });
+    renderMeterFaces(null, loser); // KO face on the meter
     const ko = Scene ? Scene.knockout(loser) : wait(1.2);
     if (Scene && loser === 'kol') Scene.coinRain(70);                       // 🪙 coin rain on a win
     banner(loser === 'kol' ? pick(['K.O.! WAGMI', 'SENT TO ZERO!', 'RUGGED! K.O.']) : pick(['NGMI…', 'LIQUIDATED!', 'REKT!']), loser === 'kol' ? '#39ff88' : '#ff3b5c', 1400);

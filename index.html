@@ -114,23 +114,33 @@
     <div class="bottom-zone">
       <div id="prompt" class="prompt">TAP TO SLAP</div>
       <!-- Private per-device meter: local player only sees THEIR needle (ATTACK or BRACE). -->
-      <div id="private-meter" class="private-meter">
-        <div class="meter-panel you-control" id="panel-local">
-          <div class="meter-role" id="role-label">🥊 ATTACK</div>
-          <div id="meter-local" class="meter"></div>
-          <div class="meter-hint" id="hint-local">TAP / SPACE TO LOCK</div>
-          <div class="meter-wait hidden" id="meter-wait">LOCKED · OPPONENT LOCKING…</div>
+      <div class="meter-row">
+        <div class="meter-face" id="face-p">
+          <div class="mf-av" id="face-p-av"></div>
+          <div class="mf-name">YOU</div>
         </div>
-        <!-- Inline post-lock reveal: swaps in over the meter panel (same footprint) once BOTH locked -->
-        <div class="meter-panel reveal-panel hidden" id="reveal-panel" role="button" tabindex="-1" aria-live="polite" aria-label="Round reveal — tap to continue">
-          <div class="rv-result" id="rv-result">YOU WIN THE ROUND</div>
-          <div class="rv-dial" id="rv-dial"></div>
-          <div class="rv-stats">
-            <span class="rv-stat you" id="rv-you"><i></i>YOU <b id="rv-you-deg">0°</b></span>
-            <span class="rv-stat them" id="rv-them"><i></i><em id="rv-them-name">THEM</em> <b id="rv-them-deg">0°</b></span>
+        <div id="private-meter" class="private-meter">
+          <div class="meter-panel you-control" id="panel-local">
+            <div class="meter-role" id="role-label">🥊 ATTACK</div>
+            <div id="meter-local" class="meter"></div>
+            <div class="meter-hint" id="hint-local">TAP / SPACE TO LOCK</div>
+            <div class="meter-wait hidden" id="meter-wait">LOCKED · OPPONENT LOCKING…</div>
           </div>
-          <div class="rv-note" id="rv-note">closer to ★ wins · tap to continue</div>
-          <div class="rv-timer"><span id="rv-timer-bar"></span></div>
+          <!-- Inline post-lock reveal: swaps in over the meter panel (same footprint) once BOTH locked -->
+          <div class="meter-panel reveal-panel hidden" id="reveal-panel" role="button" tabindex="-1" aria-live="polite" aria-label="Round reveal — tap to continue">
+            <div class="rv-result" id="rv-result">YOU WIN THE ROUND</div>
+            <div class="rv-dial" id="rv-dial"></div>
+            <div class="rv-stats">
+              <span class="rv-stat you" id="rv-you"><i></i>YOU <b id="rv-you-deg">0°</b></span>
+              <span class="rv-stat them" id="rv-them"><i></i><em id="rv-them-name">THEM</em> <b id="rv-them-deg">0°</b></span>
+            </div>
+            <div class="rv-note" id="rv-note">closer to ★ wins · tap to continue</div>
+            <div class="rv-timer"><span id="rv-timer-bar"></span></div>
+          </div>
+        </div>
+        <div class="meter-face" id="face-k">
+          <div class="mf-av" id="face-k-av"></div>
+          <div class="mf-name" id="face-k-name">KOL</div>
         </div>
       </div>
       <!-- Legacy mounts kept so old refs don't NPE -->

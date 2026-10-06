@@ -68,6 +68,24 @@ SAK.avatarSVG = function (look, opts) {
     ? `<ellipse cx="50" cy="70" rx="7" ry="5" fill="#5a1a1a"/>`
     : `<path d="M40 67 Q50 75 60 67" stroke="#5a1a1a" stroke-width="3" fill="none" stroke-linecap="round"/>`;
 
+  // Evolving battle damage (0 clean → 3 wrecked), drawn over the face.
+  const dmg = Math.max(0, Math.min(3, opts.dmg | 0));
+  let dmgFx = '';
+  if (!dead && dmg >= 1) {
+    dmgFx += `<ellipse cx="68" cy="62" rx="9" ry="6" fill="#ff2d2d" opacity="0.45"/>`;
+    dmgFx += `<ellipse cx="63" cy="49" rx="8" ry="6.5" fill="#5a2a6a" opacity="0.35"/>`;
+  }
+  if (!dead && dmg >= 2) {
+    dmgFx += `<ellipse cx="63" cy="49" rx="10" ry="8" fill="#3d1d55" opacity="0.7"/>`;
+    dmgFx += `<ellipse cx="33" cy="64" rx="8" ry="6" fill="#6a2a8a" opacity="0.5"/>`;
+    dmgFx += `<path d="M28 56 l11 9 M33 54 l11 9" stroke="#c22" stroke-width="1.6" opacity="0.8" stroke-linecap="round"/>`;
+  }
+  if (!dead && dmg >= 3) {
+    dmgFx += `<ellipse cx="37" cy="49" rx="10" ry="8" fill="#3d1d55" opacity="0.65"/>`;
+    dmgFx += `<ellipse cx="50" cy="74" rx="12" ry="6" fill="#5a2a6a" opacity="0.5"/>`;
+    dmgFx += `<circle cx="73" cy="38" r="6" fill="${s}" stroke="#c22" stroke-width="2"/>`;
+  }
+
   return `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" class="avatar-svg">
     <rect width="100" height="100" rx="18" fill="${bg}"/>
     <rect y="80" width="100" height="20" fill="#0002"/>
@@ -82,6 +100,7 @@ SAK.avatarSVG = function (look, opts) {
     <ellipse cx="50" cy="59" rx="4" ry="3" fill="#0002"/>
     ${mouth}
     ${opts.blush ? '<ellipse cx="68" cy="62" rx="9" ry="6" fill="#ff2d2d" opacity="0.55"/>' : ''}
+    ${dmgFx}
     ${acc}
   </svg>`;
 };
