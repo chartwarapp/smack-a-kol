@@ -58,7 +58,7 @@ SAK.Scene3D = (function () {
   let candles = [], coins = [];
   let shake = 0, time = 0, mode = 'menu';
   let koCam = null; // { track:Fighter, offset:Vector3, until:number } — follow loser fly-out + land
-  let hitCam = null; // { target:Fighter, w:0..1, peak } — cinematic orbit onto the slapped fighter's FACE
+  let hitCam = null; // { target:Fighter, w:0..1, peak, aw:0..1 } — face-cam onto the slapped fighter + wind-up stage weight back to the wide view
   let roleCam = { role: 'attack', w: 0 }; // local role framing: 0 = default fight view, 1 = local player's brace face-cam
   let camK = 1;      // aspect pull-back factor from frameCamera (narrow screens > 1)
   let lastSlapTier = null; // tier of the most recent slap — picks the KO variation
@@ -1419,6 +1419,7 @@ SAK.Scene3D = (function () {
 
   /** Resting fight framing for the current local role (attack ↔ brace). */
   const _rest = { pos: new T.Vector3(), look: new T.Vector3() }, _brace = { pos: new T.Vector3(), look: new T.Vector3() };
+  const _windup = { pos: new T.Vector3(), look: new T.Vector3() }; // wind-up stage framing temp
   function restFraming(out) {
     if (roleCam.w <= 0.0001 || !player) { out.pos.copy(camFight.pos); out.look.copy(camFight.look); return out; }
     if (!player.restHead) player.restHead = new T.Vector3(player.root.position.x, 2.35, player.homeZ);
@@ -1488,7 +1489,13 @@ SAK.Scene3D = (function () {
       _face.look.x += (live.x - home.x) * 0.9;
       _face.look.y += (live.y - home.y) * 0.9;
       _face.look.z += (live.z - home.z) * 0.9;
-      orbitBlend(_rest, _face, hitCam.w, camBase);
+      // Wind-up stage: ease back toward the wide fight framing (hitCam.aw)
+      // so the ATTACKER's wind-up plays in frame on both turns — on the
+      // opponent's turn the resting brace view would otherwise hide it —
+      // then swing onto the defender's face for the contact (hitCam.w).
+      if (hitCam.aw > 0.0001) orbitBlend(_rest, camFight, hitCam.aw, _windup);
+      else { _windup.pos.copy(_rest.pos); _windup.look.copy(_rest.look); }
+      orbitBlend(_windup, _face, hitCam.w, camBase);
     }
     // smooth camera + shake (snappier during KO pullback)
     const camLerp = koCam ? (1 - Math.pow(0.00005, dt)) : (1 - Math.pow(0.001, dt));
@@ -1745,7 +1752,7 @@ SAK.Scene3D = (function () {
   /** Begin the face-cam on defender D. Returns the cam token. */
   function startHitCam(D, peak) {
     D.homeHead = D.headWorld(new T.Vector3());
-    hitCam = { target: D, w: hitCam && hitCam.target === D ? hitCam.w : 0, peak: peak };
+    hitCam = { target: D, w: hitCam && hitCam.target === D ? hitCam.w : 0, peak: peak, aw: 0 };
     return hitCam;
   }
   /** Ease the face-cam back to the fight framing (or snap off). */
@@ -1795,6 +1802,10 @@ SAK.Scene3D = (function () {
     const cam = startHitCam(D, peak);
     const windup = (opts.windup || 0.42) * ST.windupMul;
     SAK.Tween.to(cam, { w: peak * 0.35 }, windup + 0.06, E.inOutQuad);
+    // Wind-up stage: pull back to the wide fight framing so the attacker's
+    // wind-up reads in frame on BOTH turns (the brace view on the opponent's
+    // turn would otherwise hide it). Swings onto the defender at the strike.
+    SAK.Tween.to(cam, { aw: 1 }, Math.min(0.3, windup), E.outCubic);
 
     // 1) Wind-up: arm rises HIGH above/behind the head, body coiled back,
     // held for a readable beat — bigger coil for stronger styles.
@@ -1810,6 +1821,7 @@ SAK.Scene3D = (function () {
     const handBase = A.slapHand.scale.clone();
     A.slapHand.scale.set(ST.hand[0], ST.hand[1], ST.hand[2]); // flattened open hand
     if (hitCam === cam) SAK.Tween.to(cam, { w: peak }, 0.42, E.outCubic); // swing in to the face through contact
+    if (hitCam === cam) SAK.Tween.to(cam, { aw: 0 }, 0.35, E.inOutQuad); // leave the wide wind-up framing as the swing starts
     if (opts.grade === 'miss') SAK.Tween.to(D.pose, { lean: -0.32 }, 0.12, E.outCubic); // dodge
     // heavy+ styles hop/lunge their weight into the hit
     if (ST.hop > 0) {
