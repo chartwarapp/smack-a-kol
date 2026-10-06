@@ -865,16 +865,59 @@ SAK.Scene3D = (function () {
     for (let i = 0; i < 5; i++) AG.add(mesh(new T.CylinderGeometry(0.12, 0.12, 0.035, 10), coinMat, -0.65, 1.075 + i * 0.037, 0.05 * (i % 2)));
     for (let i = 0; i < 3; i++) AG.add(mesh(new T.CylinderGeometry(0.12, 0.12, 0.035, 10), coinMat, -0.4, 1.075 + i * 0.037, -0.15));
 
-    // crowd with neon glow sticks
-    const crowdCols = ['#ff4fd8', '#39c5ff', '#ffe23d', '#39ff88', '#ff7a1a', '#b44dff'];
+    // crowd: little fight fans with faces, hair and clothes waving glow sticks
+    const skinTones = ['#f2c49b', '#e8b088', '#d9a066', '#b07a4a', '#8a5a35', '#6e4426'];
+    const shirtCols = ['#ff4fd8', '#39c5ff', '#ffe23d', '#39ff88', '#ff7a1a', '#b44dff', '#ff3b5c', '#f5f5f5', '#2e9dff', '#7dff6a'];
+    const hairCols = ['#141414', '#3a2410', '#6e4a1f', '#c9a24a', '#a33327', '#2b4f9e', '#6e6e6e', '#1f7a4d', '#d97fb0'];
+    const capCols = ['#ff3b5c', '#2e9dff', '#39ff88', '#ffd23f', '#f5f5f5', '#ff4fd8'];
     for (let i = 0; i < 26; i++) {
       const ang = Math.PI * 0.85 + (i / 25) * Math.PI * 1.25;
       const r = 5.6 + (i % 2) * 0.8;
-      const g = new T.Group(), c = crowdCols[i % crowdCols.length];
-      g.add(new T.Mesh(new T.CylinderGeometry(0.3, 0.38, 0.9, 6), mat(c)));
-      const hd = new T.Mesh(new T.IcosahedronGeometry(0.28, 0), mat('#f2c49b')); hd.position.y = 0.7; g.add(hd);
+      const g = new T.Group();
+      const skin = skinTones[i % skinTones.length];
+      const shirt = shirtCols[(i * 3 + 1) % shirtCols.length];
+      const s = 0.9 + ((i * 37) % 10) / 10 * 0.25; // height variety, deterministic
+      // torso (clothing)
+      const torso = new T.Mesh(new T.CylinderGeometry(0.28, 0.34, 0.85, 8), mat(shirt));
+      g.add(torso);
+      // arms + hands
+      for (const sx of [-1, 1]) {
+        const arm = new T.Mesh(new T.CylinderGeometry(0.07, 0.06, 0.5, 6), mat(shirt));
+        arm.position.set(sx * 0.37, 0.1, 0); arm.rotation.z = sx * -0.3; g.add(arm);
+        const hand = new T.Mesh(new T.SphereGeometry(0.075, 6, 5), mat(skin));
+        hand.position.set(sx * 0.45, -0.16, 0); g.add(hand);
+      }
+      // head
+      const head = new T.Mesh(new T.SphereGeometry(0.26, 10, 8), mat(skin));
+      head.position.y = 0.68; g.add(head);
+      // hair or cap (+z faces the ring after lookAt)
+      if (i % 3 === 2) {
+        const capC = capCols[i % capCols.length];
+        const dome = new T.Mesh(new T.SphereGeometry(0.27, 10, 6, 0, Math.PI * 2, 0, Math.PI * 0.5), mat(capC));
+        dome.position.set(0, 0.8, -0.02); g.add(dome);
+        const brim = new T.Mesh(new T.BoxGeometry(0.34, 0.04, 0.26), mat(capC));
+        brim.position.set(0, 0.8, 0.3); g.add(brim);
+      } else {
+        const hair = new T.Mesh(new T.SphereGeometry(0.27, 10, 8), mat(hairCols[(i * 5 + 2) % hairCols.length]));
+        hair.scale.set(1, 0.72, 1); hair.position.set(0, 0.8, -0.07); g.add(hair);
+      }
+      // face: eyes + smile or cheering "O" mouth
+      const eyeMat = mat('#1a1a1a');
+      for (const sx of [-1, 1]) {
+        const eye = new T.Mesh(new T.SphereGeometry(0.035, 6, 5), eyeMat);
+        eye.position.set(sx * 0.095, 0.71, 0.245); g.add(eye);
+      }
+      if (i % 2) {
+        const smile = new T.Mesh(new T.TorusGeometry(0.06, 0.014, 4, 10, Math.PI), mat('#7a2a2a'));
+        smile.position.set(0, 0.64, 0.245); smile.rotation.z = Math.PI; g.add(smile);
+      } else {
+        const ooh = new T.Mesh(new T.CircleGeometry(0.032, 8), mat('#5a1a1a'));
+        ooh.position.set(0, 0.6, 0.25); g.add(ooh);
+      }
+      // glow stick waved in the right hand
       const stick = new T.Mesh(new T.CylinderGeometry(0.03, 0.03, 0.5, 4), new T.MeshBasicMaterial({ color: i % 2 ? '#39ff88' : '#ff4fd8' }));
-      stick.position.set(0.3, 1.0, 0); stick.rotation.z = -0.4; g.add(stick);
+      stick.position.set(0.47, 0.3, 0.05); stick.rotation.z = -0.4; g.add(stick);
+      g.scale.setScalar(s);
       g.position.set(Math.cos(ang) * r, 0.45, Math.sin(ang) * r);
       g.lookAt(0, 0.45, 0);
       g.userData.phase = Math.random() * 6; g.userData.crowd = true;
