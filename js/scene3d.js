@@ -831,7 +831,7 @@ SAK.Scene3D = (function () {
     }
     // floating coins
     for (let i = 0; i < 9; i++) {
-      const c = new T.Mesh(new T.CylinderGeometry(0.35, 0.35, 0.07, 14), coinMat);
+      const c = new T.Mesh(new T.CylinderGeometry(0.35, 0.35, 0.07, 14), SAK.Scene3D._coinMat);
       c.rotation.x = Math.PI / 2;
       const ang = (180 + Math.random() * 100) * Math.PI / 180, r = 6 + Math.random() * 3;
       c.position.set(Math.cos(ang) * r, 3 + Math.random() * 4, Math.sin(ang) * r);
