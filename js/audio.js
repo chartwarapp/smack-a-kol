@@ -1,16 +1,59 @@
 /* =========================================================================
- * Tiny WebAudio synth — no audio files needed.
+ * WebAudio synth + recorded SFX bank (slap sounds in assets/sfx/).
  * ========================================================================= */
 window.SAK = window.SAK || {};
 
 SAK.Audio = (function () {
   let ctx = null, master = null, noiseBuf = null;
 
+  /* ---- Real recorded slap SFX bank (Pixabay Content License — free for use) ---- */
+  const SLAP_BANK = [
+    { id: 'crack',  name: '🦴 Bone Crack',   file: 'assets/sfx/slap-crack.mp3' },
+    { id: 'smack',  name: '👋 Heavy Smack',  file: 'assets/sfx/slap-smack.mp3' },
+    { id: 'face',   name: '😲 Face Classic',  file: 'assets/sfx/slap-face.mp3' },
+    { id: 'cinema', name: '🎬 Cinematic',    file: 'assets/sfx/slap-cinema.mp3' },
+    { id: 'wet',    name: '🥩 Wet Meat',     file: 'assets/sfx/slap-wet.mp3' },
+  ];
+  const slapBufs = {};   // id -> AudioBuffer
+  let slapLoading = false;
+
+  function slapStyle() {
+    const s = (SAK.Storage.state.settings.slapSound || 'crack');
+    return SLAP_BANK.some(b => b.id === s) ? s : 'crack';
+  }
+
+  // Preload + decode all slap files once the context exists. Silent failure
+  // falls back to the synth slap below.
+  function loadSlapBank() {
+    if (slapLoading || !ctx) return;
+    slapLoading = true;
+    SLAP_BANK.forEach(b => {
+      fetch(b.file).then(r => { if (!r.ok) throw 0; return r.arrayBuffer(); })
+        .then(ab => ctx.decodeAudioData(ab))
+        .then(buf => { slapBufs[b.id] = buf; })
+        .catch(() => { /* keep synth fallback */ });
+    });
+  }
+
+  function playSlapBuf(strength) {
+    const buf = slapBufs[slapStyle()];
+    if (!buf) return false;
+    const src = ctx.createBufferSource(); src.buffer = buf;
+    // Slight random pitch each hit so repeated slaps never sound identical
+    src.playbackRate.value = 0.94 + Math.random() * 0.12;
+    const g = ctx.createGain();
+    const s = Math.min(1.5, strength || 1);
+    g.gain.value = 0.9 * Math.max(0.35, s);
+    src.connect(g); g.connect(master);
+    src.start();
+    return true;
+  }
+
   function enabled() { return SAK.Storage.state.settings.sound; }
 
   // Must be called from a user gesture (browser autoplay policy).
   function unlock() {
-    if (ctx) { if (ctx.state === 'suspended') ctx.resume(); return; }
+    if (ctx) { if (ctx.state === 'suspended') ctx.resume(); loadSlapBank(); return; }
     const AC = window.AudioContext || window.webkitAudioContext;
     if (!AC) return;
     ctx = new AC();
@@ -20,6 +63,7 @@ SAK.Audio = (function () {
     noiseBuf = ctx.createBuffer(1, ctx.sampleRate * 0.6, ctx.sampleRate);
     const d = noiseBuf.getChannelData(0);
     for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+    loadSlapBank();
   }
 
   function ready() { return ctx && enabled(); }
@@ -46,8 +90,21 @@ SAK.Audio = (function () {
 
   return {
     unlock,
+    SLAP_BANK,
+    slapStyle,
+    /** Preview a bank sound in Settings (bypasses nothing — respects sound toggle). */
+    previewSlap(id) {
+      if (!ready()) return;
+      const buf = slapBufs[id];
+      if (!buf) return;
+      const src = ctx.createBufferSource(); src.buffer = buf;
+      const g = ctx.createGain(); g.gain.value = 0.9;
+      src.connect(g); g.connect(master); src.start();
+    },
     slap(strength) {          // strength 0..1+
       if (!ready()) return;
+      if (playSlapBuf(strength)) return;   // real recorded slap
+      // synth fallback (bank not loaded yet / fetch failed)
       const s = Math.min(1.5, strength);
       noise(0.12 + 0.08 * s, 2200, 0.8, 0.9 * Math.max(0.3, s));
       noise(0.05, 5000, 1.2, 0.5);

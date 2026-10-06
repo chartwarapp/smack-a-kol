@@ -1388,6 +1388,26 @@
     });
     renderArenaPicks();
   }
+  // V2: slap sound picker (real recorded SFX bank)
+  const spick = $('#slap-picks');
+  if (spick && A.SLAP_BANK) {
+    const renderSlapPicks = () => {
+      spick.querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.slap === A.slapStyle()));
+    };
+    A.SLAP_BANK.forEach(({ id, name }) => {
+      const b = document.createElement('button');
+      b.dataset.slap = id; b.textContent = name;
+      b.addEventListener('click', () => {
+        A.unlock();
+        S.settings.slapSound = id; SAK.Storage.save(); renderSlapPicks();
+        A.previewSlap(id); // tap to hear it instantly
+      });
+      spick.appendChild(b);
+    });
+    // Refresh highlight each time settings opens
+    $('#btn-settings').addEventListener('click', () => setTimeout(renderSlapPicks, 0));
+    renderSlapPicks();
+  }
   $('#btn-forfeit').addEventListener('click', () => {
     $('#modal-settings').classList.add('hidden');
     if (F && !['over', 'done', 'busy'].includes(F.turn)) { stopMeters(); F.challenge.kWins = F.challenge.winsNeeded; renderRoundScore(); knockout('player'); }
