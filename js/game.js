@@ -659,6 +659,7 @@
 
   function startChallengeRound() {
     if (!F || ['over', 'done'].includes(F.turn)) return;
+    A.bell(); // 🛎 boxing ring bell — round is starting
     hideLockReveal();
     const C = F.challenge;
     C.round++;

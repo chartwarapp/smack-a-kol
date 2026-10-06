@@ -63,6 +63,31 @@ SAK.Audio = (function () {
     win() { if (!ready()) return; [523, 659, 784, 1046].forEach((f, i) => tone(f, 0.35, 'triangle', 0.2, i * 0.11)); },
     lose() { if (!ready()) return; [392, 330, 262].forEach((f, i) => tone(f, 0.45, 'sine', 0.2, i * 0.18)); },
     brace() { if (!ready()) return; tone(300, 0.1, 'square', 0.12); },
+    /** Boxing ring bell — three classic dings with metallic partials. */
+    bell() {
+      if (!ready()) return;
+      const strike = (when) => {
+        const t0 = ctx.currentTime + when;
+        // Inharmonic metallic partials of a real ringside bell
+        const base = 740;
+        [[1, 0.5], [2.76, 0.22], [5.4, 0.12], [8.9, 0.06]].forEach(([ratio, g]) => {
+          const o = ctx.createOscillator(); const gn = ctx.createGain();
+          o.type = 'sine'; o.frequency.value = base * ratio;
+          gn.gain.setValueAtTime(0.0001, t0);
+          gn.gain.exponentialRampToValueAtTime(g, t0 + 0.008);
+          gn.gain.exponentialRampToValueAtTime(0.0001, t0 + 1.4);
+          o.connect(gn); gn.connect(master); o.start(t0); o.stop(t0 + 1.5);
+        });
+        // mallet click, delayed with the strike
+        const src = ctx.createBufferSource(); src.buffer = noiseBuf;
+        const f = ctx.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = 4000; f.Q.value = 1.0;
+        const cg = ctx.createGain();
+        cg.gain.setValueAtTime(0.15, t0); cg.gain.exponentialRampToValueAtTime(0.001, t0 + 0.03);
+        src.connect(f); f.connect(cg); cg.connect(master);
+        src.start(t0); src.stop(t0 + 0.08);
+      };
+      strike(0); strike(0.55); strike(1.1);
+    },
     /** Cartoon pain yelp — louder / lower for bigger hit tiers. */
     yelp(tier) {
       if (!ready()) return;
