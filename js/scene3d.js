@@ -762,6 +762,28 @@ SAK.Scene3D = (function () {
     return g;
   }
 
+  /** Original low-poly cat mascot (memecoin vibe, not any existing character). */
+  function makeCat() {
+    const g = new T.Group(), fur = mat('#c9a46b'), white = mat('#fff3e0');
+    const body = mesh(new T.IcosahedronGeometry(0.5, 1), fur, 0, 0.5, 0); body.scale.set(1, 1, 1.1); g.add(body);
+    g.add(mesh(new T.IcosahedronGeometry(0.3, 1), white, 0, 0.42, 0.28));
+    const head = new T.Group(); head.position.y = 1.15; g.add(head);
+    head.add(mesh(new T.IcosahedronGeometry(0.4, 1), fur, 0, 0, 0));
+    for (const sx of [-1, 1]) {
+      head.add(mesh(new T.ConeGeometry(0.16, 0.34, 4), fur, sx * 0.22, 0.42, 0));
+      head.add(mesh(new T.SphereGeometry(0.07, 6, 5), mat('#111111'), sx * 0.14, 0.08, 0.35));
+      for (const wy of [0.0, -0.09])
+        head.add(mesh(new T.BoxGeometry(0.3, 0.015, 0.015), mat('#ffffff'), sx * 0.36, wy, 0.32));
+    }
+    head.add(mesh(new T.SphereGeometry(0.05, 6, 5), mat('#ff8a9a'), 0, -0.08, 0.4));
+    const tail = mesh(new T.TorusGeometry(0.16, 0.06, 4, 8, Math.PI * 1.5), fur, 0, 0.7, -0.5); g.add(tail);
+    g.add(mesh(new T.CylinderGeometry(0.05, 0.05, 1.3, 5), mat('#3a2a1a'), 0.7, 0.9, 0.1));
+    const sign = new T.Mesh(new T.PlaneGeometry(0.95, 0.5), new T.MeshBasicMaterial({ map: textPanel('MEOW', '#ff7ad9', ['#12002b', '#2a0b5e'], 256, 140), side: T.DoubleSide }));
+    sign.position.set(0.7, 1.6, 0.12); g.add(sign);
+    g.userData.head = head;
+    return g;
+  }
+
   function makeRocket() {
     const g = new T.Group();
     g.add(mesh(new T.CylinderGeometry(0.28, 0.32, 1.4, 8), mat('#f2f2ff'), 0, 0, 0));
@@ -880,6 +902,10 @@ SAK.Scene3D = (function () {
     billboard(textPanel('TO THE MOON 🚀', '#ffd23f', ['#2a0b5e', '#5a1aa8'], 768, 200), 4.6, 1.2, 278, 8.8, 3.0);
     billboard(textPanel('NGMI', '#ff3b5c', ['#12002b', '#3a0b2e'], 512, 220), 3.0, 1.3, 183, 8.5, 2.6);
     billboard(chart.tex, 3.2, 2.0, 302, 8.6, 4.2);
+    // Solana memecoin degen dressing
+    billboard(textPanel('DIAMOND HANDS 💎🙌', '#39ff88', ['#12002b', '#1a3a2e'], 768, 200), 4.6, 1.2, 218, 8.8, 3.4);
+    billboard(textPanel('SLAP.FUN', '#ff4fd8', ['#2a0b2e', '#5e0b3a'], 640, 200), 3.8, 1.15, 262, 8.6, 4.0);
+    billboard(textPanel('SOL ▲ +420%', '#14f195', ['#1a0b3a', '#2a1a5e'], 640, 200), 3.8, 1.15, 158, 8.6, 4.0);
 
     // low ring-side banners
     const words = [['HODL', '#ffd23f'], ['GM', '#39ff88'], ['NGMI', '#ff3b5c'], ['WAGMI', '#39ff88'], ['PUMP IT', '#ff4fd8'], ['GM', '#39ff88'], ['HODL', '#ffd23f']];
@@ -929,7 +955,8 @@ SAK.Scene3D = (function () {
     // mascots at the ring corners
     const frog = makeFrog(); frog.position.set(-3.9, 0, -2.2); frog.lookAt(2, 0, 3); AG.add(frog);
     const dog = makeDog(); dog.position.set(1.4, 0, -4.2); dog.lookAt(1, 0, 2); AG.add(dog);
-    mascots = [frog, dog];
+    const cat = makeCat(); cat.position.set(4.1, 0, -2.4); cat.lookAt(1, 0, 2); AG.add(cat);
+    mascots = [frog, dog, cat];
 
     // coloured neon fill lights
     const l1 = new T.PointLight('#39ff88', 18, 12); l1.position.set(-3, 3, -3); AG.add(l1);
@@ -981,6 +1008,9 @@ SAK.Scene3D = (function () {
     billboard(textPanel('TO THE MOON 🚀', '#ffd23f', ['#0a1030', '#2a1a6e'], 768, 200), 4.8, 1.25, 250, 9, 3.2);
     billboard(textPanel('$SLAP ▲ +999%', '#39ff88', ['#0a1030', '#123a2a'], 640, 200), 3.8, 1.15, 205, 9, 4.4);
     billboard(textPanel('WAGMI', '#39c5ff', ['#0a1030', '#1a2a5e'], 512, 220), 3.4, 1.5, 295, 9, 2.8);
+    // degen launchpad dressing
+    billboard(textPanel('APE IN 🚀', '#ff7a1a', ['#0a1030', '#3a1a0e'], 640, 200), 3.8, 1.15, 228, 9, 4.2);
+    billboard(textPanel('LFGOOO', '#b44dff', ['#0a1030', '#2a1a5e'], 512, 220), 3.2, 1.4, 318, 9, 3.0);
     // floating coins
     const coinMat = mat('#ffcc22', {}); coinMat.emissive = new T.Color('#5a3a00');
     for (let i = 0; i < 8; i++) {
@@ -1035,6 +1065,8 @@ SAK.Scene3D = (function () {
     sign('REKT', '#ff3b5c', -7.8, 4.2, -3, Math.PI / 2);
     sign('NGMI', '#ff9a1f', 7.8, 3.6, -5, -Math.PI / 2);
     sign('DUMP IT', '#ff4fd8', -7.8, 2.6, -8, Math.PI / 2);
+    sign('COPE', '#39ff88', -7.8, 5.6, -6, Math.PI / 2);
+    sign('LIQUIDATED', '#b44dff', 7.8, 5.0, -8, -Math.PI / 2);
     // hanging wire + flickering bulb
     const curve = new T.QuadraticBezierCurve3(new T.Vector3(-8, 6.4, -4), new T.Vector3(0, 5.2, -4), new T.Vector3(8, 6.4, -4));
     AG.add(new T.Mesh(new T.TubeGeometry(curve, 16, 0.03, 5), new T.MeshBasicMaterial({ color: '#000000' })));
@@ -1048,7 +1080,7 @@ SAK.Scene3D = (function () {
     const l2 = new T.PointLight('#ff4fd8', 14, 12); l2.position.set(3, 2.5, -4); AG.add(l2);
     neonLights = [l1, l2];
     // distant red chart glow billboard
-    billboard(textPanel('$SLAP ▼ -99%', '#ff3b5c', ['#120309', '#3a0b1e'], 640, 200), 3.8, 1.15, 250, 9.5, 4.2);
+    billboard(textPanel('$SLAP ▼ -99.9%', '#ff3b5c', ['#120309', '#3a0b1e'], 640, 200), 3.8, 1.15, 250, 9.5, 4.2);
   }
 
   function updateArena(dt) {
