@@ -676,6 +676,8 @@
     const isAtk = C.localSide === 'atk';
     // Role camera: bracing → show YOUR face (incoming slap); attacking → default fight view
     if (Scene && Scene.setRoleCam) Scene.setRoleCam(isAtk ? 'attack' : 'brace');
+    // Degen play-by-play: random commentary so rounds never feel the same
+    if (Math.random() < 0.4) setTimeout(() => { if (F && F.started) say(pick(SAK.COPY.fightCommentary)); }, 1400);
     const roleEl = $('#role-label');
     roleEl.textContent = isAtk ? '🥊 ATTACK' : '🛡 BRACE';
     roleEl.className = 'meter-role ' + (isAtk ? 'atk-role' : 'def-role');
@@ -978,7 +980,8 @@
         if (target === 'k') pk.innerHTML = SAK.avatarSVG(F.kol.look, { blush: true });
         else pk.innerHTML = SAK.avatarSVG(playerLook(), { blush: true });
         if (playerIsAtk && grade.id === 'perfect' && Math.random() < 0.5) sayPlayer(playerPhrase());
-        else if (!playerIsAtk && Math.random() < 0.35) say(pick(F.kol.taunts));
+        else if (playerIsAtk && Math.random() < 0.45) sayPlayer(pick(SAK.COPY.attackLines));
+        else if (!playerIsAtk && Math.random() < 0.5) say(pick(Math.random() < 0.5 ? F.kol.taunts : SAK.COPY.smackReactions));
       } else {
         A.brace();
         haptic(25);

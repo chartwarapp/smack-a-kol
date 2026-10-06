@@ -129,7 +129,40 @@ SAK.COPY = {
   loseTitles: ['NGMI…', 'REKT!', 'RUGGED!', 'LIQUIDATED!'],
   winSubs: ['{k} got slapped straight into the bear market. 📉', '{k} is now exit liquidity. 💀', 'Chart says: {k} DUMPED. 📉', '{k} has been sent to zero. Few understand.', '{k} just got margin-called by your palm. 🖐', 'Slapped {k} so hard their bags went to zero.'],
   loseSubs: ['{k}: “{t}”', 'You got farmed by {k}. Cope & seethe.', 'Down bad. {k} ate your cheeks.', 'Your portfolio and your face: both red. 📕', 'Cheeks rugged. Have fun staying poor (jk, run it back).'],
-  missTaunts: ['NGMI with that aim 😜', 'Paper-handed swing, ser.', 'Was that a slap or a gm?', 'Skill issue. 📉']
+  missTaunts: ['NGMI with that aim 😜', 'Paper-handed swing, ser.', 'Was that a slap or a gm?', 'Skill issue. 📉'],
+  /* Degen fight commentary: attack hype, smack reactions, play-by-play.
+   * Picked at random during fights so the banter never repeats. */
+  attackLines: [
+    'EAT PALM, SER 🖐', 'THAT\'S FOR THE RUG 🖐', 'BULLISH ON THIS SLAP 📈',
+    'MARGIN CALLED 🖐💥', 'SEND IT!! 🚀', 'DIAMOND PALMS 💎🖐',
+    'LIQUIDATED UR FACE 🖐', 'TO THE MOON, VIA UR CHEEK 🌙',
+    'PAPER HANDS CAN\'T BRACE THIS', 'HODL THIS SLAP 💎',
+    'GIGA SLAP DETECTED 🖐', 'UR CHART JUST DUMPED 📉',
+    'SLAP SEASON IS UPON US', 'F IN CHAT FOR UR CHEEK',
+    'THAT\'S A 10X SLAP 📈', 'BULL MARKET FISTS 🐂🖐',
+    'GET SLAPPED, STAY HUMBLE', 'WAGMI (AFTER THIS SLAP)'
+  ],
+  smackReactions: [
+    'RATIO + SLAPPED 💥', 'UR FACE IS MY EXIT LIQUIDITY',
+    'COPE + SEETHE + SLAPPED', 'THAT\'S A BEAR MARKET SLAP 🐻',
+    'NGMI WITH THAT BRACE 😂', 'DOWN BAD, CHEEKS RED 📕',
+    'I\'M JUST FARMING UR FACE 🚜', 'SLAP-TO-EARN, UR THE YIELD',
+    'THAT CHEEK JUST GOT RUGGED', 'SKILL ISSUE, SER 📉',
+    'HOLD THIS L (AND THIS SLAP)', 'UR PORTFOLIO CALLED, IT\'S CRYING',
+    'BULLISH ON SLAPPING YOU 📈', 'THIS IS THE DIP YOU BOUGHT 🖐',
+    'GET GOOD, GET SLAPPED', 'LAMBO MONEY, SLAP DELIVERY 🏎💥',
+    'UR CHEEK IS NOW A STABLECOIN (FLAT)', 'WITNESS ME, DEGENS 🖐🔥'
+  ],
+  fightCommentary: [
+    '🎙 AND THE CROWD GOES MILDLY WILD', '🎙 SOMEONE\'S BAGS ARE GETTING SLAPPED',
+    '🎙 THIS IS FINANCIAL ADVICE (SLAP)', '🎙 CHARTS GREEN, CHEEKS RED',
+    '🎙 DEGENS ARE WATCHING 👀', '🎙 VOLATILITY: EXTREME 🖐',
+    '🎙 NOT FINANCIAL ADVICE, JUST PALMS', '🎙 FLOOR PRICE OF CHEEKS IS DUMPING',
+    '🎙 WHALES ARE ACCUMULATING SLAPS 🐋', '🎙 GAS FEES CAN\'T SAVE YOU NOW',
+    '🎙 LIVE FROM THE COLOSSEUM OF COPE', '🎙 DIAMOND CHEEKS VS PAPER PALMS',
+    '🎙 THE ORDER BOOK SAYS: SLAP', '🎙 PUMP THE VOLUME, DUMP THE CHEEKS 📢',
+    '🎙 THIS FIGHT IS SPONSORED BY COPIUM', '🎙 HODL YOUR FACE, SER 🛡'
+  ]
 };
 
 /* Legacy brace ring (kept for reference). Private per-device meter replaced it:
