@@ -123,7 +123,16 @@ SAK.Scene3D = (function () {
   ];
   function pickLandPose() { return LAND_POSES[(Math.random() * LAND_POSES.length) | 0]; }
 
-  /* Hit-reaction tiers — cartoon pain scaled by how close to green (no gore). */
+  /* Randomized "ouch" faces: a wince style is picked fresh on every landed
+   * slap and jittered, so the pain reaction never repeats. Values are
+   * multipliers on the tier's mouth/eye scales (tier still sets intensity). */
+  const OUCH_FACES = [
+    { mx: 1.00, my: 1.00, ex: 1.00, ey: 1.00 }, // classic tier face
+    { mx: 0.72, my: 1.28, ex: 0.92, ey: 0.68 }, // grimace: tight squint, tall grimace
+    { mx: 1.32, my: 0.85, ex: 1.18, ey: 1.22 }, // scream: wide mouth, popping eyes
+    { mx: 0.88, my: 1.12, ex: 1.22, ey: 0.58 }, // shocked yelp: squint + open jaw
+    { mx: 1.15, my: 1.35, ex: 0.85, ey: 0.75 }, // bawl: scrunched eyes, big wail
+  ];
   const HIT_REACT = {
     /* light  = weak / outer zone — small flinch, mild wince
      * medium = good / mid yellow — bigger head snap + wobble
@@ -1208,6 +1217,10 @@ SAK.Scene3D = (function () {
   // Face-cam angle for the local player: slight rotate (~45° orbit) instead of
   // the full ~160° swing, keeping face + slapping hand + contact in frame.
   const PLAYER_FACE_ANG = 1.05;
+  // Face-cam angle for the KOL (player's turn): the default fight view already
+  // frames the KOL's face well, so this barely rotates (~0° orbit) — it just
+  // pushes in. No more swinging around to the player's back.
+  const KOL_FACE_ANG = 1.05;
 
   /** Blend fight framing → face framing by w, orbiting (spherical) not cutting. */
   function orbitBlend(a, b, w, out) {
@@ -1285,10 +1298,11 @@ SAK.Scene3D = (function () {
     }
     if (!koCam && hitCam && hitCam.target && mode !== 'menu' && mode !== 'pick') {
       // …and the slap face-cam orbits from there onto the defender's face.
-      // The local player gets the gentle angle (slight rotate on the
-      // opponent's turn); the KOL keeps the full face-cam swing.
+      // Both fighters get the gentle angle now: slight rotate on the
+      // opponent's turn, barely any rotate on the player's turn (the default
+      // view already frames the KOL's face well) — just a push-in.
       const F = hitCam.target;
-      faceFraming(F, _face, 1, null, F === player ? PLAYER_FACE_ANG : -1.0);
+      faceFraming(F, _face, 1, null, F === player ? PLAYER_FACE_ANG : KOL_FACE_ANG);
       // follow the head's recoil a little so the reaction stays centred
       const live = F.headWorld(_vA);
       const home = F.homeHead || live;
@@ -1477,14 +1491,18 @@ SAK.Scene3D = (function () {
       SAK.Tween.to(D.root.position, { x: sx0 + shove }, 0.12, SAK.Ease.outCubic)
         .then(() => { if (!D.ko) return SAK.Tween.to(D.root.position, { x: sx0 }, 0.4, SAK.Ease.inOutQuad); });
     }
-    // Wince (light/medium) or scream face (heavy/perfect)
-    D.mouth.scale.set(R.mouthX || 1, R.mouthY, 1);
-    if (D.eyes) D.eyes.scale.set(R.eyeSx || 1, R.eyeSy || 1, 1);
+    // Wince (light/medium) or scream face (heavy/perfect) — with a random
+    // "ouch" style picked fresh every hit, plus jitter, so the pain face
+    // never repeats. Tier still sets the overall intensity.
+    const ouch = OUCH_FACES[(Math.random() * OUCH_FACES.length) | 0];
+    const jit = (v, amt) => v * (1 + (Math.random() * 2 - 1) * amt);
+    D.mouth.scale.set(jit(R.mouthX * ouch.mx, 0.12), jit(R.mouthY * ouch.my, 0.12), 1);
+    if (D.eyes) D.eyes.scale.set(jit(R.eyeSx * ouch.ex, 0.12), jit(R.eyeSy * ouch.ey, 0.12), 1);
     setTimeout(() => {
       if (D.ko) return;
       D.mouth.scale.set(1, 1, 1);
       if (D.eyes) D.eyes.scale.set(1, 1, 1);
-    }, R.mouthMs);
+    }, R.mouthMs * (0.9 + Math.random() * 0.25));
     // Tiny cartoon hop on heavier hits
     if (R.hop) {
       const y0 = D.root.position.y;
