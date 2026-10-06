@@ -1144,10 +1144,10 @@
          <div class="result-sub">${F.duel.p} vs ${F.duel.k}. Nobody pumped, nobody dumped.</div>`
       : win
       ? `<div class="result-title">${pick(C.winTitles)}</div>
-         ${SAK.avatarSVG(k.look, { ko: true, blush: true })}
+         ${SAK.avatarSVG(k.look, { ko: true, wrecked: true, blush: true })}
          <div class="result-sub">${sub(pick(C.winSubs))}${F.challenge ? ` · ${F.challenge.pWins}–${F.challenge.kWins} (Bo${F.challenge.bestOf})` : ''}</div>`
       : `<div class="result-title">${pick(C.loseTitles)}</div>
-         ${SAK.avatarSVG(playerLook(), { ko: true, blush: true })}
+         ${SAK.avatarSVG(playerLook(), { ko: true, wrecked: true, blush: true })}
          <div class="result-sub">${sub(pick(C.loseSubs))}${F.challenge ? ` · ${F.challenge.pWins}–${F.challenge.kWins} (Bo${F.challenge.bestOf})` : ''}<br><small>Tip: ride your jerky meter into the ★ — closer than opponent wins the round</small></div>`;
     html += `<div class="breakdown">
         <div class="bd-head">PLAY-TO-EARN</div>
@@ -1169,6 +1169,7 @@
         <button class="btn btn-yellow" id="r-rematch">↻ RUN IT BACK${reBet ? ` · BET ${fmt(reBet)}` : ' (FREE)'}</button>
         ${win && next && !k.pvp ? `<button class="btn btn-red" id="r-next">APE INTO ${esc(next.name)} →</button>` : ''}
         <div class="row">
+          <button class="btn btn-purple" id="r-card">📤 FIGHT CARD</button>
           <button class="btn btn-purple" id="r-pick">${k.pvp ? 'PVP LOBBY' : 'PICK KOL'}</button>
           <button class="btn btn-grey" id="r-menu">TOUCH GRASS</button>
         </div>
@@ -1178,6 +1179,25 @@
     card.innerHTML = html;
     show('result');
     $('#r-rematch').onclick = () => startFight(k, reBet, { mode: F.mode, pvp: F.opts && F.opts.pvp });
+    $('#r-card').onclick = async (e) => {
+      const btn = e.currentTarget;
+      btn.disabled = true; const old = btn.textContent; btn.textContent = 'MAKING CARD…';
+      try {
+        const C = F.challenge;
+        const svg = SAK.FightCard.build({
+          win, playerName: profile().name, playerLook: playerLook(), playerDmg: dmgLevel('player'),
+          kolName: k.name, scoreP: C ? C.pWins : (win ? 1 : 0), scoreK: C ? C.kWins : (win ? 0 : 1),
+          bestOf: C ? C.bestOf : 1, biggestHit: Math.round(F.maxHit || 0), pts: Math.round(pts || 0),
+          modeLabel: (SAK.MODES[F.mode] && SAK.MODES[F.mode].label || 'CLASSIC KO').toUpperCase(),
+        });
+        const text = win
+          ? `I just sent ${k.name} to ZERO in Smack-a-KOL 🥊`
+          : `I just got REKT in Smack-a-KOL 😭 Run it back?`;
+        const how = await SAK.FightCard.share(svg, text);
+        btn.textContent = how === 'shared' ? 'SHARED ✓' : 'SAVED ✓';
+      } catch (err) { btn.textContent = 'FAILED — TRY AGAIN'; }
+      setTimeout(() => { btn.disabled = false; btn.textContent = old; }, 1800);
+    };
     if ($('#r-next')) $('#r-next').onclick = () => { selectedBet = 0; openPicker(idx + 1); };
     $('#r-pick').onclick = () => { if (k.pvp) { show('menu'); menuScene(); openPvp(); } else openPicker(); };
     $('#r-menu').onclick = () => { show('menu'); menuScene(); };
