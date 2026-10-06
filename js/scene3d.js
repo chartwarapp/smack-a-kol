@@ -61,6 +61,7 @@ SAK.Scene3D = (function () {
   let hitCam = null; // { target:Fighter, w:0..1, peak } — cinematic orbit onto the slapped fighter's FACE
   let roleCam = { role: 'attack', w: 0 }; // local role framing: 0 = default fight view, 1 = local player's brace face-cam
   let camK = 1;      // aspect pull-back factor from frameCamera (narrow screens > 1)
+  let lastSlapTier = null; // tier of the most recent slap — picks the KO variation
   const camBase = { pos: new T.Vector3(), look: new T.Vector3() };
   const camCur = { pos: new T.Vector3(), look: new T.Vector3() };
   const camFight = { pos: new T.Vector3(), look: new T.Vector3() }; // resting fight framing
@@ -151,6 +152,46 @@ SAK.Scene3D = (function () {
       eyeSx: 1.4, eyeSy: 1.55, sx: 1.58, sy: 0.45, sz: 1.38, squashDur: 0.58,
       stars: 6, burstN: 40, burstSpd: 5.8, shake: 0.58, hitStop: 0.13, hop: 0.32,
       blushAdd: 0.55, colors: ['#39ff88', '#ffd23f', '#ffffff', '#ff4fd8', '#ff7a9a'], ring: '#39ff88', yelpDelay: 0.06
+    }
+  };
+
+  /* Slap styles by meter strength — Slap Kings motion language: HUGE readable
+   * wind-up (arm high above/behind the head, body coiled), full-body twist and
+   * forward lunge into the hit, snappy fast strike with follow-through.
+   * Weaker styles are smaller versions of the same language.
+   * wind  = wind-up pose target (twist is multiplied by armSide at use time)
+   * strike = contact pose target; hand = slap-hand scale at contact
+   * peak  = hitCam push-in (kept ≤0.7 so contact stays visible) */
+  const SLAP_STYLES = {
+    whiff: { // miss: wild over-swing, no contact
+      windupMul: 1.1, squash: 1.04,
+      wind:   { lift: 3.3, swing: 1.7, elbow: 1.8, twist: 0.95, lean: -0.24 },
+      strike: { lift: 1.9, swing: -2.7, elbow: 0.05, twist: -0.95, lean: 0.34, lunge: 0.5 },
+      strikeDur: 0.14, hand: [1.15, 0.8, 1.25], peak: 0.3, fx: 0, hop: 0
+    },
+    limp: { // weak / red zone: half-hearted, floppy wrist
+      windupMul: 0.75, squash: 1.03,
+      wind:   { lift: 2.2, swing: 0.7, elbow: 1.1, twist: 0.4, lean: -0.08 },
+      strike: { lift: 2.45, swing: -1.5, elbow: 0.5, twist: -0.3, lean: 0.1, lunge: 0.1 },
+      strikeDur: 0.2, hand: [1.15, 0.85, 1.25], peak: 0.5, fx: 0.5, hop: 0
+    },
+    standard: { // good outer: solid readable slap
+      windupMul: 1.0, squash: 1.07,
+      wind:   { lift: 3.15, swing: 1.25, elbow: 1.55, twist: 0.8, lean: -0.18 },
+      strike: { lift: 2.3, swing: -2.15, elbow: 0.1, twist: -0.62, lean: 0.24, lunge: 0.38 },
+      strikeDur: 0.15, hand: [1.35, 0.55, 1.5], peak: 0.55, fx: 1, hop: 0
+    },
+    heavy: { // good inner: deep coil, big twist, driving lunge
+      windupMul: 1.2, squash: 1.1,
+      wind:   { lift: 3.4, swing: 1.5, elbow: 1.7, twist: 1.05, lean: -0.24 },
+      strike: { lift: 2.35, swing: -2.35, elbow: 0.08, twist: -0.85, lean: 0.3, lunge: 0.6 },
+      strikeDur: 0.13, hand: [1.45, 0.5, 1.6], peak: 0.65, fx: 1.5, hop: 0.12
+    },
+    devastating: { // perfect dead-center: maximum everything, hop into the hit
+      windupMul: 1.35, squash: 1.12,
+      wind:   { lift: 3.6, swing: 1.65, elbow: 1.8, twist: 1.2, lean: -0.3 },
+      strike: { lift: 2.4, swing: -2.5, elbow: 0.05, twist: -1.0, lean: 0.36, lunge: 0.85 },
+      strikeDur: 0.12, hand: [1.55, 0.45, 1.7], peak: 0.7, fx: 2, hop: 0.22
     }
   };
 
@@ -266,6 +307,16 @@ SAK.Scene3D = (function () {
         const c = new T.Mesh(new T.SphereGeometry(0.13, 8, 6), this.blushMat);
         c.position.set(sx * 0.33, 0.3, 0.36); c.scale.set(1, 0.7, 0.4); this.head.add(c);
       }
+      // Progressive battle damage: black-eye ring + cheek scratch, revealed as hits land (cartoon, no gore)
+      this.bruiseLevel = 0;
+      this.bruiseMat = new T.MeshBasicMaterial({ color: '#4a2560', transparent: true, opacity: 0, depthWrite: false });
+      const bruise = new T.Mesh(new T.SphereGeometry(0.155, 10, 8), this.bruiseMat);
+      bruise.position.set(0.18, 0.5, 0.44); bruise.scale.set(1, 0.9, 0.45); this.head.add(bruise);
+      this.cutMat = new T.MeshBasicMaterial({ color: '#d42a2a', transparent: true, opacity: 0, depthWrite: false });
+      const cut1 = new T.Mesh(new T.BoxGeometry(0.035, 0.17, 0.02), this.cutMat);
+      cut1.position.set(-0.3, 0.26, 0.44); cut1.rotation.z = 0.45; this.head.add(cut1);
+      const cut2 = new T.Mesh(new T.BoxGeometry(0.035, 0.11, 0.02), this.cutMat);
+      cut2.position.set(-0.26, 0.3, 0.44); cut2.rotation.z = -0.5; this.head.add(cut2);
       this.buildAccessory();
       // 👁👁 laser eyes, flashed on a PERFECT slap
       this.lasers = new T.Group(); this.lasers.visible = false; this.head.add(this.lasers);
@@ -488,6 +539,13 @@ SAK.Scene3D = (function () {
 
     setDamage(frac) { this.blushMat.opacity = Math.min(0.75, frac * 0.9); }
 
+    /** Progressive cartoon bruising: black eye fades in first, cheek scratch at higher damage. */
+    setBruise(frac) {
+      this.bruiseLevel = frac;
+      this.bruiseMat.opacity = Math.min(0.85, frac * 0.9);
+      this.cutMat.opacity = frac > 0.45 ? Math.min(0.9, (frac - 0.45) * 1.6) : 0;
+    }
+
     setFire(on) {
       this.fire = on;
       const m = this.arms[this.armSide].handMat;
@@ -534,6 +592,7 @@ SAK.Scene3D = (function () {
       this.torso.rotation.set(0, 0, 0);
       this.head.rotation.set(0, 0, 0);
       this.setDamage(0);
+      this.setBruise(0);
     }
 
     dispose() {
@@ -1389,16 +1448,25 @@ SAK.Scene3D = (function () {
     const R = HIT_REACT[tier] || HIT_REACT.light;
     const fireMul = fire ? 1.35 : 1;
     const hp = D.headWorld(); hp.x += 0.35; hp.y -= 0.05;
-    // Head snap + body wobble (springs)
-    const k = R.yaw * fireMul;
+    // Head WHIP + springy overshoot: hard snap to the side, then a wobble back
+    // the other way so it reads springy instead of stiff (Slap Kings feel).
+    const k = R.yaw * fireMul * 1.25;
     D.yaw.v += -D.facing * k;
     D.roll.v += -(R.roll * fireMul);
+    setTimeout(() => { if (!D.ko) { D.yaw.v += D.facing * R.yaw * 0.55; D.roll.v += R.roll * 0.35; } }, 150);
     // Lean-back flinch, then settle; medium+ get a delayed wobble kick
     SAK.Tween.to(D.pose, { lean: R.lean }, 0.08, SAK.Ease.outCubic);
     setTimeout(() => SAK.Tween.to(D.pose, { lean: 0 }, 0.35, SAK.Ease.inOutQuad), 140 + R.mouthMs * 0.25);
     if (tier === 'medium' || tier === 'heavy' || tier === 'perfect') {
       setTimeout(() => { if (!D.ko) D.roll.v += (Math.random() > 0.5 ? 1 : -1) * R.roll * 0.5; }, 110);
       setTimeout(() => { if (!D.ko) D.yaw.v += -D.facing * R.yaw * 0.28; }, 200);
+      setTimeout(() => { if (!D.ko) D.yaw.v += D.facing * R.yaw * 0.3; }, 320); // secondary wobble
+    }
+    // Body stagger on heavy hits: whole torso follows the head a beat later
+    if (tier === 'heavy' || tier === 'perfect') {
+      const sx0 = D.root.position.x, shove = -D.facing * (tier === 'perfect' ? 0.35 : 0.22);
+      SAK.Tween.to(D.root.position, { x: sx0 + shove }, 0.12, SAK.Ease.outCubic)
+        .then(() => { if (!D.ko) return SAK.Tween.to(D.root.position, { x: sx0 }, 0.4, SAK.Ease.inOutQuad); });
     }
     // Wince (light/medium) or scream face (heavy/perfect)
     D.mouth.scale.set(R.mouthX || 1, R.mouthY, 1);
@@ -1430,6 +1498,10 @@ SAK.Scene3D = (function () {
     }
     shake = Math.max(shake, R.shake + (fire ? 0.18 : 0));
     D.setDamage(Math.min(0.85, (D.blushMat.opacity / 0.9) + R.blushAdd));
+    // Progressive bruising across rounds: harder hits deepen the black eye;
+    // the cheek scratch shows once damage passes ~half.
+    const bruiseAdd = tier === 'light' ? 0.22 : tier === 'medium' ? 0.38 : 0.6;
+    D.setBruise(Math.min(1, (D.bruiseLevel || 0) + bruiseAdd));
     // Yelp slightly after contact so the slap "lands" first
     const yelpTier = tier;
     setTimeout(() => { if (SAK.Audio && SAK.Audio.yelp) SAK.Audio.yelp(yelpTier); }, (R.yelpDelay || 0) * 1000);
@@ -1475,45 +1547,79 @@ SAK.Scene3D = (function () {
    */
   async function slap(who, opts) {
     const A = who === 'player' ? player : kol, D = who === 'player' ? kol : player;
-    const p = A.pose, E = SAK.Ease;
+    const p = A.pose, E = SAK.Ease, sd = A.armSide;
     const tier = reactTier(opts.grade, opts.fire, opts.dist);
     if (opts.fire) A.setFire(true);
 
+    // Slap style from meter strength (red → green center). Stuffed slaps
+    // (defender won the exchange) drop a notch. The defender's reaction tier
+    // stays on reactTier(); the style drives the ATTACKER's motion + FX.
+    let styleId;
+    if (!opts.grade || opts.grade === 'miss') styleId = 'whiff';
+    else if (opts.grade === 'weak') styleId = 'limp';
+    else if (opts.grade === 'perfect') styleId = 'devastating';
+    else styleId = (opts.dist != null && opts.dist < 20) ? 'heavy' : 'standard';
+    if (opts.landed === false && (styleId === 'heavy' || styleId === 'devastating')) styleId = 'standard';
+    const ST = SLAP_STYLES[styleId];
+    lastSlapTier = tier; // remembered for knockout() variant selection
+
     // Face-cam: gentle push toward the fighter about to be slapped so the hit
     // reaction reads on their FACE — kept shallow so the attacker's arm and
-    // the moment of contact stay in frame. Stuffed (defender won) / light
-    // hits get an even shallower swing.
+    // the moment of contact stay in frame.
     const landsHit = opts.grade !== 'miss' && !!tier;
-    const peak = !landsHit ? 0.3 : (opts.landed === false ? 0.45 : 0.6);
+    let peak = ST.peak;
+    if (opts.landed === false) peak = Math.min(peak, 0.45);
+    if (!landsHit) peak = 0.3;
     const cam = startHitCam(D, peak);
-    const windup = opts.windup || 0.42;
+    const windup = (opts.windup || 0.42) * ST.windupMul;
     SAK.Tween.to(cam, { w: peak * 0.35 }, windup + 0.06, E.inOutQuad);
 
-    // 1) V2 wind-up: bigger cock-back + anticipation squash before the release
-    SAK.Tween.to(A.root.scale, { x: 1.07, y: 0.92, z: 1.07 }, windup * 0.55, E.outCubic);
-    await SAK.Tween.to(p, { lift: 2.9, swing: 1.1, elbow: 1.45, twist: A.armSide * 0.65, lean: -0.14 }, windup, E.outCubic);
+    // 1) Wind-up: arm rises HIGH above/behind the head, body coiled back,
+    // held for a readable beat — bigger coil for stronger styles.
+    SAK.Tween.to(A.root.scale, { x: ST.squash, y: 2 - ST.squash, z: ST.squash }, windup * 0.55, E.outCubic);
+    await SAK.Tween.to(p, { lift: ST.wind.lift, swing: ST.wind.swing, elbow: ST.wind.elbow, twist: sd * ST.wind.twist, lean: ST.wind.lean }, windup, E.outCubic);
     if (opts.onWindupDone) opts.onWindupDone();
     await wait(0.06);
 
-    // 2) strike: fast forward arc across the face — V2: open palm, never a punch
+    // 2) strike: arm whips down/forward FAST with follow-through across the body.
+    // Open palm, never a punch; limp style keeps a floppy loose wrist.
     SAK.Audio.whoosh();
     SAK.Tween.to(A.root.scale, { x: 1, y: 1, z: 1 }, 0.14, E.outCubic); // unsquash into the hit
     const handBase = A.slapHand.scale.clone();
-    A.slapHand.scale.set(1.35, 0.55, 1.5); // flattened open hand
+    A.slapHand.scale.set(ST.hand[0], ST.hand[1], ST.hand[2]); // flattened open hand
     if (hitCam === cam) SAK.Tween.to(cam, { w: peak }, 0.42, E.outCubic); // swing in to the face through contact
     if (opts.grade === 'miss') SAK.Tween.to(D.pose, { lean: -0.32 }, 0.12, E.outCubic); // dodge
-    const strike = SAK.Tween.to(p, { lift: 2.25, swing: -2.05, elbow: 0.1, twist: -A.armSide * 0.5, lean: 0.2, lunge: 0.3 }, 0.16, E.inCubic);
+    // heavy+ styles hop/lunge their weight into the hit
+    if (ST.hop > 0) {
+      const ay0 = A.root.position.y;
+      SAK.Tween.to(A.root.position, { y: ay0 + ST.hop }, ST.strikeDur * 0.7, E.outCubic)
+        .then(() => { if (!A.ko) return SAK.Tween.to(A.root.position, { y: ay0 }, 0.22, E.inCubic); });
+    }
+    const strike = SAK.Tween.to(p, { lift: ST.strike.lift, swing: ST.strike.swing, elbow: ST.strike.elbow, twist: -sd * ST.strike.twist, lean: ST.strike.lean, lunge: ST.strike.lunge }, ST.strikeDur, E.inCubic);
     await wait(0.1);
     if (opts.grade !== 'miss' && tier) {
       const R = applyHitReact(D, tier, !!opts.fire);
       const hp = D.headWorld();
       if (opts.dmg > 0) damageNumber(hp, '-' + opts.dmg, tier === 'perfect' ? '#39ff88' : tier === 'heavy' ? '#ffd23f' : '#ffffff'); // V2
       if (tier === 'heavy' || tier === 'perfect') slowMo(0.3, 0.32); // V2: dramatic beat
+      // Style FX: heavy/devastating add shockwave rings + extra shake; devastating gets a big flash
+      if (ST.fx >= 1.5) {
+        ring(hp, styleId === 'devastating' ? '#ff4fd8' : '#ffd23f');
+        shake = Math.max(shake, styleId === 'devastating' ? 0.85 : 0.6);
+      }
+      if (styleId === 'devastating') {
+        burst(hp, ['#ffffff', '#ffd23f', '#ff4fd8'], 26, 7);
+        slowMo(0.25, 0.4);
+      }
       if (opts.onImpact) opts.onImpact(hp);
-      // Cartoon hit-stop — longer for heavier tiers
-      if (R.hitStop) await wait(R.hitStop);
+      // Cartoon hit-stop — longer for heavier tiers, longest for devastating
+      if (R.hitStop) await wait(R.hitStop * (styleId === 'devastating' ? 1.6 : 1));
     } else if (opts.onImpact) opts.onImpact(null);
     await strike;
+    // Follow-through: arm keeps travelling across the body after contact (heavy+ styles)
+    if (ST.fx >= 1.5 && landsHit) {
+      SAK.Tween.to(p, { swing: ST.strike.swing - 0.55, twist: -sd * (ST.strike.twist + 0.25), lean: ST.strike.lean + 0.08 }, 0.16, E.outCubic);
+    }
     A.slapHand.scale.copy(handBase);
     await wait(0.12);
 
@@ -1536,33 +1642,67 @@ SAK.Scene3D = (function () {
     crowdExcite(4);
   }
 
-  /** Send the loser flying backwards off the ring. Resolves when done.
-   *  Camera hard-tracks through fly-out + slapstick landing pose. */
-  async function knockout(who) {
+  /** KO variations by finishing-blow tier — resolves when done.
+   *  light → crumple in place · medium → stumble + topple · heavy → backflip
+   *  launch · perfect → full aerial ragdoll (the classic). Camera hard-tracks
+   *  through the fall + slapstick landing pose for every variant. */
+  async function knockout(who, tier) {
     const F = who === 'player' ? player : kol;
+    const finTier = tier || lastSlapTier || 'perfect'; // game.js passes only `loser`
     endHitCam(true); // KO follow-cam takes over from the face-cam
     F.xEyes.visible = true; F.eyes.visible = false;
     F.mouth.scale.set(1, 3, 1);
 
-    // Impact beat: big shake + star burst + shock rings (no gore)
+    const variant = finTier === 'light' ? 'crumple'
+      : finTier === 'medium' ? 'stumble'
+      : finTier === 'heavy' ? 'launch' : 'rocket';
+
+    // Impact beat scaled to the variant (no gore)
     const hp = F.headWorld();
-    shake = 1.2;
-    burst(hp, ['#39ff88', '#ff4fd8', '#ffd23f', '#ffffff', '#ff7a9a'], 58, 8.5);
+    shake = variant === 'crumple' ? 0.5 : variant === 'stumble' ? 0.8 : 1.2;
+    burst(hp, ['#39ff88', '#ff4fd8', '#ffd23f', '#ffffff', '#ff7a9a'],
+      variant === 'crumple' ? 18 : variant === 'stumble' ? 30 : variant === 'launch' ? 44 : 58, 8.5);
     ring(hp, '#ffd23f');
-    ring(hp.clone().add(new T.Vector3(0, 0.12, 0)), '#ff4fd8');
+    if (variant === 'launch' || variant === 'rocket') ring(hp.clone().add(new T.Vector3(0, 0.12, 0)), '#ff4fd8');
     await wait(0.1); // tiny cartoon hit-stop
 
-    // Stronger fly-out: higher arc, farther smack, more spin
-    // facing +1 => fly to -z (away from camera); player flies towards +z / camera-left
-    const landPose = pickLandPose();
-    F.ko = {
-      phase: 'fly',
-      landPose,
-      vel: new T.Vector3(-5.2 + Math.random() * 2.2, 13.5 + Math.random() * 3, -F.facing * (13.5 + Math.random() * 2)),
-      spin: new T.Vector3(-F.facing * (18 + Math.random() * 8), 5 + Math.random() * 8, 14 + Math.random() * 6)
-    };
-    shake = Math.max(shake, 0.7);
-    burst(F.headWorld(), ['#ffd23f', '#ffffff', '#39ff88'], 24, 5);
+    if (variant === 'crumple') {
+      // Knees buckle — folds and drops straight down into a heap at their spot. No launch.
+      SAK.Tween.to(F.root.rotation, { x: 1.0 }, 0.3, SAK.Ease.inCubic);
+      await SAK.Tween.to(F.root.position, { y: 0.12 }, 0.3, SAK.Ease.inCubic);
+      const dust = F.root.position.clone(); dust.y = 0.12;
+      burst(dust, ['#c4a574', '#e8d5a3', '#ffffff'], 14, 2.4);
+      F.ko = { phase: 'land', landPose: LAND_POSES.find(p => p.id === 'heap') || pickLandPose() };
+    } else if (variant === 'stumble') {
+      // Spins, staggers a couple of steps, then topples sideways.
+      const dir = F.facing * (Math.random() > 0.5 ? 1 : -1);
+      const x0 = F.root.position.x;
+      SAK.Tween.to(F.root.rotation, { z: dir * 0.35 }, 0.22, SAK.Ease.outCubic);
+      await SAK.Tween.to(F.root.position, { x: x0 + dir * 0.9 }, 0.3, SAK.Ease.inOutQuad);
+      SAK.Tween.to(F.root.rotation, { z: dir * -0.3 }, 0.2, SAK.Ease.outCubic);
+      await SAK.Tween.to(F.root.position, { x: x0 + dir * 1.7 }, 0.28, SAK.Ease.inOutQuad);
+      await SAK.Tween.to(F.root.rotation, { z: dir * 1.45 }, 0.3, SAK.Ease.inCubic); // topple
+      const dust = F.root.position.clone(); dust.y = 0.12;
+      burst(dust, ['#c4a574', '#e8d5a3', '#ffffff'], 20, 2.8);
+      ring(dust, '#ffd23f');
+      F.ko = { phase: 'land', landPose: LAND_POSES.find(p => p.id === 'sideflop') || pickLandPose() };
+    } else {
+      // launch: backflip-style backward launch, lands flat on back.
+      // rocket: the classic — body goes rigid then ragdoll-spins, random landing.
+      const isRocket = variant === 'rocket';
+      F.ko = {
+        phase: 'fly',
+        landPose: isRocket ? pickLandPose() : (LAND_POSES.find(p => p.id === 'starfished') || pickLandPose()),
+        vel: isRocket
+          ? new T.Vector3(-5.2 + Math.random() * 2.2, 13.5 + Math.random() * 3, -F.facing * (13.5 + Math.random() * 2))
+          : new T.Vector3(-2 + Math.random() * 1.5, 8.5 + Math.random() * 2, -F.facing * (8 + Math.random() * 2)),
+        spin: isRocket
+          ? new T.Vector3(-F.facing * (18 + Math.random() * 8), 5 + Math.random() * 8, 14 + Math.random() * 6)
+          : new T.Vector3(-F.facing * (13 + Math.random() * 4), 2 + Math.random() * 3, 3 + Math.random() * 3)
+      };
+      shake = Math.max(shake, 0.7);
+      burst(F.headWorld(), ['#ffd23f', '#ffffff', '#39ff88'], 24, 5);
+    }
 
     // Follow-cam: lock onto the loser through fly-out AND landing
     const head0 = F.headWorld();
