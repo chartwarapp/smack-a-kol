@@ -834,6 +834,53 @@ SAK.Scene3D = (function () {
     if (scene.fog) scene.fog.color.set(ARENA_DEFS[style].fog);
   }
 
+  /** Full-360° night backdrop: gradient sky + stars + lit city skyline, so the
+   *  background is never a blank void no matter where the camera swings. */
+  function buildBackdrop(AG) {
+    const palettes = {
+      colosseum: { top: '#0d0221', mid: '#2a0b5e', bot: '#150430', win: '#ffd23f' },
+      moonshot:  { top: '#020610', mid: '#0a1030', bot: '#060a20', win: '#39c5ff' },
+      rekt:      { top: '#0d0208', mid: '#1c0512', bot: '#0d0209', win: '#ff3b5c' },
+    };
+    const P = palettes[arenaStyle] || palettes.colosseum;
+    const { tex } = canvasTex(1024, 512, (ctx, w, h) => {
+      const grd = ctx.createLinearGradient(0, 0, 0, h);
+      grd.addColorStop(0, P.top); grd.addColorStop(0.55, P.mid); grd.addColorStop(1, P.bot);
+      ctx.fillStyle = grd; ctx.fillRect(0, 0, w, h);
+      // stars
+      for (let i = 0; i < 240; i++) {
+        const x = Math.random() * w, y = Math.random() * h * 0.62, r = Math.random() * 1.6 + 0.3;
+        ctx.fillStyle = 'rgba(255,255,255,' + (0.25 + Math.random() * 0.65).toFixed(2) + ')';
+        ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.fill();
+      }
+      // distant lit skyline silhouette
+      let x = 0;
+      while (x < w) {
+        const bw = 30 + Math.random() * 70, bh = 60 + Math.random() * 130, by = h - bh;
+        ctx.fillStyle = '#05010d'; ctx.globalAlpha = 1;
+        ctx.fillRect(x, by, bw, bh);
+        for (let wy = by + 10; wy < h - 8; wy += 14)
+          for (let wx = x + 6; wx < x + bw - 6; wx += 12)
+            if (Math.random() < 0.38) {
+              ctx.fillStyle = P.win; ctx.globalAlpha = 0.35 + Math.random() * 0.55;
+              ctx.fillRect(wx, wy, 5, 7);
+            }
+        ctx.globalAlpha = 1; ctx.fillStyle = '#05010d';
+        if (Math.random() < 0.5) ctx.fillRect(x + bw / 2 - 1, by - 22, 2, 22); // antenna
+        // red aircraft-warning blinkers on tall towers
+        if (bh > 140) { ctx.fillStyle = '#ff2222'; ctx.beginPath(); ctx.arc(x + bw / 2, by - 24, 3, 0, 7); ctx.fill(); }
+        x += bw + 8 + Math.random() * 22;
+      }
+    });
+    tex.wrapS = T.RepeatWrapping; tex.repeat.x = 3;
+    const m = new T.Mesh(
+      new T.CylinderGeometry(24, 24, 20, 48, 1, true),
+      new T.MeshBasicMaterial({ map: tex, side: T.BackSide, fog: false })
+    );
+    m.position.y = 7;
+    AG.add(m);
+  }
+
   /** Shared core: floor, neon ring, slap table, coin stacks, crowd. */
   function buildArenaCore(AG) {
 
@@ -865,13 +912,14 @@ SAK.Scene3D = (function () {
     for (let i = 0; i < 5; i++) AG.add(mesh(new T.CylinderGeometry(0.12, 0.12, 0.035, 10), coinMat, -0.65, 1.075 + i * 0.037, 0.05 * (i % 2)));
     for (let i = 0; i < 3; i++) AG.add(mesh(new T.CylinderGeometry(0.12, 0.12, 0.035, 10), coinMat, -0.4, 1.075 + i * 0.037, -0.15));
 
-    // crowd: little fight fans with faces, hair and clothes waving glow sticks
+    // crowd: a full 360° ring of little fight fans with faces, hair and clothes
+    // waving glow sticks — no blank side no matter where the camera swings
     const skinTones = ['#f2c49b', '#e8b088', '#d9a066', '#b07a4a', '#8a5a35', '#6e4426'];
     const shirtCols = ['#ff4fd8', '#39c5ff', '#ffe23d', '#39ff88', '#ff7a1a', '#b44dff', '#ff3b5c', '#f5f5f5', '#2e9dff', '#7dff6a'];
     const hairCols = ['#141414', '#3a2410', '#6e4a1f', '#c9a24a', '#a33327', '#2b4f9e', '#6e6e6e', '#1f7a4d', '#d97fb0'];
     const capCols = ['#ff3b5c', '#2e9dff', '#39ff88', '#ffd23f', '#f5f5f5', '#ff4fd8'];
-    for (let i = 0; i < 26; i++) {
-      const ang = Math.PI * 0.85 + (i / 25) * Math.PI * 1.25;
+    for (let i = 0; i < 30; i++) {
+      const ang = (i / 30) * Math.PI * 2;
       const r = 5.6 + (i % 2) * 0.8;
       const g = new T.Group();
       const skin = skinTones[i % skinTones.length];
@@ -923,6 +971,17 @@ SAK.Scene3D = (function () {
       g.userData.phase = Math.random() * 6; g.userData.crowd = true;
       AG.add(g); candles.push(g);
     }
+
+    // 360° night backdrop + filler billboards covering the old bare angles,
+    // so the background stays dressed wherever the camera swings
+    buildBackdrop(AG);
+    // dark apron sealing the ground between floor edge and backdrop
+    const apron = new T.Mesh(new T.CircleGeometry(24, 40), mat('#0a0318'));
+    apron.rotation.x = -Math.PI / 2; apron.position.y = -0.16;
+    AG.add(apron);
+    billboard(textPanel('HODL', '#ffd23f', ['#12002b', '#3a2a0b'], 512, 220), 3.4, 1.5, 55, 8.6, 3.4);
+    billboard(textPanel('WAGMI', '#39ff88', ['#12002b', '#2a0b5e'], 512, 220), 3.4, 1.5, 95, 8.6, 3.8);
+    billboard(textPanel('SLAP.FUN', '#ff4fd8', ['#2a0b2e', '#5e0b3a'], 640, 200), 3.8, 1.15, 130, 8.6, 3.2);
   }
 
   /** Candlestick Colosseum — the original trading-floor arena, V2 dressed. */
