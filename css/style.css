@@ -430,7 +430,7 @@ h2, h3, .prompt, .vs, .level, .fc-name, .banner, .float-text, .result-title {
   position: absolute; left: 0; right: 0; top: calc(60px + var(--safe-top)); height: 22px; z-index: 25; overflow: hidden;
   background: #0b0220d9; border-top: 2px solid #39ff88; border-bottom: 2px solid #b44dff; pointer-events: none;
 }
-.ticker-track { display: flex; width: max-content; animation: tick 38s linear infinite; will-change: transform; }
+.ticker-track { display: flex; width: max-content; animation: tick 38s linear infinite; }
 .tk-run { display: flex; align-items: center; white-space: nowrap; }
 .tk, .tk-sep { font-size: 13px; line-height: 18px; padding: 0 8px; font-family: ui-monospace, 'SFMono-Regular', Menlo, monospace; font-weight: 800; }
 .tk.up { color: #39ff88; text-shadow: 0 0 6px #39ff8899; }
