@@ -978,6 +978,7 @@ SAK.Scene3D = (function () {
       g.scale.setScalar(s);
       g.position.set(Math.cos(ang) * r, 0.45, Math.sin(ang) * r);
       g.lookAt(0, 0.45, 0);
+      g.userData.baseQ = g.quaternion.clone(); // base orientation — the wobble below must compose onto this, never assign rotation.z (that flips lookAt'd groups upside-down)
       g.userData.phase = Math.random() * 6; g.userData.crowd = true;
       AG.add(g); candles.push(g);
     }
@@ -1421,6 +1422,7 @@ SAK.Scene3D = (function () {
   /** Resting fight framing for the current local role (attack ↔ brace). */
   const _rest = { pos: new T.Vector3(), look: new T.Vector3() }, _brace = { pos: new T.Vector3(), look: new T.Vector3() };
   const _windup = { pos: new T.Vector3(), look: new T.Vector3() }; // wind-up stage framing temp
+  const _qWob = new T.Quaternion(), _ZAXIS = new T.Vector3(0, 0, 1); // crowd wobble temps
   function restFraming(out) {
     if (roleCam.w <= 0.0001 || !player) { out.pos.copy(camFight.pos); out.look.copy(camFight.look); return out; }
     if (!player.restHead) player.restHead = new T.Vector3(player.root.position.x, 2.35, player.homeZ);
@@ -1447,7 +1449,13 @@ SAK.Scene3D = (function () {
       if (c.userData.crowd) {
         const exc = time < crowdExciteUntil; // V2: crowd goes wild on KOs
         c.position.y = 0.45 + Math.abs(Math.sin(time * (exc ? 10 : 4) + c.userData.phase)) * (exc ? 0.4 : 0.12);
-        c.rotation.z = exc ? Math.sin(time * 8 + c.userData.phase) * 0.15 : 0;
+        // Celebration wobble composes onto the stored lookAt orientation.
+        // NEVER assign c.rotation.z here: rewriting the euler of a lookAt'd
+        // group flips half the crowd upside-down (heads under the floor).
+        if (c.userData.baseQ) {
+          _qWob.setFromAxisAngle(_ZAXIS, exc ? Math.sin(time * 8 + c.userData.phase) * 0.15 : 0);
+          c.quaternion.copy(c.userData.baseQ).multiply(_qWob);
+        }
       }
       else c.position.y = c.userData.baseY + Math.sin(time * 0.8 + c.userData.phase) * 0.15;
     }
