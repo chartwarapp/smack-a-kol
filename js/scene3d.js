@@ -486,9 +486,10 @@ SAK.Scene3D = (function () {
       if (this.ko) {
         const k = this.ko;
         if (k.phase === 'land') {
-          this.applyLandPose(k.landPose);
-          // tiny cartoon settle wobble
-          this.root.rotation.z += Math.sin(time * 14) * 0.004;
+          // pose was stamped once on landing — just a tiny decaying settle
+          // wobble (absolute, so it can't drift)
+          const wob = k.landT !== undefined ? Math.max(0, 1 - (time - k.landT) * 1.2) : 0;
+          if (k.baseRz !== undefined) this.root.rotation.z = k.baseRz + Math.sin(time * 14) * 0.02 * wob;
           return;
         }
         k.vel.y -= 11.5 * dt; // slightly floatier cartoon arc
@@ -501,9 +502,8 @@ SAK.Scene3D = (function () {
           this.root.position.y = 0.08;
           k.vel.set(0, 0, 0);
           k.spin.set(0, 0, 0);
-          k.phase = 'land';
           k.landPose = k.landPose || pickLandPose();
-          this.applyLandPose(k.landPose);
+          this.stampLandPose(k.landPose);
           const dust = this.root.position.clone(); dust.y = 0.12;
           burst(dust, ['#c4a574', '#ffd23f', '#ffffff', '#e8d5a3'], 32, 3.2);
           ring(dust, '#ffd23f');
@@ -586,6 +586,13 @@ SAK.Scene3D = (function () {
       this.applyArm(this.arms[1], ...(P.armR || [1.2, -0.5, 0.4]));
       this.xEyes.visible = true; this.eyes.visible = false;
       this.mouth.scale.set(1, 3, 1);
+    }
+
+    /** Freeze into the KO landing pose ONCE (no per-frame snap) + start settle. */
+    stampLandPose(P) {
+      if (!P) return;
+      this.ko = Object.assign(this.ko || {}, { phase: 'land', landPose: P, landT: time, baseRz: P.rz || 0 });
+      this.applyLandPose(P);
     }
 
     clearHitFX() {
@@ -1893,27 +1900,38 @@ SAK.Scene3D = (function () {
     if (variant === 'launch' || variant === 'rocket') ring(hp.clone().add(new T.Vector3(0, 0.12, 0)), '#ff4fd8');
     await wait(0.1); // tiny cartoon hit-stop
 
+    // Shared: the fighter's yaw baseline so fall tweens land exactly on the pose
+    // (applyLandPose adds faceY itself).
+    const faceY = F.facing > 0 ? 0 : Math.PI;
+    // Shortest-path yaw: collapse tweens must not whiplash through full turns
+    // left over from the spinout's 4π spin.
+    const nearestY = (cur, want) => cur + ((((want - cur) % (Math.PI * 2)) + Math.PI * 3) % (Math.PI * 2) - Math.PI);
     if (variant === 'crumple') {
       // Knees buckle — folds and drops straight down into a heap at their spot. No launch.
-      SAK.Tween.to(F.root.rotation, { x: 1.0 }, 0.3, SAK.Ease.inCubic);
-      await SAK.Tween.to(F.root.position, { y: 0.12 }, 0.3, SAK.Ease.inCubic);
+      const pose = LAND_POSES.find(p => p.id === 'heap') || pickLandPose();
+      const yT = nearestY(F.root.rotation.y, faceY + (pose.ry || 0));
+      SAK.Tween.to(F.root.rotation, { x: pose.rx, y: yT, z: pose.rz || 0 }, 0.35, SAK.Ease.inCubic);
+      await SAK.Tween.to(F.root.position, { y: pose.y }, 0.35, SAK.Ease.inCubic);
       const dust = F.root.position.clone(); dust.y = 0.12;
       burst(dust, ['#c4a574', '#e8d5a3', '#ffffff'], 14, 2.4);
-      F.ko = { phase: 'land', landPose: LAND_POSES.find(p => p.id === 'heap') || pickLandPose() };
+      F.stampLandPose(pose);
     } else if (variant === 'spinout') {
       // Spins like a top from the slap, wobbles dizzy, then the legs give out
-      // and they flop down in place — never leaves the ring.
+      // and they flop down in place — never leaves the ring. The full spin is
+      // awaited so it always plays out instead of stalling mid-turn.
+      const pose = LAND_POSES.find(p => p.id === 'heap') || pickLandPose();
       const dir = Math.random() > 0.5 ? 1 : -1;
       const y0rot = F.root.rotation.y;
-      SAK.Tween.to(F.root.rotation, { y: y0rot + dir * Math.PI * 4 }, 0.75, SAK.Ease.outCubic);
-      SAK.Tween.to(F.root.rotation, { z: dir * 0.22 }, 0.45, SAK.Ease.outCubic); // dizzy lean
-      await wait(0.75);
-      SAK.Tween.to(F.root.rotation, { x: 0.85, z: dir * 0.5 }, 0.35, SAK.Ease.inCubic); // legs give out
-      await SAK.Tween.to(F.root.position, { y: 0.12 }, 0.35, SAK.Ease.inCubic);
+      SAK.Tween.to(F.root.rotation, { z: dir * 0.25 }, 0.4, SAK.Ease.outCubic)
+        .then(() => SAK.Tween.to(F.root.rotation, { z: -dir * 0.25 }, 0.4, SAK.Ease.inOutQuad)); // dizzy wobble
+      await SAK.Tween.to(F.root.rotation, { y: y0rot + dir * Math.PI * 4 }, 0.8, SAK.Ease.outCubic);
+      const yT = nearestY(F.root.rotation.y, faceY + (pose.ry || 0));
+      SAK.Tween.to(F.root.rotation, { x: pose.rx, y: yT, z: pose.rz || 0 }, 0.35, SAK.Ease.inCubic);
+      await SAK.Tween.to(F.root.position, { y: pose.y }, 0.35, SAK.Ease.inCubic);
       const dust = F.root.position.clone(); dust.y = 0.12;
       burst(dust, ['#c4a574', '#e8d5a3', '#ffffff'], 16, 2.6);
       ring(dust, '#ffd23f');
-      F.ko = { phase: 'land', landPose: LAND_POSES.find(p => p.id === 'heap') || pickLandPose() };
+      F.stampLandPose(pose);
     } else if (variant === 'faceplant') {
       // Smacked into a forward flip — lands face-first, butt kicks up
       // cartoon-style, then flops flat. Stays in the ring.
@@ -1924,11 +1942,14 @@ SAK.Scene3D = (function () {
       const dust = F.root.position.clone(); dust.y = 0.12;
       burst(dust, ['#c4a574', '#e8d5a3', '#ffffff'], 18, 2.8);
       ring(dust, '#ffd23f');
-      // butt pops up, then flops — the gag
-      SAK.Tween.to(F.root.rotation, { x: Math.PI * 1.5 - 0.55 }, 0.16, SAK.Ease.outCubic)
-        .then(() => SAK.Tween.to(F.root.rotation, { x: Math.PI * 1.5 }, 0.32, SAK.Ease.inCubic));
-      await wait(0.55);
-      F.ko = { phase: 'land', landPose: LAND_POSES.find(p => p.id === 'buttup') || pickLandPose() };
+      // butt pops up, then flops — the gag, awaited so it fully plays
+      await SAK.Tween.to(F.root.rotation, { x: Math.PI * 1.5 - 0.55 }, 0.16, SAK.Ease.outCubic);
+      await SAK.Tween.to(F.root.rotation, { x: Math.PI * 1.5 }, 0.32, SAK.Ease.inCubic);
+      // rest pose matches the gag's final transform exactly (no pop)
+      const yEnd = F.root.rotation.y;
+      F.stampLandPose({ id: 'faceplant-rest', rx: Math.PI * 1.5, ry: yEnd - faceY, rz: 0, y: 0.12,
+        tx: 0.85, ty: 0.05, tz: 0.1, hx: 1.15, hy: 0.1, hz: 0.25,
+        armL: [1.25, -0.55, 0.35], armR: [1.3, 0.55, 0.3] });
     } else {
       // launch: backflip-style backward launch, lands flat on back.
       // rocket: the classic — body goes rigid then ragdoll-spins, random landing.
