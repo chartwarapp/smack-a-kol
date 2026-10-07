@@ -326,6 +326,41 @@
     btn.disabled = false; if (btn.textContent !== 'Try Again') btn.textContent = 'Connect';
   });
 
+  // Jupiter Mobile via WalletConnect (Reown AppKit). Hidden if not configured.
+  const jupBtn = $('#wallet-jupiter'), jupRow = $('#wallet-jup-row'), jupHint = $('#wallet-jup-hint');
+  if (!SAK.REOWN_PROJECT_ID || !SAK.WalletConnect) {
+    if (jupRow) jupRow.classList.add('hidden');
+  } else if (jupBtn) {
+    jupBtn.addEventListener('click', async () => {
+      jupBtn.disabled = true;
+      const old = jupBtn.innerHTML;
+      jupBtn.textContent = 'Loading…';
+      try {
+        await SAK.WalletConnect.init();
+        jupBtn.textContent = 'Opening…';
+        if (jupHint) jupHint.classList.remove('hidden');
+        const { address, walletName } = await SAK.WalletConnect.connect();
+        // Persist to the shared wallet state so W.address / W.isConnected work.
+        const st = SAK.Storage.state;
+        st.wallet.connected = true;
+        st.wallet.address = address;
+        st.wallet.provider = walletName;
+        SAK.Storage.save();
+        $('#modal-wallet').classList.add('hidden');
+        A.coin();
+        toast(`Wallet ${address.slice(0, 4)}…${address.slice(-4)} linked · ${walletName}`, 2600);
+        renderMenu();
+        syncProfileFromWallet();
+      } catch (err) {
+        console.warn('[SAK] Jupiter connect failed', err);
+        toast(err && err.code === 'CONNECT_TIMEOUT'
+          ? 'Timed out — approve in Jupiter, then switch back here'
+          : 'Jupiter connection failed — try again', 2600);
+      }
+      jupBtn.disabled = false; jupBtn.innerHTML = old;
+    });
+  }
+
   $('#btn-play').addEventListener('click', () => {
     A.unlock(); A.click();
     if (!S.profile) return openFighter(true);   // first run: create your fighter, then play

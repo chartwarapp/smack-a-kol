@@ -195,6 +195,9 @@ SAK.Wallet = (function () {
 
   /** Sign a login challenge to prove wallet ownership. Returns base64 sig. */
   async function signLogin(nonce) {
+    if (SAK.WalletConnect && SAK.WalletConnect.isConnected) {
+      return SAK.WalletConnect.signLogin(nonce);
+    }
     const found = getProvider();
     if (!found) throw Object.assign(new Error('NO_WALLET'), { code: 'NO_WALLET' });
     const msg = `Sign in to Smack-a-KOL\n\nNonce: ${nonce}\nThis proves you own this wallet. No transaction is sent.`;
@@ -209,7 +212,11 @@ SAK.Wallet = (function () {
 
   // Sign an exact message (for admin actions) — the signature verifies
   // against these exact bytes, unlike signLogin which wraps in a template.
+  // Delegates to WalletConnect when a WC session is active.
   async function signMessage(message) {
+    if (SAK.WalletConnect && SAK.WalletConnect.isConnected) {
+      return SAK.WalletConnect.signMessage(message);
+    }
     const found = getProvider();
     if (!found) throw Object.assign(new Error('NO_WALLET'), { code: 'NO_WALLET' });
     const data = new TextEncoder().encode(message);
@@ -232,6 +239,7 @@ SAK.Wallet = (function () {
   function disconnect() {
     const found = getProvider();
     if (found) { try { found.provider.disconnect(); } catch (e) {} }
+    try { if (SAK.WalletConnect) SAK.WalletConnect.disconnect(); } catch (e) {}
     S().wallet.connected = false;
     S().wallet.address = null;
     SAK.Storage.save();

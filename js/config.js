@@ -33,6 +33,10 @@ SAK.BACKEND = {
   anonKey: 'sb_publishable_R2elzqKbX_nsgUtBlFHXzQ_gFG_8uw_',
 };
 
+/* WalletConnect (Reown) for Jupiter Mobile. Public by design, like the
+ * Supabase anon key. Empty = the Jupiter button hides itself. */
+SAK.REOWN_PROJECT_ID = 'a1be4c6bde150b7fc49b0d4ce1508b83';
+
 /* Bet options shown before a fight (0 = free match), in PTS. */
 SAK.BETS = [0, 100, 250, 500, 1000, 2500];
 
