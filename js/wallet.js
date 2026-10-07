@@ -22,7 +22,7 @@ SAK.Wallet = (function () {
 
   const NO_WALLET_HELP = {
     title: 'No wallet found',
-    body: 'Open this page inside your wallet app\'s browser (Phantom, Solflare or Jupiter), then tap Connect again.',
+    body: 'Open this page inside your wallet app\'s browser (Phantom or Solflare), then tap Connect again.',
   };
 
   function getProvider() {
