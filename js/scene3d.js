@@ -1521,6 +1521,7 @@ SAK.Scene3D = (function () {
     }
     camera.lookAt(camCur.look);
     renderer.render(scene, camera);
+    if (window.__diagFrames !== undefined) window.__diagFrames++;
     requestAnimationFrame(loop);
   }
 

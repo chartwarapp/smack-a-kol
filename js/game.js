@@ -1724,10 +1724,16 @@
       try {
         const st = $('#stage'), cv = st ? st.querySelector('canvas') : null;
         const d = document.createElement('div');
-        d.id = 'boot-diag'; d.style.cssText = 'position:fixed;top:4px;left:4px;z-index:999;background:#000c;color:#0f0;font:11px monospace;padding:6px;white-space:pre-wrap;max-width:92vw';
-        d.textContent = `3D diag: THREE r${window.THREE.REVISION} | stage ${st?st.clientWidth+'x'+st.clientHeight:'null'} | canvas ${cv?cv.width+'x'+cv.height:'none'} | canvases in stage: ${st?st.querySelectorAll('canvas').length:0}`;
+        d.id = 'boot-diag'; d.style.cssText = 'position:fixed;top:4px;left:4px;z-index:9999;background:#000d;color:#0f0;font:11px monospace;padding:8px;white-space:pre-wrap;max-width:94vw;border:1px solid #0f0';
+        window.__diagFrames = 0;
+        const gl = cv ? cv.getContext('webgl2') || cv.getContext('webgl') : null;
+        d.textContent = `3D diag: THREE r${window.THREE.REVISION} | stage ${st?st.clientWidth+'x'+st.clientHeight:'null'} | canvas ${cv?cv.width+'x'+cv.height:'none'} | #canvas: ${st?st.querySelectorAll('canvas').length:0} | gl: ${gl?'ok':'FAIL'}`;
         document.body.appendChild(d);
-        setTimeout(() => d.remove(), 8000);
+        const iv = setInterval(() => {
+          const c2 = st ? st.querySelector('canvas') : null;
+          d.textContent = `3D diag: THREE r${window.THREE.REVISION} | stage ${st?st.clientWidth+'x'+st.clientHeight:'null'} | canvas ${c2?c2.width+'x'+c2.height:'none'} | frames: ${window.__diagFrames}`;
+        }, 1000);
+        d.onclick = () => { clearInterval(iv); d.remove(); };
       } catch (e) {}
     } catch (err) {
       console.error(err);
