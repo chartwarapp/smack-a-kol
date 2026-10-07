@@ -45,6 +45,7 @@ SAK.FightCard = (() => {
   <text x="540" y="360" text-anchor="middle" font-size="46" font-weight="800" fill="#ffffff">${esc(o.playerName).toUpperCase()}  ${score}  ${esc(o.kolName).toUpperCase()}</text>
   <svg x="330" y="420" width="420" height="420" viewBox="0 0 100 100">${hero}</svg>
   <text x="540" y="908" text-anchor="middle" font-size="52" font-weight="900" fill="#ffffff">${esc(o.playerName).toUpperCase()}</text>
+  ${o.xHandle ? `<text x="540" y="936" text-anchor="middle" font-size="28" font-weight="700" fill="#1d9bf0">@${esc(o.xHandle.replace(/^@/, ''))}</text>` : ''}
   <text x="540" y="956" text-anchor="middle" font-size="30" font-weight="700" fill="#ffffff" opacity="0.7" letter-spacing="3">${tagline}</text>
   <text x="540" y="1010" text-anchor="middle" font-size="30" font-weight="700" fill="#ffd23f">BIGGEST HIT ${o.biggestHit || 0}   ·   +${o.pts || 0} PTS</text>
 </svg>`;
@@ -76,12 +77,28 @@ SAK.FightCard = (() => {
       return 'shared';
     }
     // Fallback: download the card image.
+    downloadBlob(blob);
+    return 'downloaded';
+  }
+
+  function downloadBlob(blob) {
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
     a.download = 'smack-a-kol-fight-card.png';
     document.body.appendChild(a); a.click(); a.remove();
-    return 'downloaded';
+    setTimeout(() => URL.revokeObjectURL(a.href), 5000);
   }
 
-  return { build, share };
+  // Post to X: downloads the card PNG, then opens X with pre-filled text.
+  // X intents can't attach images, so the user attaches the downloaded file.
+  async function shareToX(svg, text) {
+    const blob = await svgToPng(svg);
+    downloadBlob(blob);
+    const tweet = `${text}\n\n🥊 Play: https://smackakol.com`;
+    const url = 'https://twitter.com/intent/tweet?text=' + encodeURIComponent(tweet);
+    window.open(url, '_blank', 'noopener');
+    return 'x-opened';
+  }
+
+  return { build, share, shareToX };
 })();

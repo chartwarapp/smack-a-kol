@@ -240,6 +240,7 @@
     const p = profile();
     crDraft = Object.assign({}, p.avatar);
     $('#fit-name').value = S.profile ? p.name : '';
+    $('#fit-x').value = S.profile ? (p.x_handle || '') : '';
     $('#cr-name').value = S.profile ? p.name : '';
     $('#fit-phrase').value = S.profile ? (p.phrase || '') : '';
     $('#cr-name-err').textContent = ''; $('#cr-look-err').textContent = '';
@@ -296,13 +297,14 @@
     const rawPh = $('#fit-phrase').value.trim();
     const ph = rawPh ? validateText(rawPh, SAK.UGC.maxCatchphrase) : { ok: '' };
     if (ph.err) { $('#cr-look-err').textContent = 'Quote: ' + ph.err; return; }
-    if (S.profile) Object.assign(S.profile, { name: v.ok, phrase: ph.ok, avatar: SAK.Account.sanitize(crDraft) });
-    else S.profile = SAK.Account.create(v.ok, crDraft, ph.ok);
+    const xh = $('#fit-x').value.trim().replace(/^@/, '').slice(0, 15);
+    if (S.profile) Object.assign(S.profile, { name: v.ok, phrase: ph.ok, x_handle: xh, avatar: SAK.Account.sanitize(crDraft) });
+    else S.profile = Object.assign(SAK.Account.create(v.ok, crDraft, ph.ok), { x_handle: xh });
     SAK.Storage.save();
     // Persist to backend profile when a wallet is linked.
     if (W.isConnected && W.address) {
       SAK.Api.saveProfile(W.address, {
-        name: S.profile.name, phrase: S.profile.phrase, fighter_look: S.profile.avatar,
+        name: S.profile.name, phrase: S.profile.phrase, fighter_look: S.profile.avatar, x_handle: xh,
       }).catch(e => console.warn('[SAK] profile save failed', e));
     }
     if (Scene) Scene.setPlayer(playerAvatar());
@@ -1216,6 +1218,7 @@
         ${win && next && !k.pvp ? `<button class="btn btn-red" id="r-next">APE INTO ${esc(next.name)} →</button>` : ''}
         <div class="row">
           <button class="btn btn-purple" id="r-card">📤 FIGHT CARD</button>
+          <button class="btn btn-purple" id="r-xpost">𝕏 POST TO X</button>
           <button class="btn btn-purple" id="r-pick">${k.pvp ? 'PVP LOBBY' : 'PICK KOL'}</button>
           <button class="btn btn-grey" id="r-menu">TOUCH GRASS</button>
         </div>
@@ -1231,7 +1234,7 @@
       try {
         const C = F.challenge;
         const svg = SAK.FightCard.build({
-          win, playerName: profile().name, playerLook: playerLook(), playerDmg: dmgLevel('player'),
+          win, playerName: profile().name, xHandle: (S.profile && S.profile.x_handle) || "", playerLook: playerLook(), playerDmg: dmgLevel('player'),
           kolName: k.name, scoreP: C ? C.pWins : (win ? 1 : 0), scoreK: C ? C.kWins : (win ? 0 : 1),
           bestOf: C ? C.bestOf : 1, biggestHit: Math.round(F.maxHit || 0), pts: Math.round(pts || 0),
           modeLabel: (SAK.MODES[F.mode] && SAK.MODES[F.mode].label || 'CLASSIC KO').toUpperCase(),
@@ -1243,6 +1246,27 @@
         btn.textContent = how === 'shared' ? 'SHARED ✓' : 'SAVED ✓';
       } catch (err) { btn.textContent = 'FAILED — TRY AGAIN'; }
       setTimeout(() => { btn.disabled = false; btn.textContent = old; }, 1800);
+    };
+    $('#r-xpost').onclick = async (e) => {
+      const btn = e.currentTarget;
+      btn.disabled = true; const old = btn.textContent; btn.textContent = 'POSTING…';
+      try {
+        const C = F.challenge;
+        const svg = SAK.FightCard.build({
+          win, playerName: profile().name, xHandle: (S.profile && S.profile.x_handle) || "", playerLook: playerLook(), playerDmg: dmgLevel('player'),
+          kolName: k.name, scoreP: C ? C.pWins : (win ? 1 : 0), scoreK: C ? C.kWins : (win ? 0 : 1),
+          bestOf: C ? C.bestOf : 1, biggestHit: Math.round(F.maxHit || 0), pts: Math.round(pts || 0),
+          modeLabel: (SAK.MODES[F.mode] && SAK.MODES[F.mode].label || 'CLASSIC KO').toUpperCase(),
+        });
+        const xh = (S.profile && S.profile.x_handle) ? ` @${S.profile.x_handle.replace(/^@/, '')}` : '';
+        const text = win
+          ? `I${xh} just sent ${k.name} to ZERO in Smack-a-KOL 🥊`
+          : `I${xh} just got REKT in Smack-a-KOL 😭 Run it back?`;
+        await SAK.FightCard.shareToX(svg, text);
+        btn.textContent = 'X OPENED — ATTACH CARD ✓';
+        toast('Card downloaded — attach it to your X post', 3000);
+      } catch (err) { btn.textContent = 'FAILED — TRY AGAIN'; }
+      setTimeout(() => { btn.disabled = false; btn.textContent = old; }, 2500);
     };
     if ($('#r-next')) $('#r-next').onclick = () => { selectedBet = 0; openPicker(idx + 1); };
     $('#r-pick').onclick = () => { if (k.pvp) { show('menu'); menuScene(); openPvp(); } else openPicker(); };
