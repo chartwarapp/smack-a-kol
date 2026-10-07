@@ -31,13 +31,12 @@ SAK.WalletConnect = (() => {
     const projectId = SAK.REOWN_PROJECT_ID;
     if (!projectId) throw new Error('WalletConnect not configured');
     initializing = (async () => {
-      // Lazy-load Reown AppKit + Solana adapter from CDN (ESM).
-      const appkitMod = await import('https://cdn.jsdelivr.net/npm/@reown/appkit@1.8.24/dist/esm/index.js');
-      const solanaMod = await import('https://cdn.jsdelivr.net/npm/@reown/appkit-adapter-solana@1.8.24/dist/esm/index.js');
-      const networksMod = await import('https://cdn.jsdelivr.net/npm/@reown/appkit@1.8.24/dist/esm/networks/index.js');
+      // Lazy-load Reown AppKit + Solana adapter from esm.sh (ESM, deps resolved).
+      const appkitMod = await import('https://esm.sh/@reown/appkit@1.8.24');
+      const solanaMod = await import('https://esm.sh/@reown/appkit-adapter-solana@1.8.24');
       const { createAppKit } = appkitMod;
       const { SolanaAdapter } = solanaMod;
-      const solana = networksMod.solana;
+      const { solana } = appkitMod;
       const solanaAdapter = new SolanaAdapter();
       modal = createAppKit({
         adapters: [solanaAdapter],
