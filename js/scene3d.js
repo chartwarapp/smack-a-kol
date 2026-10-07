@@ -1519,9 +1519,10 @@ SAK.Scene3D = (function () {
         // Aim at the skull; drop look floor once they pancake so the pose reads
         const lookY = Math.max(landed ? 0.12 : 0.35, head.y - (landed ? 0.05 : 0.2));
         camBase.look.set(head.x, lookY, head.z);
-        // Ride a three-quarter offset; ease a touch closer on the landing beat
-        const off = koCam.offset || new T.Vector3(5.2, 2.6, 3.4);
-        const pull = landed ? 0.82 : 1;
+        // Ride a three-quarter offset — pulled BACK so the whole wrecked face
+        // reads in frame (funny, not claustrophobic). Stays wide on landing.
+        const off = koCam.offset || new T.Vector3(6.8, 3.4, 4.4);
+        const pull = landed ? 1.05 : 1;
         camBase.pos.set(
           head.x + off.x * pull,
           Math.max(landed ? 1.35 : 1.8, head.y + off.y * (landed ? 0.7 : 1)),
@@ -1970,8 +1971,10 @@ SAK.Scene3D = (function () {
     if (Math.random() < flyChance) {
       variant = Math.random() < 0.5 ? 'launch' : 'rocket';
     } else {
+      // No faceplant — the loser's face must stay visible at the end (funny > hidden).
+      // 'flatback': launched onto their back, dazed face looking up at the sky.
       const r = Math.random();
-      variant = r < 0.5 ? 'crumple' : r < 0.8 ? 'spinout' : 'faceplant';
+      variant = r < 0.45 ? 'crumple' : r < 0.75 ? 'spinout' : 'flatback';
     }
 
     // Impact beat scaled to the variant (no gore)
@@ -2015,19 +2018,19 @@ SAK.Scene3D = (function () {
       burst(dust, ['#c4a574', '#e8d5a3', '#ffffff'], 16, 2.6);
       ring(dust, '#ffd23f');
       F.stampLandPose(pose);
-    } else if (variant === 'faceplant') {
-      // Smacked into a forward flip — lands face-first, butt kicks up
-      // cartoon-style, then flops flat. Stays in the ring.
+    } else if (variant === 'flatback') {
+      // Smacked onto their back — dazed wrecked face looking up at the sky.
+      // Funny and the face stays fully visible. Stays in the ring.
       const y0 = F.root.position.y;
-      SAK.Tween.to(F.root.position, { y: y0 + 0.85 }, 0.28, SAK.Ease.outCubic);
-      await SAK.Tween.to(F.root.rotation, { x: Math.PI * 1.5 }, 0.55, SAK.Ease.inCubic);
-      await SAK.Tween.to(F.root.position, { y: 0.12 }, 0.18, SAK.Ease.inCubic);
-      const dust = F.root.position.clone(); dust.y = 0.12;
+      SAK.Tween.to(F.root.position, { y: y0 + 0.7 }, 0.28, SAK.Ease.outCubic);
+      await SAK.Tween.to(F.root.rotation, { x: -Math.PI * 0.55 }, 0.5, SAK.Ease.inCubic);
+      await SAK.Tween.to(F.root.position, { y: 0.35 }, 0.18, SAK.Ease.inCubic);
+      const dust = F.root.position.clone(); dust.y = 0.2;
       burst(dust, ['#c4a574', '#e8d5a3', '#ffffff'], 18, 2.8);
       ring(dust, '#ffd23f');
-      // butt pops up, then flops — the gag, awaited so it fully plays
-      await SAK.Tween.to(F.root.rotation, { x: Math.PI * 1.5 - 0.55 }, 0.16, SAK.Ease.outCubic);
-      await SAK.Tween.to(F.root.rotation, { x: Math.PI * 1.5 }, 0.32, SAK.Ease.inCubic);
+      // little bounce-settle — the gag, awaited so it fully plays
+      await SAK.Tween.to(F.root.position, { y: 0.45 }, 0.14, SAK.Ease.outCubic);
+      await SAK.Tween.to(F.root.position, { y: 0.35 }, 0.22, SAK.Ease.inCubic);
       // rest pose matches the gag's final transform exactly (no pop)
       const yEnd = F.root.rotation.y;
       F.stampLandPose({ id: 'faceplant-rest', rx: Math.PI * 1.5, ry: yEnd - faceY, rz: 0, y: 0.12,
