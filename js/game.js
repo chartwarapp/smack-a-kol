@@ -1684,6 +1684,13 @@
   W.onChange(() => renderMenu());
 
   function boot() {
+    // Backend: Supabase when configured, local mock otherwise.
+    try {
+      if (SAK.BACKEND && SAK.BACKEND.url && SAK.BACKEND.anonKey && SAK.Api.SupabaseBackend) {
+        SAK.Api.use(new SAK.Api.SupabaseBackend(SAK.BACKEND.url, SAK.BACKEND.anonKey));
+        console.log('[SAK] backend: supabase');
+      }
+    } catch (e) { console.warn('[SAK] backend swap failed, using mock', e); }
     if (!S.powerups) S.powerups = { fist: 0, helmet: 1, rage: 1 };
     // one-time welcome bonus so bets/upgrades/staking are explorable immediately
     if (!S.welcomeGranted) {

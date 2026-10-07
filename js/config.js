@@ -26,6 +26,13 @@ SAK.POINTS = {
 /* Placeholder for the future on-chain integration (unused today). */
 SAK.SOLANA = { enabled: false, cluster: 'devnet', tokenMint: null, vaultProgramId: null };
 
+/* Backend: set SUPABASE_URL + SUPABASE_ANON_KEY to go live.
+ * Leave empty to keep the local mock backend (fully playable offline). */
+SAK.BACKEND = {
+  url: '',      // e.g. 'https://xyzcompany.supabase.co'
+  anonKey: '',  // Supabase -> Project Settings -> API -> anon public
+};
+
 /* Bet options shown before a fight (0 = free match), in PTS. */
 SAK.BETS = [0, 100, 250, 500, 1000, 2500];
 
