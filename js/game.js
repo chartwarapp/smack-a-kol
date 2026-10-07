@@ -14,13 +14,6 @@
  * ========================================================================= */
 (function () {
   'use strict';
-  // TEMPORARY: global error catcher (remove after 3D issue resolved)
-  window.addEventListener('error', function (e) {
-    const d = document.createElement('div');
-    d.style.cssText = 'position:fixed;bottom:4px;left:4px;z-index:99999;background:#000d;color:#f44;font:11px monospace;padding:8px;max-width:94vw;border:1px solid #f44;white-space:pre-wrap';
-    d.textContent = '🔴 JS ERROR: ' + String(e.message || e.error).slice(0, 300) + '\n@ ' + String(e.filename || '').split('/').pop() + ':' + e.lineno;
-    document.body.appendChild(d);
-  });
   const $ = sel => document.querySelector(sel);
   const $$ = sel => Array.from(document.querySelectorAll(sel));
   const wait = s => new Promise(r => setTimeout(r, s * 1000));
@@ -1666,6 +1659,7 @@
   });
   // Dev bootstrap: claim admin on first use (works on the mock backend;
   // on Supabase, is_admin is locked by RLS — set it in the dashboard).
+  window.SAK_DEBUG = window.SAK_DEBUG || {};
   window.SAK_DEBUG.claimAdmin = async () => {
     if (!W.isConnected) return 'connect wallet first';
     const p = await SAK.Api.saveProfile(W.address, { name: (S.profile && S.profile.name) || 'Admin', is_admin: true });
@@ -1715,17 +1709,9 @@
       else welcomePending = true;   // shown once the account is created (or skipped)
     }
     lastSlots = ugcSlotsUnlocked();
-    try {
-      MeterLocal = SAK.createMeter($('#meter-local'), { jerky: true, label: '' });
-      SAK.Meter.build($('#meter')); // legacy hidden mount
-      buildTicker();
-    } catch (preErr) {
-      console.error(preErr);
-      const d = document.createElement('div');
-      d.style.cssText = 'position:fixed;top:4px;left:4px;z-index:9999;background:#000d;color:#f80;font:11px monospace;padding:8px;max-width:94vw;border:1px solid #f80';
-      d.textContent = '⚠️ boot failed before 3D: ' + String((preErr && preErr.message) || preErr).slice(0, 200);
-      document.body.appendChild(d);
-    }
+    MeterLocal = SAK.createMeter($('#meter-local'), { jerky: true, label: '' });
+    SAK.Meter.build($('#meter')); // legacy hidden mount
+    buildTicker();
     try {
       if (!window.THREE) throw new Error('three.js failed to load (vendor/three.min.js)');
       SAK.Scene3D.init($('#stage'));
@@ -1735,26 +1721,9 @@
       if (Scene.setArena) Scene.setArena(S.settings.arena || 'colosseum'); // V2: saved arena
       if (window.__setArenaLabel) window.__setArenaLabel();
       menuScene();
-      // Temporary boot diagnostic (remove after 3D issue resolved)
-      try {
-        const st = $('#stage'), cv = st ? st.querySelector('canvas') : null;
-        const d = document.createElement('div');
-        d.id = 'boot-diag'; d.style.cssText = 'position:fixed;top:4px;left:4px;z-index:9999;background:#000d;color:#0f0;font:11px monospace;padding:8px;white-space:pre-wrap;max-width:94vw;border:1px solid #0f0';
-        window.__diagFrames = 0;
-        const gl = cv ? cv.getContext('webgl2') || cv.getContext('webgl') : null;
-        d.textContent = `3D diag: THREE r${window.THREE.REVISION} | stage ${st?st.clientWidth+'x'+st.clientHeight:'null'} | canvas ${cv?cv.width+'x'+cv.height:'none'} | #canvas: ${st?st.querySelectorAll('canvas').length:0} | gl: ${gl?'ok':'FAIL'}`;
-        document.body.appendChild(d);
-        const iv = setInterval(() => {
-          const c2 = st ? st.querySelector('canvas') : null;
-          d.textContent = `3D diag: THREE r${window.THREE.REVISION} | stage ${st?st.clientWidth+'x'+st.clientHeight:'null'} | canvas ${c2?c2.width+'x'+c2.height:'none'} | frames: ${window.__diagFrames}`;
-        }, 1000);
-        d.onclick = () => { clearInterval(iv); d.remove(); };
-      } catch (e) {}
     } catch (err) {
       console.error(err);
-      const el = $('#webgl-error');
-      el.classList.remove('hidden');
-      el.innerHTML = '⚠️ 3D failed: ' + String((err && err.message) || err).slice(0, 160);
+      $('#webgl-error').classList.remove('hidden');
     }
     shownPts = S.points; $('#points').textContent = fmt(S.points);
     renderMenu();
