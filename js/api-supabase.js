@@ -56,7 +56,7 @@ SAK.Api.SupabaseBackend = function (url, anonKey) {
       const signed = await SAK.Wallet.signLogin(message);
       const sig = signed && signed.signature;
       if (!sig) throw new Error('Wallet signature required');
-      const r = await fetch(url.replace(/\/$/, '') + '/functions/v1/admin-config', {
+      const r = await fetch(url.replace(/\/$/, '') + '/functions/v1/admin-config-', {
         method: 'POST',
         headers: {
           'apikey': anonKey,
