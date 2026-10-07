@@ -55,7 +55,7 @@ SAK.Scene3D = (function () {
   let player = null, kol = null;
   let particles = [], rings = [], floaters = [];
   let timeScale = 1, slowMoT = 0; // V2: dramatic slow-mo on heavy hits
-  let candles = [], coins = [];
+  let candles = [], coins = [], chartDomeCandles = [], chartDumpT = 0;
   let shake = 0, time = 0, mode = 'menu';
   let koCam = null; // { track:Fighter, offset:Vector3, until:number } — follow loser fly-out + land
   let hitCam = null; // { target:Fighter, w:0..1, peak, aw:0..1 } — face-cam onto the slapped fighter + wind-up stage weight back to the wide view
@@ -801,12 +801,14 @@ SAK.Scene3D = (function () {
   // setArena() disposes + rebuilds it. Fighters live outside the group.
   let arenaGroup = null, arenaStyle = 'colosseum', crowdExciteUntil = 0;
   const ARENA_DEFS = {
-    colosseum: { name: 'Candlestick Colosseum', fog: '#2a0b5e' },
+    colosseum: { name: 'Chart Dome', fog: '#2a0b5e' },
     moonshot:  { name: 'Moonshot Launchpad',   fog: '#0a1030' },
     rekt:      { name: 'REKT Alley',            fog: '#1c0512' },
   };
   /** Excite the crowd (jump + wave) for `dur` seconds — KO celebrations. */
   function crowdExcite(dur) { crowdExciteUntil = time + (dur || 2.5); }
+  /** Chart Dome: crash the chart on KO — candles dump red, then recover. */
+  function chartDump() { chartDumpT = 2.2; }
 
   function disposeArena() {
     if (!arenaGroup) return;
@@ -829,7 +831,7 @@ SAK.Scene3D = (function () {
   function setArena(style) {
     if (!ARENA_DEFS[style]) style = 'colosseum';
     disposeArena();
-    candles = []; coins = []; mascots = []; neonLights = []; coinRainList = [];
+    candles = []; coins = []; chartDomeCandles = []; chartDumpT = 0; mascots = []; neonLights = []; coinRainList = [];
     chart = null; rocket = null; rektFlicker = null;
     arenaStyle = style;
     arenaGroup = new T.Group();
@@ -899,8 +901,23 @@ SAK.Scene3D = (function () {
       ctx.strokeStyle = '#6d2fe0'; ctx.lineWidth = 3;
       for (let i = 0; i <= w; i += 32) { ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, h); ctx.stroke(); ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(w, i); ctx.stroke(); }
       ctx.save(); ctx.translate(w / 2, h / 2);
-      neonText(ctx, '$SLAP', 0, -150, 64, '#39ff88');
-      ctx.rotate(Math.PI); neonText(ctx, 'WAGMI', 0, -150, 64, '#ff4fd8'); ctx.restore();
+      // Solana logo: three slanted bars (SOL gradient green->blue->purple)
+      ctx.save(); ctx.globalAlpha = 0.9;
+      const barW = 120, barH = 26, gap = 14, slant = 18;
+      const grad = ctx.createLinearGradient(-60, -60, 60, 60);
+      grad.addColorStop(0, '#14f195'); grad.addColorStop(0.5, '#39c5ff'); grad.addColorStop(1, '#b44dff');
+      ctx.fillStyle = grad;
+      for (let b = -1; b <= 1; b++) {
+        const y = b * (barH + gap);
+        ctx.beginPath();
+        ctx.moveTo(-barW / 2 + slant, y - barH / 2);
+        ctx.lineTo(barW / 2 + slant, y - barH / 2);
+        ctx.lineTo(barW / 2 - slant, y + barH / 2);
+        ctx.lineTo(-barW / 2 - slant, y + barH / 2);
+        ctx.closePath(); ctx.fill();
+      }
+      ctx.restore();
+      ctx.restore();
     }).tex;
     const ringMat = new T.MeshLambertMaterial({ map: ringTex });
     const mat2 = mesh(new T.CylinderGeometry(3.2, 3.4, 0.12, 24), [mat('#2a0b5e'), ringMat, mat('#2a0b5e')], 0, 0.02, 0);
@@ -1045,6 +1062,28 @@ SAK.Scene3D = (function () {
       g.position.set(Math.cos(ang) * 14, price + 1, Math.sin(ang) * 14);
       g.userData.baseY = price + 1; g.userData.phase = Math.random() * 6;
       AG.add(g); candles.push(g);
+    }
+    // CHART DOME centerpiece: giant pumping candlestick chart arcing behind the ring.
+    // Big green candles climbing up — the degen battleground.
+    chartDomeCandles = [];
+    let domePrice = 2.5;
+    const domeGreen = new T.MeshBasicMaterial({ color: '#14f195' });
+    const domeRed = new T.MeshBasicMaterial({ color: '#ff3b5c' });
+    for (let i = 0; i < 14; i++) {
+      const up = i < 10 ? Math.random() > 0.25 : Math.random() > 0.6; // mostly pumping
+      const h = 1.2 + Math.random() * 2.4;
+      domePrice += up ? h * 0.45 : -h * 0.35;
+      domePrice = Math.max(2, Math.min(9, domePrice));
+      const g = new T.Group();
+      const bodyMat = up ? domeGreen : domeRed;
+      const body = new T.Mesh(new T.BoxGeometry(0.9, h, 0.9), bodyMat);
+      const wick = new T.Mesh(new T.BoxGeometry(0.14, h + 1.6, 0.14), bodyMat);
+      g.add(body, wick);
+      // Arc across the back, centered behind the fighters
+      const ang = (200 + i * 11) * Math.PI / 180;
+      g.position.set(Math.cos(ang) * 10.5, domePrice + 1.5, Math.sin(ang) * 10.5);
+      g.userData = { baseY: domePrice + 1.5, phase: Math.random() * 6, up, bodyMat, green: domeGreen, red: domeRed };
+      AG.add(g); chartDomeCandles.push(g); candles.push(g);
     }
     // floating coins
     for (let i = 0; i < 9; i++) {
@@ -1445,6 +1484,7 @@ SAK.Scene3D = (function () {
     if (kol) kol.update(dt);
     updateParticles(dt);
     updateArena(dt);
+    if (chartDumpT > 0) chartDumpT = Math.max(0, chartDumpT - dt); // chart recovers after dump
     for (const c of candles) {
       if (c.userData.crowd) {
         const exc = time < crowdExciteUntil; // V2: crowd goes wild on KOs
@@ -1457,7 +1497,16 @@ SAK.Scene3D = (function () {
           c.quaternion.copy(c.userData.baseQ).multiply(_qWob);
         }
       }
-      else c.position.y = c.userData.baseY + Math.sin(time * 0.8 + c.userData.phase) * 0.15;
+      else {
+        // Chart Dome dump: on KO the chart crashes — candles drop and flash red.
+        if (chartDumpT > 0 && c.userData.bodyMat) {
+          const d = Math.min(1, chartDumpT * 2);
+          c.position.y = c.userData.baseY - d * 2.2 + Math.sin(time * 0.8 + c.userData.phase) * 0.15 * (1 - d);
+          c.children.forEach(m => { if (m.material) m.material = c.userData.red; });
+        } else {
+          c.position.y = c.userData.baseY + Math.sin(time * 0.8 + c.userData.phase) * 0.15;
+        }
+      }
     }
     for (const c of coins) { c.rotation.z += dt * 1.5; c.position.y += Math.sin(time * 1.3 + c.userData.phase) * 0.003; }
 
@@ -1906,6 +1955,8 @@ SAK.Scene3D = (function () {
     const F = who === 'player' ? player : kol;
     const finTier = tier || lastSlapTier || 'perfect'; // game.js passes only `loser`
     endHitCam(true); // KO follow-cam takes over from the face-cam
+    chartDump(); // Chart Dome: the chart crashes on KO
+    crowdExcite(3); // crowd goes wild
     F.xEyes.visible = true; F.eyes.visible = false;
     F.mouth.scale.set(1, 3, 1);
 
@@ -2107,7 +2158,7 @@ SAK.Scene3D = (function () {
     flashes.push({ sp, light, age: 0, life: tier === 'perfect' || tier === 'heavy' ? 0.5 : 0.32, big });
   }
 
-  return { init, setPlayer, applyAvatar, createPreview, setOpponent, setMode, resetFight, setRoleCam, slap, knockout, setFireArmed, setBrace, screenPos, taunt, coinRain, impactFlash, setHelmet, setRage, setArena, crowdExcite,
+  return { init, setPlayer, applyAvatar, createPreview, setOpponent, setMode, resetFight, setRoleCam, slap, knockout, setFireArmed, setBrace, screenPos, taunt, coinRain, impactFlash, setHelmet, setRage, setArena, crowdExcite, chartDump,
     get player() { return player; }, get kol() { return kol; },
     get arena() { return arenaStyle; }, get arenaName() { return ARENA_DEFS[arenaStyle].name; },
     get camDebug() { return { hit: hitCam ? +hitCam.w.toFixed(3) : null, role: roleCam.role, roleW: +roleCam.w.toFixed(3), ko: !!koCam, t: +time.toFixed(2) }; } };
