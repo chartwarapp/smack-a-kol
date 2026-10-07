@@ -97,7 +97,18 @@ SAK.FightCard = (() => {
     downloadBlob(blob);
     const tweet = `${text}\n\n🥊 Play: https://smackakol.com`;
     const url = 'https://twitter.com/intent/tweet?text=' + encodeURIComponent(tweet);
-    window.open(url, '_blank', 'noopener');
+    // iOS-safe: anchor click navigates reliably where window.open stalls.
+    const a = document.createElement('a');
+    a.href = url; a.target = '_blank'; a.rel = 'noopener';
+    document.body.appendChild(a); a.click(); a.remove();
+    // Fallback: if the tab didn't open (popup blocked), navigate directly.
+    setTimeout(() => {
+      try {
+        const probe = window.open('', '_blank');
+        if (probe) { probe.close(); }
+        else { window.location.href = url; }
+      } catch (e) { window.location.href = url; }
+    }, 800);
     return 'x-opened';
   }
 
