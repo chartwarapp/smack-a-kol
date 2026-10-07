@@ -33,8 +33,12 @@ SAK.Wallet = (function () {
       return { name: 'Solflare', provider: w.solflare };
     if (w.backpack && w.backpack.isBackpack)
       return { name: 'Backpack', provider: w.backpack };
-    if (w.jupiter && w.jupiter.solana)
-      return { name: 'Jupiter', provider: w.jupiter.solana };
+    // Jupiter: check multiple injection patterns (mobile app, extension)
+    if (w.jupiter) {
+      const jp = w.jupiter.solana || w.jupiter;
+      if (jp && typeof jp.connect === 'function')
+        return { name: 'Jupiter', provider: jp };
+    }
     if (w.solana && w.solana.isPhantom)
       return { name: 'Phantom', provider: w.solana };
     if (w.solana && typeof w.solana.connect === 'function')
@@ -60,8 +64,13 @@ SAK.Wallet = (function () {
         return { address, walletName: found.name };
       }
     } catch (e) { /* fall through to connect() */ }
-    const resp = await found.provider.connect(); // opens the wallet popup
-    const address = resp.publicKey.toBase58();
+    const resp = await found.provider.connect().catch(e => {
+      // Some providers (Jupiter mobile) need explicit params or reject differently
+      throw Object.assign(new Error(e && e.message || 'Wallet connection rejected'), { code: 'CONNECT_FAILED', cause: e });
+    });
+    const pk = resp.publicKey || (found.provider.publicKey);
+    if (!pk) throw Object.assign(new Error('Wallet did not return an address'), { code: 'NO_ADDRESS' });
+    const address = pk.toBase58();
     persist(found.name, address);
     emit('connect', { address, walletName: found.name });
     // Re-emit if the user switches account / disconnects in the wallet.
