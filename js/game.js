@@ -1684,11 +1684,14 @@
   W.onChange(() => renderMenu());
 
   function boot() {
-    // Backend: Supabase when configured, local mock otherwise.
+    // Backend: Supabase when configured AND reachable, local mock otherwise.
     try {
       if (SAK.BACKEND && SAK.BACKEND.url && SAK.BACKEND.anonKey && SAK.Api.SupabaseBackend) {
-        SAK.Api.use(new SAK.Api.SupabaseBackend(SAK.BACKEND.url, SAK.BACKEND.anonKey));
-        console.log('[SAK] backend: supabase');
+        const sb = new SAK.Api.SupabaseBackend(SAK.BACKEND.url, SAK.BACKEND.anonKey);
+        sb.getConfig().then(
+          () => { SAK.Api.use(sb); console.log('[SAK] backend: supabase'); },
+          () => console.log('[SAK] backend: supabase unreachable, using mock')
+        );
       }
     } catch (e) { console.warn('[SAK] backend swap failed, using mock', e); }
     if (!S.powerups) S.powerups = { fist: 0, helmet: 1, rage: 1 };
