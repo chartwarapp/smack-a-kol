@@ -97,6 +97,17 @@ SAK.Wallet = (function () {
     return out;
   }
 
+  /** Minimal base58 encoder for raw public-key bytes (Wallet Standard accounts). */
+  function base58Encode(bytes) {
+    const ALPHABET = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
+    let num = 0n;
+    for (const b of bytes) num = (num << 8n) | BigInt(b);
+    let out = '';
+    while (num > 0n) { out = ALPHABET[Number(num % 58n)] + out; num /= 58n; }
+    for (const b of bytes) { if (b === 0) out = '1' + out; else break; }
+    return out || '1';
+  }
+
   /** Wait for async wallet injection (mobile browsers inject after page load). */
   function waitForProvider(timeoutMs) {
     return new Promise(resolve => {
@@ -140,13 +151,35 @@ SAK.Wallet = (function () {
         return { address, walletName: found.name };
       }
     } catch (e) { /* fall through to connect() */ }
-    const resp = await found.provider.connect().catch(e => {
-      // Some providers (Jupiter mobile) need explicit params or reject differently
-      throw Object.assign(new Error(e && e.message || 'Wallet connection rejected'), { code: 'CONNECT_FAILED', cause: e });
-    });
-    const pk = resp.publicKey || (found.provider.publicKey);
-    if (!pk) throw Object.assign(new Error('Wallet did not return an address'), { code: 'NO_ADDRESS' });
-    const address = pk.toBase58();
+    // Wrap connect in a timeout so a hanging provider can't stall forever.
+    const connectWithTimeout = (provider, ms) => Promise.race([
+      provider.connect(),
+      new Promise((_, rej) => setTimeout(() => rej(Object.assign(new Error('Connection timed out'), { code: 'CONNECT_TIMEOUT' })), ms)),
+    ]);
+    let resp;
+    try {
+      resp = await connectWithTimeout(found.provider, 15000);
+    } catch (e) {
+      throw Object.assign(new Error(e && e.message || 'Wallet connection rejected'), { code: e.code || 'CONNECT_FAILED', cause: e });
+    }
+    // Resolve the address: legacy (publicKey.toBase58) or Wallet Standard (accounts[0]).
+    let address = null;
+    try {
+      const pk = (resp && resp.publicKey) || found.provider.publicKey;
+      if (pk && typeof pk.toBase58 === 'function') address = pk.toBase58();
+      else if (resp && Array.isArray(resp.accounts) && resp.accounts[0]) {
+        const acc = resp.accounts[0];
+        if (acc.publicKey) {
+          // base58-encode the raw bytes
+          const bytes = acc.publicKey instanceof Uint8Array ? acc.publicKey : new Uint8Array(acc.publicKey);
+          address = base58Encode(bytes);
+        } else if (typeof acc.address === 'string') address = acc.address;
+      } else if (found.provider.account && found.provider.account.publicKey) {
+        const bytes = found.provider.account.publicKey;
+        address = base58Encode(bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes));
+      }
+    } catch (e) { /* fall through to NO_ADDRESS */ }
+    if (!address) throw Object.assign(new Error('Wallet did not return an address'), { code: 'NO_ADDRESS' });
     persist(found.name, address);
     emit('connect', { address, walletName: found.name });
     // Re-emit if the user switches account / disconnects in the wallet.
