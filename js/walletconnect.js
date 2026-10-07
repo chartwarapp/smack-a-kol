@@ -32,11 +32,17 @@ SAK.WalletConnect = (() => {
     if (!projectId) throw new Error('WalletConnect not configured');
     initializing = (async () => {
       // Lazy-load Reown AppKit + Solana adapter from esm.sh (ESM, deps resolved).
+      // NOTE: the `solana` network is exported from the `@reown/appkit/networks`
+      // subpath only — NOT from the package root (that was the cause of the
+      // init failure: networks: [undefined] made createAppKit throw).
       const appkitMod = await import('https://esm.sh/@reown/appkit@1.8.24');
       const solanaMod = await import('https://esm.sh/@reown/appkit-adapter-solana@1.8.24');
+      const networksMod = await import('https://esm.sh/@reown/appkit@1.8.24/networks');
       const { createAppKit } = appkitMod;
       const { SolanaAdapter } = solanaMod;
-      const { solana } = appkitMod;
+      const { solana } = networksMod;
+      if (!solana) throw new Error('solana network export unavailable');
+      if (!createAppKit || !SolanaAdapter) throw new Error('Reown AppKit modules unavailable');
       const solanaAdapter = new SolanaAdapter();
       modal = createAppKit({
         adapters: [solanaAdapter],
