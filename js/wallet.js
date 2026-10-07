@@ -43,6 +43,24 @@ SAK.Wallet = (function () {
       return { name: 'Phantom', provider: w.solana };
     if (w.solana && typeof w.solana.connect === 'function')
       return { name: 'Solana', provider: w.solana };
+    // Wallet Standard (modern mobile browsers register here)
+    try {
+      const wallets = (w.navigator && w.navigator.wallets) || [];
+      const list = typeof wallets.get === 'function' ? wallets.get() : wallets;
+      const arr = Array.isArray(list) ? list : [];
+      for (const wallet of arr) {
+        const name = (wallet.name || '').toLowerCase();
+        if (wallet && typeof wallet.connect === 'function') {
+          if (name.includes('jupiter')) return { name: 'Jupiter', provider: wallet };
+          if (name.includes('phantom')) return { name: 'Phantom', provider: wallet };
+          if (name.includes('solflare')) return { name: 'Solflare', provider: wallet };
+          if (name.includes('backpack')) return { name: 'Backpack', provider: wallet };
+        }
+      }
+      // Fallback: any wallet-standard wallet with connect
+      const any = arr.find(x => x && typeof x.connect === 'function');
+      if (any) return { name: any.name || 'Wallet', provider: any };
+    } catch (e) { /* wallet standard unavailable */ }
     return null;
   }
 
@@ -71,6 +89,10 @@ SAK.Wallet = (function () {
     out.jupiter = probe('jupiter', w.jupiter);
     out.jupiter_solana = probe('jupiter.solana', w.jupiter && w.jupiter.solana);
     out.solana = probe('solana', w.solana);
+    try {
+      const ws = w.navigator && w.navigator.wallets;
+      out.walletStandard = ws ? (typeof ws.get === 'function' ? 'has-get' : (Array.isArray(ws) ? ws.length + ' wallets' : typeof ws)) : 'absent';
+    } catch (e) { out.walletStandard = 'error'; }
     out.detected = getProvider() ? getProvider().name : null;
     return out;
   }
