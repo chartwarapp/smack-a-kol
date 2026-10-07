@@ -128,9 +128,36 @@ SAK.WalletConnect = (() => {
     listeners_emit('disconnect', {});
   }
 
+  function base58Decode(str) {
+    const ALPHABET = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
+    let num = 0n;
+    for (const ch of str) {
+      const i = ALPHABET.indexOf(ch);
+      if (i < 0) throw new Error('bad base58');
+      num = num * 58n + BigInt(i);
+    }
+    const bytes = [];
+    while (num > 0n) { bytes.unshift(Number(num % 256n)); num /= 256n; }
+    let leading = 0;
+    for (const ch of str) { if (ch === '1') leading++; else break; }
+    const out = new Uint8Array(leading + bytes.length);
+    out.set(bytes, leading);
+    return out;
+  }
+
   function getProvider() {
-    // Try the adapter provider first, then AppKit state.
-    if (solanaProvider && typeof solanaProvider.signMessage === 'function') return solanaProvider;
+    // Try the adapter provider first, then AppKit's wallet provider (the
+    // correct API in AppKit 1.x), then AppKit state as a last resort.
+    if (solanaProvider && (typeof solanaProvider.signMessage === 'function' || typeof solanaProvider.request === 'function')) return solanaProvider;
+    try {
+      if (modal && modal.getWalletProvider) {
+        const wp = modal.getWalletProvider();
+        if (wp && (typeof wp.signMessage === 'function' || typeof wp.request === 'function')) {
+          solanaProvider = wp;
+          return solanaProvider;
+        }
+      }
+    } catch (e) {}
     try {
       const st = modal && modal.getState ? modal.getState() : null;
       if (st && st.solanaProvider && typeof st.solanaProvider.signMessage === 'function') {
@@ -141,19 +168,38 @@ SAK.WalletConnect = (() => {
     return null;
   }
 
+  function bytesToB64(bytes) {
+    return btoa(String.fromCharCode.apply(null, bytes));
+  }
+
   async function signMessage(message) {
     const provider = getProvider();
     if (!provider) throw Object.assign(new Error('NO_WALLET'), { code: 'NO_WALLET' });
     const data = new TextEncoder().encode(message);
-    const out = await provider.signMessage(data, 'utf8');
-    const sig = out.signature || out;
-    let b64;
-    if (typeof sig === 'string') b64 = sig;
-    else {
-      const bytes = sig instanceof Uint8Array ? sig : new Uint8Array(sig);
-      b64 = btoa(String.fromCharCode.apply(null, bytes));
+    let sigBytes;
+    if (typeof provider.request === 'function') {
+      // WalletConnect universal provider: solana_signMessage with base58
+      // params, base58 signature in the response.
+      const res = await provider.request({
+        method: 'solana_signMessage',
+        params: { message: base58Encode(data), pubkey: address },
+        chainNamespace: 'solana',
+      });
+      const sigStr = res && res.signature ? res.signature : res;
+      if (typeof sigStr !== 'string') throw new Error('unexpected sign result');
+      sigBytes = base58Decode(sigStr);
+    } else {
+      const out = await provider.signMessage(data, 'utf8');
+      const sig = out.signature || out;
+      if (typeof sig === 'string') {
+        // Could be base64 already; if it decodes as base58 keep bytes, else assume base64.
+        try { sigBytes = base58Decode(sig); } catch (e) { sigBytes = null; }
+        if (!sigBytes) return { signature: sig, address, message };
+      } else {
+        sigBytes = sig instanceof Uint8Array ? sig : new Uint8Array(sig);
+      }
     }
-    return { signature: b64, address, message };
+    return { signature: bytesToB64(sigBytes), address, message };
   }
 
   async function signLogin(nonce) {
