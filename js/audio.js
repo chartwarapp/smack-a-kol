@@ -12,7 +12,6 @@ SAK.Audio = (function () {
     { id: 'smack',  name: '👋 Heavy Smack',  file: 'assets/sfx/slap-smack.mp3' },
     { id: 'face',   name: '😲 Face Classic',  file: 'assets/sfx/slap-face.mp3' },
     { id: 'cinema', name: '🎬 Cinematic',    file: 'assets/sfx/slap-cinema.mp3' },
-    { id: 'wet',    name: '🥩 Wet Meat',     file: 'assets/sfx/slap-wet.mp3' },
   ];
   const slapBufs = {};   // id -> AudioBuffer
   let slapLoading = false;
@@ -35,8 +34,14 @@ SAK.Audio = (function () {
     });
   }
 
+  // Slaps rotate randomly through the bank — no picker, every hit is a surprise.
+  function randomSlapId() {
+    const ids = Object.keys(slapBufs).length ? Object.keys(slapBufs) : SLAP_BANK.map(b => b.id);
+    return ids[Math.floor(Math.random() * ids.length)];
+  }
+
   function playSlapBuf(strength) {
-    const buf = slapBufs[slapStyle()];
+    const buf = slapBufs[randomSlapId()];
     if (!buf) return false;
     const src = ctx.createBufferSource(); src.buffer = buf;
     // Slight random pitch each hit so repeated slaps never sound identical
@@ -88,6 +93,51 @@ SAK.Audio = (function () {
     o.connect(g); g.connect(master); o.start(t); o.stop(t + dur + 0.05);
   }
 
+  /* ---- Battle music: synth hype loop (kick/hat/bass), toggled in settings ---- */
+  let musicTimer = null, musicStep = 0;
+  function musicEnabled() { return SAK.Storage.state.settings.battleMusic; }
+
+  function musicTick() {
+    if (!ctx || !musicEnabled() || !enabled()) return;
+    const t = ctx.currentTime;
+    const step = musicStep % 16;
+    // Kick on quarters
+    if (step % 4 === 0) {
+      const o = ctx.createOscillator(), g = ctx.createGain();
+      o.type = 'sine'; o.frequency.setValueAtTime(150, t);
+      o.frequency.exponentialRampToValueAtTime(40, t + 0.12);
+      g.gain.setValueAtTime(0.5, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
+      o.connect(g); g.connect(master); o.start(t); o.stop(t + 0.2);
+    }
+    // Hats on off-beats
+    if (step % 2 === 1) {
+      const src = ctx.createBufferSource(); src.buffer = noiseBuf;
+      const f = ctx.createBiquadFilter(); f.type = 'highpass'; f.frequency.value = 7000;
+      const g = ctx.createGain();
+      g.gain.setValueAtTime(0.12, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.05);
+      src.connect(f); f.connect(g); g.connect(master); src.start(t); src.stop(t + 0.08);
+    }
+    // Degen bassline (minor-key pump)
+    const bassNotes = [55, 55, 65.4, 49, 55, 55, 73.4, 65.4];
+    if (step % 2 === 0) {
+      const o = ctx.createOscillator(), g = ctx.createGain();
+      o.type = 'sawtooth'; o.frequency.value = bassNotes[(step / 2) | 0];
+      const f = ctx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 300;
+      g.gain.setValueAtTime(0.16, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.22);
+      o.connect(f); f.connect(g); g.connect(master); o.start(t); o.stop(t + 0.25);
+    }
+    musicStep++;
+  }
+
+  function startMusic() {
+    if (musicTimer || !ctx) return;
+    musicStep = 0;
+    musicTimer = setInterval(musicTick, 150); // 16th notes at ~100bpm
+  }
+  function stopMusic() {
+    if (musicTimer) { clearInterval(musicTimer); musicTimer = null; }
+  }
+
   return {
     unlock,
     SLAP_BANK,
@@ -101,6 +151,8 @@ SAK.Audio = (function () {
       const g = ctx.createGain(); g.gain.value = 0.9;
       src.connect(g); g.connect(master); src.start();
     },
+    startMusic,
+    stopMusic,
     slap(strength) {          // strength 0..1+
       if (!ready()) return;
       if (playSlapBuf(strength)) return;   // real recorded slap
@@ -121,8 +173,7 @@ SAK.Audio = (function () {
     lose() { if (!ready()) return; [392, 330, 262].forEach((f, i) => tone(f, 0.45, 'sine', 0.2, i * 0.18)); },
     brace() { if (!ready()) return; tone(300, 0.1, 'square', 0.12); },
     /** Boxing ring bell — three classic dings with metallic partials. */
-    bell() {
-      if (!ready()) return;
+    bell() {      if (!ready()) return;
       const strike = (when) => {
         const t0 = ctx.currentTime + when;
         // Inharmonic metallic partials of a real ringside bell
