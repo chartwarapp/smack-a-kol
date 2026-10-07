@@ -1720,6 +1720,15 @@
       if (Scene.setArena) Scene.setArena(S.settings.arena || 'colosseum'); // V2: saved arena
       if (window.__setArenaLabel) window.__setArenaLabel();
       menuScene();
+      // Temporary boot diagnostic (remove after 3D issue resolved)
+      try {
+        const st = $('#stage'), cv = st ? st.querySelector('canvas') : null;
+        const d = document.createElement('div');
+        d.id = 'boot-diag'; d.style.cssText = 'position:fixed;top:4px;left:4px;z-index:999;background:#000c;color:#0f0;font:11px monospace;padding:6px;white-space:pre-wrap;max-width:92vw';
+        d.textContent = `3D diag: THREE r${window.THREE.REVISION} | stage ${st?st.clientWidth+'x'+st.clientHeight:'null'} | canvas ${cv?cv.width+'x'+cv.height:'none'} | canvases in stage: ${st?st.querySelectorAll('canvas').length:0}`;
+        document.body.appendChild(d);
+        setTimeout(() => d.remove(), 8000);
+      } catch (e) {}
     } catch (err) {
       console.error(err);
       const el = $('#webgl-error');
