@@ -1712,7 +1712,7 @@
     SAK.Meter.build($('#meter')); // legacy hidden mount
     buildTicker();
     try {
-      if (!window.THREE) throw new Error('three.js failed to load');
+      if (!window.THREE) throw new Error('three.js failed to load (vendor/three.min.js)');
       SAK.Scene3D.init($('#stage'));
       Scene = SAK.Scene3D;
       Scene.setPlayer(playerAvatar());
@@ -1722,7 +1722,9 @@
       menuScene();
     } catch (err) {
       console.error(err);
-      $('#webgl-error').classList.remove('hidden');
+      const el = $('#webgl-error');
+      el.classList.remove('hidden');
+      el.innerHTML = '⚠️ 3D failed: ' + String((err && err.message) || err).slice(0, 160);
     }
     shownPts = S.points; $('#points').textContent = fmt(S.points);
     renderMenu();
