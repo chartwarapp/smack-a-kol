@@ -353,9 +353,10 @@
         syncProfileFromWallet();
       } catch (err) {
         console.warn('[SAK] Jupiter connect failed', err);
+        const msg = (err && err.message) ? String(err.message).slice(0, 120) : 'unknown error';
         toast(err && err.code === 'CONNECT_TIMEOUT'
           ? 'Timed out — approve in Jupiter, then switch back here'
-          : 'Jupiter connection failed — try again', 2600);
+          : `Jupiter failed: ${msg} — try again`, 3200);
       }
       jupBtn.disabled = false; jupBtn.innerHTML = old;
     });
