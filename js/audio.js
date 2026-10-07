@@ -34,14 +34,62 @@ SAK.Audio = (function () {
     });
   }
 
-  // Slaps rotate randomly through the bank — no picker, every hit is a surprise.
-  function randomSlapId() {
-    const ids = Object.keys(slapBufs).length ? Object.keys(slapBufs) : SLAP_BANK.map(b => b.id);
-    return ids[Math.floor(Math.random() * ids.length)];
+  /* ---- Synth slap layers: every hit is full — crack on top, thump under, body middle ---- */
+  function synthLayer(type, opts) {
+    const t = ctx.currentTime + (opts.when || 0);
+    const s = opts.strength || 1;
+    if (type === 'boom') {
+      // Deep sub drop — the weight you feel
+      const o = ctx.createOscillator(), g = ctx.createGain();
+      o.type = 'sine';
+      o.frequency.setValueAtTime(opts.from || 120, t);
+      o.frequency.exponentialRampToValueAtTime(opts.to || 35, t + opts.dur);
+      g.gain.setValueAtTime(opts.gain * s, t);
+      g.gain.exponentialRampToValueAtTime(0.001, t + opts.dur);
+      o.connect(g); g.connect(master); o.start(t); o.stop(t + opts.dur + 0.05);
+    } else {
+      // Noise burst — crack / snap / body
+      const src = ctx.createBufferSource(); src.buffer = noiseBuf;
+      const f = ctx.createBiquadFilter();
+      f.type = opts.ftype || 'bandpass'; f.frequency.value = opts.freq; f.Q.value = opts.q || 1;
+      const g = ctx.createGain();
+      g.gain.setValueAtTime(opts.gain * s, t);
+      g.gain.exponentialRampToValueAtTime(0.001, t + opts.dur);
+      src.connect(f); f.connect(g); g.connect(master); src.start(t); src.stop(t + opts.dur + 0.05);
+    }
   }
 
+  // 💥 Thunder Clap — deep boom under a rolling crack
+  function synthThunder(strength) {
+    synthLayer('boom', { from: 130, to: 32, dur: 0.55, gain: 0.75, strength });
+    synthLayer('noise', { freq: 2600, q: 0.7, dur: 0.09, gain: 0.6, ftype: 'bandpass', strength });
+    synthLayer('noise', { freq: 750, q: 0.8, dur: 0.22, gain: 0.42, ftype: 'lowpass', strength });
+    synthLayer('noise', { freq: 4200, q: 1.2, dur: 0.05, gain: 0.35, ftype: 'highpass', when: 0.01, strength });
+  }
+  // ⚡ Whip Crack — razor snap with a chest thump underneath
+  function synthWhip(strength) {
+    synthLayer('noise', { freq: 5200, q: 1.0, dur: 0.045, gain: 0.7, ftype: 'highpass', strength });
+    synthLayer('boom', { from: 210, to: 60, dur: 0.16, gain: 0.55, strength });
+    synthLayer('noise', { freq: 1300, q: 0.9, dur: 0.11, gain: 0.38, ftype: 'bandpass', strength });
+  }
+  // 🔨 Sledge — massive sub slam with impact crunch
+  function synthSledge(strength) {
+    synthLayer('boom', { from: 95, to: 24, dur: 0.65, gain: 0.85, strength });
+    synthLayer('noise', { freq: 480, q: 0.7, dur: 0.28, gain: 0.5, ftype: 'lowpass', strength });
+    synthLayer('noise', { freq: 3100, q: 0.8, dur: 0.06, gain: 0.42, ftype: 'bandpass', strength });
+    synthLayer('boom', { from: 70, to: 30, dur: 0.4, gain: 0.4, when: 0.05, strength });
+  }
+
+  const SYNTH_SLAPS = { thunder: synthThunder, whip: synthWhip, sledge: synthSledge };
+
+  // Slap rotation pool: 3 recorded + 3 synth, all full and heavy.
+  const SLAP_POOL = ['smack', 'cinema', 'face', 'thunder', 'whip', 'sledge'];
+
   function playSlapBuf(strength) {
-    const buf = slapBufs[randomSlapId()];
+    const pick = SLAP_POOL[Math.floor(Math.random() * SLAP_POOL.length)];
+    // Synth slaps first (always available, always full)
+    if (SYNTH_SLAPS[pick]) { SYNTH_SLAPS[pick](strength); return true; }
+    const buf = slapBufs[pick];
     if (!buf) return false;
     const src = ctx.createBufferSource(); src.buffer = buf;
     // Slight random pitch each hit so repeated slaps never sound identical
@@ -51,6 +99,8 @@ SAK.Audio = (function () {
     g.gain.value = 0.9 * Math.max(0.35, s);
     src.connect(g); g.connect(master);
     src.start();
+    // Layer a sub thump under every recorded slap so nothing sounds empty
+    synthLayer('boom', { from: 110, to: 40, dur: 0.3, gain: 0.4, strength: s });
     return true;
   }
 
