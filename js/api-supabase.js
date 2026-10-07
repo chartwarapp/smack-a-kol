@@ -53,7 +53,7 @@ SAK.Api.SupabaseBackend = function (url, anonKey) {
       // blocked by RLS — this keeps the admin panel working for the real
       // admin while nobody else can change anything.
       const message = JSON.stringify({ key, value, ts: Date.now() });
-      const signed = await SAK.Wallet.signLogin(message);
+      const signed = await SAK.Wallet.signMessage(message);
       const sig = signed && signed.signature;
       if (!sig) throw new Error('Wallet signature required');
       const r = await fetch(url.replace(/\/$/, '') + '/functions/v1/admin-config-', {

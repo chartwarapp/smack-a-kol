@@ -89,6 +89,20 @@ SAK.Wallet = (function () {
     return { signature: b64, address: S().wallet.address, message: msg };
   }
 
+  // Sign an exact message (for admin actions) — the signature verifies
+  // against these exact bytes, unlike signLogin which wraps in a template.
+  async function signMessage(message) {
+    const found = getProvider();
+    if (!found) throw Object.assign(new Error('NO_WALLET'), { code: 'NO_WALLET' });
+    const data = new TextEncoder().encode(message);
+    const out = await found.provider.signMessage(data, 'utf8');
+    const sig = out.signature || out;
+    let b64;
+    if (typeof sig === 'string') b64 = sig;
+    else b64 = btoa(String.fromCharCode.apply(null, sig));
+    return { signature: b64, address: S().wallet.address, message };
+  }
+
   function persist(walletName, address) {
     const st = S();
     st.wallet.connected = true;
@@ -112,7 +126,7 @@ SAK.Wallet = (function () {
   }
 
   return {
-    connect, disconnect, signLogin, shortAddress,
+    connect, disconnect, signLogin, signMessage, shortAddress,
     NO_WALLET_HELP,
     onChange(fn) { listeners.push(fn); },
     get isConnected() { return !!S().wallet.connected && !!S().wallet.address; },
