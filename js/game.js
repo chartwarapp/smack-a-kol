@@ -1641,11 +1641,29 @@
   $('#admin-save').addEventListener('click', async () => {
     const btn = $('#admin-save'); btn.disabled = true; btn.textContent = 'SAVING…';
     try {
-      const fee = +$('#admin-fee').value;
-      await SAK.Api.setConfig('platform_fee_bps_default', fee, W.address);
-      const inputs = $$('#modal-admin [data-cfg]');
-      for (const inp of inputs) {
-        await SAK.Api.setConfig(inp.dataset.cfg, +inp.value, W.address);
+      // Collect all changes, sign ONCE, save all in one request.
+      const changes = { platform_fee_bps_default: +$('#admin-fee').value };
+      $$('#modal-admin [data-cfg]').forEach(inp => { changes[inp.dataset.cfg] = +inp.value; });
+      const message = JSON.stringify({ changes, ts: Date.now() });
+      // Timeout: if the wallet doesn't return a signature in 60s, bail out.
+      const signed = await Promise.race([
+        SAK.Wallet.signMessage(message),
+        new Promise((_, rej) => setTimeout(() => rej(new Error('Wallet did not return a signature (timed out)')), 60000)),
+      ]);
+      const sig = signed && signed.signature;
+      if (!sig) throw new Error('Wallet signature required');
+      const r = await fetch(SAK.BACKEND.url.replace(/\/$/, '') + '/functions/v1/admin-config-', {
+        method: 'POST',
+        headers: {
+          'apikey': SAK.BACKEND.anonKey,
+          'Authorization': 'Bearer ' + SAK.BACKEND.anonKey,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ changes, wallet: W.address, signature: sig, message }),
+      });
+      if (!r.ok) {
+        const t = await r.text().catch(() => '');
+        throw new Error(`admin-config ${r.status}: ${t.slice(0, 120)}`);
       }
       A.perfect(); toast('Admin settings saved ✓', 2000);
       $('#modal-admin').classList.add('hidden');
@@ -1653,7 +1671,7 @@
       console.warn('[SAK] admin save failed', e);
       toast(e.message && e.message.includes('admin-config 404')
         ? 'Edge Function not deployed yet — see setup notes'
-        : 'Save failed: ' + (e.message || e), 2600);
+        : 'Save failed: ' + (e.message || e), 3000);
     }
     btn.disabled = false; btn.textContent = '💾 SAVE ALL';
   });
