@@ -38,7 +38,15 @@ SAK.BETS = [0, 100, 250, 500, 1000, 2500];
 
 /* Free-match point rewards. Win = kol.winPts + bonuses; loss still pays a
  * little so free players always progress. */
-SAK.POINT_REWARDS = { lossBase: 10, perHitLanded: 3, perPerfect: 10, streakPct: 0.1, streakCap: 5 };
+SAK.POINT_REWARDS = { lossBase: 10, perHitLanded: 3, perPerfect: 10, streakPct: 0.02, streakCap: 25 };
+
+/* Player tiers by lifetime PTS. Higher tiers boost Stake Vault yield. */
+SAK.TIERS = [
+  { name: 'Bronze',  min: 0,      color: '#d9884a', yieldBoost: 0 },
+  { name: 'Silver',  min: 5000,   color: '#d6dbe8', yieldBoost: 0.05 },
+  { name: 'Gold',    min: 25000,  color: '#ffd23f', yieldBoost: 0.10 },
+  { name: 'Diamond', min: 100000, color: '#7ae8ff', yieldBoost: 0.20 },
+];
 
 /* Stake Vault (mock, PTS). APR accrues continuously; `demoTimeScale` speeds
  * up time so yield is visible in a prototype (1440 => 1 real minute = 1 day).

@@ -16,6 +16,12 @@ SAK.Storage = (function () {
       powerups: { fist: 0, helmet: 1, rage: 1 },   // consumable inventory (starter pack)
       lastFreeFistDate: null,          // YYYY-MM-DD of last daily free Golden Fist
       stats: { wins: 0, losses: 0, streak: 0, bestStreak: 0, perfects: 0, biggestHit: 0, lifetimePts: 0 },
+      loginStreak: 0,                  // consecutive daily logins
+      lastLoginDate: null,             // YYYY-MM-DD of last daily bonus
+      achievements: {},               // achievementId -> timestamp unlocked
+      referralCode: null,              // own referral code (generated on first boot)
+      referredBy: null,                // referral code/wallet that referred this player
+      referralRewardClaimed: false,    // referee reward given on first win
       beaten: {},                      // kolId -> true
       customKols: [],
       profile: null,                   // player fighter { name, colour, phrase } (null = not created yet)                  // user-submitted parody KOLs (see SAK.UGC)
@@ -36,6 +42,7 @@ SAK.Storage = (function () {
     }
     // keep dynamic maps (e.g. beaten) entirely
     if (saved.beaten) base.beaten = Object.assign({}, saved.beaten);
+    if (saved.achievements) base.achievements = Object.assign({}, saved.achievements);
     if (Array.isArray(saved.customKols)) base.customKols = saved.customKols.slice();
     if (saved.profile) base.profile = Object.assign({}, saved.profile);
     return base;

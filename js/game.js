@@ -67,6 +67,95 @@
   const ugcSlotsUnlocked = () => SAK.UGC.slotMilestones.filter(m => S.stats.lifetimePts >= m).length;
   const ugcNextMilestone = () => SAK.UGC.slotMilestones.find(m => S.stats.lifetimePts < m);
 
+  /* ------------------------------------------- rewards program: daily login */
+  function checkDailyLogin() {
+    const today = new Date().toISOString().slice(0, 10);
+    if (S.lastLoginDate === today) return; // already claimed today
+    const yesterday = new Date(Date.now() - 864e5).toISOString().slice(0, 10);
+    S.loginStreak = (S.lastLoginDate === yesterday) ? (S.loginStreak || 0) + 1 : 1;
+    S.lastLoginDate = today;
+    const day = Math.min(S.loginStreak, 7);
+    const bonus = day >= 7 ? 500 : 50 * day;
+    P.add(bonus, true);
+    SAK.Storage.save();
+    setTimeout(() => toast(`🎁 Day ${S.loginStreak} login bonus: +${fmt(bonus)} PTS`, 2800), 1400);
+  }
+
+  /* ---------------------------------------------- rewards program: referrals */
+  function ensureReferralCode() {
+    if (!S.referralCode) {
+      S.referralCode = 'SAK-' + Math.random().toString(36).slice(2, 8).toUpperCase();
+      SAK.Storage.save();
+    }
+  }
+  function checkIncomingReferral() {
+    ensureReferralCode();
+    try {
+      const ref = new URLSearchParams(location.search).get('ref');
+      if (ref && ref !== S.referralCode && !S.referredBy) {
+        S.referredBy = ref;
+        SAK.Storage.save();
+        console.log('[SAK] referred by', ref);
+        setTimeout(() => toast('🎁 You joined via a referral link! Win your first match for +250 PTS', 3000), 2200);
+      }
+    } catch (e) {}
+  }
+  function myReferralLink() {
+    ensureReferralCode();
+    const code = (W.isConnected && W.address) ? W.address : S.referralCode;
+    return 'https://smackakol.com/?ref=' + encodeURIComponent(code);
+  }
+  // Referee reward on first win; referrer credit is best-effort via backend.
+  function checkReferralReward(win) {
+    if (!win || S.referralRewardClaimed || !S.referredBy) return;
+    if (S.stats.wins !== 1) return; // first match win only
+    S.referralRewardClaimed = true;
+    P.add(250, true);
+    SAK.Storage.save();
+    setTimeout(() => toast('🎁 Referral bonus: +250 PTS! Your referrer earns 250 PTS too', 3000), 3600);
+    // Best-effort: record the referral event for the referrer via Supabase.
+    try {
+      if (SAK.Api && SAK.Api.recordReferral && W.address) {
+        SAK.Api.recordReferral({ referee_wallet: W.address, referrer_code: S.referredBy }).catch(() => {});
+      }
+    } catch (e) {}
+  }
+
+  /* -------------------------------------------- rewards program: achievements */
+  const ACHIEVEMENTS = {
+    first_win: { name: 'First Blood',  pts: 100 },
+    first_ko:  { name: 'KO Artist',   pts: 150 },
+    win_10:    { name: 'Rising Star',  pts: 200 },
+    win_50:    { name: 'Contender',    pts: 500 },
+    win_100:   { name: 'Champion',     pts: 1000 },
+    streak_5:  { name: 'On Fire',      pts: 150 },
+    streak_10: { name: 'Unstoppable',  pts: 300 },
+    pts_10000: { name: 'High Roller',  pts: 500 },
+  };
+  function checkAchievements(win, wasKo) {
+    const newly = [];
+    const unlock = (id) => {
+      if (S.achievements[id]) return;
+      const a = ACHIEVEMENTS[id];
+      if (!a) return;
+      S.achievements[id] = Date.now();
+      P.add(a.pts, true);
+      newly.push(a);
+    };
+    if (win) {
+      if (S.stats.wins >= 1) unlock('first_win');
+      if (wasKo) unlock('first_ko');
+      if (S.stats.wins >= 10) unlock('win_10');
+      if (S.stats.wins >= 50) unlock('win_50');
+      if (S.stats.wins >= 100) unlock('win_100');
+      if (S.stats.streak >= 5) unlock('streak_5');
+      if (S.stats.streak >= 10) unlock('streak_10');
+    }
+    if ((S.stats.lifetimePts || 0) >= 10000) unlock('pts_10000');
+    SAK.Storage.save();
+    newly.forEach((a, i) => setTimeout(() => toast(`🏆 Achievement: ${a.name} +${fmt(a.pts)} PTS`, 2600), 900 + i * 1400));
+  }
+
   /* -------------------------------------------------------------- UI helpers */
   let toastTimer = 0;
   function toast(msg, ms) {
@@ -149,8 +238,10 @@
     $('#vault-sub').textContent = V.staked > 0 ? `${fmt(V.staked)} staked · ${V.tier.name}` : 'earn yield + boost';
     $('#btn-rescue').classList.toggle('hidden', !(S.points < SAK.POINTS.rescueThreshold && V.staked === 0));
     const st = S.stats;
-    $('#menu-stats').innerHTML = `<span>🏆 ${st.wins}W / ${st.losses}L</span><span>🔥 Streak ${st.streak}</span><span>❤ Lv${S.upgrades.health} ✊ Lv${S.upgrades.power}</span>`
-      + (V.boost ? `<span class="boost-tag">⚡ +${Math.round(V.boost * 100)}% boost</span>` : '');
+    const tier = SAK.playerTier ? SAK.playerTier() : SAK.TIERS[0];
+    $('#menu-stats').innerHTML = `<span>🏆 ${st.wins}W / ${st.losses}L</span><span>🔥 Streak ${st.streak}</span><span style="color:${tier.color};font-weight:700">◆ ${tier.name}</span><span>❤ Lv${S.upgrades.health} ✊ Lv${S.upgrades.power}</span>`
+      + (V.boost ? `<span class="boost-tag">⚡ +${Math.round(V.boost * 100)}% boost</span>` : '')
+      + (tier.yieldBoost ? `<span class="boost-tag" style="border-color:${tier.color}">🏦 +${Math.round(tier.yieldBoost * 100)}% yield</span>` : '');
     $('#set-wallet').textContent = on ? `Mock address: ${W.address}` : 'Wallet not connected (placeholder)';
     $('#btn-disconnect').classList.toggle('hidden', !on);
     renderShopStats();
@@ -1101,6 +1192,7 @@
     if (Scene && loser === 'kol') Scene.coinRain(70);                       // 🪙 coin rain on a win
     banner(loser === 'kol' ? pick(['K.O.! WAGMI', 'SENT TO ZERO!', 'RUGGED! K.O.']) : pick(['NGMI…', 'LIQUIDATED!', 'REKT!']), loser === 'kol' ? '#39ff88' : '#ff3b5c', 1400);
     await ko;
+    F.wasKoWin = (loser === 'kol');
     endFight(loser === 'kol');
   }
 
@@ -1183,6 +1275,9 @@
     if (F.fireArmed) { F.fireArmed = false; S.powerups.fist = Math.min(SAK.POWERUPS.fist.max, (S.powerups.fist || 0) + 1); if (Scene) Scene.setFireArmed(false); }
     if (win) { st.wins++; st.streak++; st.bestStreak = Math.max(st.bestStreak, st.streak); S.beaten[k.id] = true; A.win(); }
     else if (!draw) { st.losses++; st.streak = 0; A.lose(); }
+    // Rewards program: achievements + referral bonus (after stats update)
+    checkAchievements(win, !!F.wasKoWin);
+    checkReferralReward(win);
     SAK.Storage.save();
 
     const C = SAK.COPY, sub = t => esc(t.replace('{k}', k.name).replace('{t}', pick(k.taunts)));
@@ -1305,6 +1400,16 @@
   }
   $('#btn-shop').addEventListener('click', openShop);
   $('#btn-shop-pick').addEventListener('click', openShop);
+  $('#btn-refer').addEventListener('click', async () => {
+    A.click();
+    const link = myReferralLink();
+    try {
+      await navigator.clipboard.writeText(link);
+      toast('🎁 Referral link copied! Share it on X — you both earn 250 PTS', 2800);
+    } catch (e) {
+      prompt('Copy your referral link:', link);
+    }
+  });
 
   /* ================================================================= VAULT */
   let vaultAmt = 500, vaultTimer = 0;
@@ -1758,6 +1863,9 @@
       else welcomePending = true;   // shown once the account is created (or skipped)
     }
     lastSlots = ugcSlotsUnlocked();
+    // Rewards program: daily login bonus + referral link check
+    checkDailyLogin();
+    checkIncomingReferral();
     MeterLocal = SAK.createMeter($('#meter-local'), { jerky: true, label: '' });
     SAK.Meter.build($('#meter')); // legacy hidden mount
     buildTicker();

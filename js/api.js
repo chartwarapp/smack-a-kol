@@ -40,6 +40,7 @@ SAK.Api = (function () {
     listChallenges(s, ...a) { return backend.listChallenges(s, ...a); },
     recordMatch(d, ...a) { return backend.recordMatch(d, ...a); },
     audit(w, act, det, ...a) { return backend.audit(w, act, det, ...a); },
+    recordReferral(d, ...a) { return backend.recordReferral ? backend.recordReferral(d, ...a) : Promise.resolve(null); },
   };
 })();
 
@@ -117,6 +118,13 @@ SAK.Api.MockBackend = function () {
     },
     async audit(adminWallet, action, details) {
       // mock: no-op (real backend writes to admin_audit)
+    },
+    async recordReferral(data) {
+      // mock: store locally; referrer credit is manual in the mock backend
+      const d = db();
+      if (!d.referrals) d.referrals = [];
+      d.referrals.push(Object.assign({ created_at: new Date().toISOString() }, data));
+      persist(d); return data;
     },
   };
 };

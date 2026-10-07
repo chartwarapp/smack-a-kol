@@ -37,12 +37,23 @@ SAK.Vault = (function () {
   const emit = () => listeners.forEach(fn => fn());
   const YEAR = 365 * 86400;
 
+  /** Player tier by lifetime PTS (drives the staking yield boost). */
+  function playerTier() {
+    const lp = (S().stats && S().stats.lifetimePts) || 0;
+    let cur = SAK.TIERS[0];
+    for (const t of SAK.TIERS) if (lp >= t.min) cur = t;
+    return cur;
+  }
+  // Expose for the menu tier badge.
+  SAK.playerTier = playerTier;
+
   /** Yield earned since the last settle (not yet added to `accrued`). */
   function unsettled() {
     const st = S().staking;
     if (!st.amount || !st.since) return 0;
     const sec = (Date.now() - st.since) / 1000 * C().demoTimeScale;
-    return st.amount * C().apr * sec / YEAR;
+    const yb = playerTier().yieldBoost || 0;
+    return st.amount * C().apr * (1 + yb) * sec / YEAR;
   }
   /** Fold unsettled yield into `accrued` (call before changing the amount). */
   function settle() {

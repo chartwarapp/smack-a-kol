@@ -118,5 +118,13 @@ SAK.Api.SupabaseBackend = function (url, anonKey) {
         admin_wallet: adminWallet, action, details: details || {},
       }).catch(() => {});
     },
+    // Best-effort referral tracking. Requires a `referrals` table; fails
+    // silently if it doesn't exist — the referee reward is always local.
+    async recordReferral(data) {
+      await req('POST', '/referrals', Object.assign({
+        created_at: new Date().toISOString(),
+      }, data)).catch(() => {});
+      return data;
+    },
   };
 };
