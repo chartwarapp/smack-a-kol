@@ -48,10 +48,27 @@ SAK.Api.SupabaseBackend = function (url, anonKey) {
       return out;
     },
     async setConfig(key, value, adminWallet) {
-      await req('POST', '/game_config?on_conflict=key',
-        { key, value, updated_at: new Date().toISOString(), updated_by: adminWallet },
-        'return=representation,resolution=merge-duplicates');
-      await this.audit(adminWallet, 'update_config', { key, value });
+      // Admin writes go through the admin-config Edge Function, which verifies
+      // a Solana wallet signature. Direct anon writes to game_config are
+      // blocked by RLS — this keeps the admin panel working for the real
+      // admin while nobody else can change anything.
+      const message = JSON.stringify({ key, value, ts: Date.now() });
+      const signed = await SAK.Wallet.signLogin(message);
+      const sig = signed && signed.signature;
+      if (!sig) throw new Error('Wallet signature required');
+      const r = await fetch(url.replace(/\/$/, '') + '/functions/v1/admin-config', {
+        method: 'POST',
+        headers: {
+          'apikey': anonKey,
+          'Authorization': 'Bearer ' + anonKey,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ key, value, wallet: adminWallet, signature: sig, message }),
+      });
+      if (!r.ok) {
+        const t = await r.text().catch(() => '');
+        throw new Error(`admin-config ${r.status}: ${t.slice(0, 120)}`);
+      }
     },
     async createChallenge({ challenger, wager_lamports, mint, ttl_hours }) {
       const rows = await req('POST', '/challenges', {

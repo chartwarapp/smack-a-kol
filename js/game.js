@@ -1649,11 +1649,16 @@
       }
       A.perfect(); toast('Admin settings saved ✓', 2000);
       $('#modal-admin').classList.add('hidden');
-    } catch (e) { toast('Save failed', 2000); }
+    } catch (e) {
+      console.warn('[SAK] admin save failed', e);
+      toast(e.message && e.message.includes('admin-config 404')
+        ? 'Edge Function not deployed yet — see setup notes'
+        : 'Save failed: ' + (e.message || e), 2600);
+    }
     btn.disabled = false; btn.textContent = '💾 SAVE ALL';
   });
-  // Dev bootstrap for the mock backend: claim admin on first use.
-  // (On Supabase, is_admin is set via the dashboard — RLS blocks this path.)
+  // Dev bootstrap: claim admin on first use (works on the mock backend;
+  // on Supabase, is_admin is locked by RLS — set it in the dashboard).
   window.SAK_DEBUG.claimAdmin = async () => {
     if (!W.isConnected) return 'connect wallet first';
     const p = await SAK.Api.saveProfile(W.address, { name: (S.profile && S.profile.name) || 'Admin', is_admin: true });
