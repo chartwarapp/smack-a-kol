@@ -1233,11 +1233,15 @@
       btn.disabled = true; const old = btn.textContent; btn.textContent = 'MAKING CARD…';
       try {
         const C = F.challenge;
+        // Wager win amount: for PvP, winner takes ~2x wager minus fee. Show SOL won.
+        const wagerSol = C && C.wager_lamports ? C.wager_lamports / 1e9 : (reBet || 0);
+        const winSol = win && wagerSol ? (wagerSol * 2 * 0.95) : 0; // est. after 5% fee
         const svg = SAK.FightCard.build({
           win, playerName: profile().name, xHandle: (S.profile && S.profile.x_handle) || "", playerLook: playerLook(), playerDmg: dmgLevel('player'),
           kolName: k.name, scoreP: C ? C.pWins : (win ? 1 : 0), scoreK: C ? C.kWins : (win ? 0 : 1),
           bestOf: C ? C.bestOf : 1, biggestHit: Math.round(F.maxHit || 0), pts: Math.round(pts || 0),
           modeLabel: (SAK.MODES[F.mode] && SAK.MODES[F.mode].label || 'CLASSIC KO').toUpperCase(),
+          wagerSol, winSol,
         });
         const text = win
           ? `I just sent ${k.name} to ZERO in Smack-a-KOL 🥊`
@@ -1252,11 +1256,14 @@
       btn.disabled = true; const old = btn.textContent; btn.textContent = 'POSTING…';
       try {
         const C = F.challenge;
+        const wagerSol = C && C.wager_lamports ? C.wager_lamports / 1e9 : (reBet || 0);
+        const winSol = win && wagerSol ? (wagerSol * 2 * 0.95) : 0;
         const svg = SAK.FightCard.build({
           win, playerName: profile().name, xHandle: (S.profile && S.profile.x_handle) || "", playerLook: playerLook(), playerDmg: dmgLevel('player'),
           kolName: k.name, scoreP: C ? C.pWins : (win ? 1 : 0), scoreK: C ? C.kWins : (win ? 0 : 1),
           bestOf: C ? C.bestOf : 1, biggestHit: Math.round(F.maxHit || 0), pts: Math.round(pts || 0),
           modeLabel: (SAK.MODES[F.mode] && SAK.MODES[F.mode].label || 'CLASSIC KO').toUpperCase(),
+          wagerSol, winSol,
         });
         const xh = (S.profile && S.profile.x_handle) ? ` @${S.profile.x_handle.replace(/^@/, '')}` : '';
         const text = win
