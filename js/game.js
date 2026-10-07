@@ -1708,9 +1708,17 @@
       else welcomePending = true;   // shown once the account is created (or skipped)
     }
     lastSlots = ugcSlotsUnlocked();
-    MeterLocal = SAK.createMeter($('#meter-local'), { jerky: true, label: '' });
-    SAK.Meter.build($('#meter')); // legacy hidden mount
-    buildTicker();
+    try {
+      MeterLocal = SAK.createMeter($('#meter-local'), { jerky: true, label: '' });
+      SAK.Meter.build($('#meter')); // legacy hidden mount
+      buildTicker();
+    } catch (preErr) {
+      console.error(preErr);
+      const d = document.createElement('div');
+      d.style.cssText = 'position:fixed;top:4px;left:4px;z-index:9999;background:#000d;color:#f80;font:11px monospace;padding:8px;max-width:94vw;border:1px solid #f80';
+      d.textContent = '⚠️ boot failed before 3D: ' + String((preErr && preErr.message) || preErr).slice(0, 200);
+      document.body.appendChild(d);
+    }
     try {
       if (!window.THREE) throw new Error('three.js failed to load (vendor/three.min.js)');
       SAK.Scene3D.init($('#stage'));
