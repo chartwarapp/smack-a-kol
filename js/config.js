@@ -29,8 +29,8 @@ SAK.SOLANA = { enabled: false, cluster: 'devnet', tokenMint: null, vaultProgramI
 /* Backend: set SUPABASE_URL + SUPABASE_ANON_KEY to go live.
  * Leave empty to keep the local mock backend (fully playable offline). */
 SAK.BACKEND = {
-  url: '',      // e.g. 'https://xyzcompany.supabase.co'
-  anonKey: '',  // Supabase -> Project Settings -> API -> anon public
+  url: 'https://vmkdnkzhlhwdswvlhuvs.supabase.co',
+  anonKey: 'sb_publishable_R2elzqKbX_nsgUtBlFHXzQ_gFG_8uw_',
 };
 
 /* Bet options shown before a fight (0 = free match), in PTS. */
