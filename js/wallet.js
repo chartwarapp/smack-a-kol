@@ -75,8 +75,33 @@ SAK.Wallet = (function () {
     return out;
   }
 
+  /** Wait for async wallet injection (mobile browsers inject after page load). */
+  function waitForProvider(timeoutMs) {
+    return new Promise(resolve => {
+      const found = getProvider();
+      if (found) { resolve(found); return; }
+      const t0 = Date.now();
+      const limit = timeoutMs || 4000;
+      const iv = setInterval(() => {
+        const f = getProvider();
+        if (f || Date.now() - t0 > limit) {
+          clearInterval(iv);
+          resolve(f || null);
+        }
+      }, 250);
+      // Also catch providers that announce via events
+      const onReady = () => {
+        const f = getProvider();
+        if (f) { clearInterval(iv); window.removeEventListener('wallet-ready', onReady); resolve(f); }
+      };
+      window.addEventListener('wallet-ready', onReady);
+      setTimeout(() => window.removeEventListener('wallet-ready', onReady), limit + 500);
+    });
+  }
+
   async function connect() {
-    const found = getProvider();
+    let found = getProvider();
+    if (!found) found = await waitForProvider(4000);
     if (!found) {
       const err = new Error('NO_WALLET');
       err.code = 'NO_WALLET';
