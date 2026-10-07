@@ -304,6 +304,19 @@
     } catch (err) {
       if (err && err.code === 'NO_WALLET') {
         $('#wallet-help').textContent = (err.help && err.help.body) || SAK.Wallet.NO_WALLET_HELP.body;
+        // Show diagnostic so we can see what the browser actually exposes
+        try {
+          const d = SAK.Wallet.debug();
+          const seen = [];
+          if (d.jupiter && d.jupiter.exists) seen.push('jupiter');
+          if (d.jupiter_solana && d.jupiter_solana.exists) seen.push('jupiter.solana');
+          if (d.solana && d.solana.exists) seen.push('solana');
+          if (d.phantom_solana && d.phantom_solana.exists) seen.push('phantom');
+          if (d.walletStandard && d.walletStandard !== 'absent') seen.push('wallet-std:' + d.walletStandard);
+          $('#wallet-help').textContent += seen.length
+            ? ` [Detected: ${seen.join(', ')} — tap Try Again]`
+            : ' [No wallet detected in this browser]';
+        } catch (e) {}
         btn.textContent = 'Try Again';
       } else {
         toast('Wallet connection cancelled', 1800);
