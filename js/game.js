@@ -142,8 +142,8 @@
     $('#wallet-chip').classList.toggle('hidden', !on);
     $('#wallet-addr').textContent = W.shortAddress();
     $('#btn-connect').innerHTML = on
-      ? `✅ ${W.shortAddress()}<small class="btn-sub">mock · Solana coming soon</small>`
-      : '👛 CONNECT WALLET<small class="btn-sub">Solana · coming soon</small>';
+      ? `✅ ${W.shortAddress()}<small class="btn-sub">${W.providerName || 'Solana'} · connected</small>`
+      : '👛 CONNECT WALLET<small class="btn-sub">Phantom · Solflare · Jupiter</small>';
     $('#btn-connect').classList.toggle('btn-purple', !on);
     $('#btn-connect').classList.toggle('btn-grey', on);
     $('#vault-sub').textContent = V.staked > 0 ? `${fmt(V.staked)} staked · ${V.tier.name}` : 'earn yield + boost';

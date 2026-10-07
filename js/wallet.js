@@ -22,7 +22,7 @@ SAK.Wallet = (function () {
 
   const NO_WALLET_HELP = {
     title: 'No wallet found',
-    body: 'Open this page inside your wallet app\'s browser (Phantom or Solflare), then tap Connect again.',
+    body: 'Open this page inside your wallet app\'s browser (Phantom, Solflare or Jupiter), then tap Connect again.',
   };
 
   function getProvider() {
@@ -33,6 +33,8 @@ SAK.Wallet = (function () {
       return { name: 'Solflare', provider: w.solflare };
     if (w.backpack && w.backpack.isBackpack)
       return { name: 'Backpack', provider: w.backpack };
+    if (w.jupiter && w.jupiter.solana)
+      return { name: 'Jupiter', provider: w.jupiter.solana };
     if (w.solana && w.solana.isPhantom)
       return { name: 'Phantom', provider: w.solana };
     if (w.solana && typeof w.solana.connect === 'function')
