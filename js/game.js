@@ -14,6 +14,13 @@
  * ========================================================================= */
 (function () {
   'use strict';
+  // TEMPORARY: global error catcher (remove after 3D issue resolved)
+  window.addEventListener('error', function (e) {
+    const d = document.createElement('div');
+    d.style.cssText = 'position:fixed;bottom:4px;left:4px;z-index:99999;background:#000d;color:#f44;font:11px monospace;padding:8px;max-width:94vw;border:1px solid #f44;white-space:pre-wrap';
+    d.textContent = '🔴 JS ERROR: ' + String(e.message || e.error).slice(0, 300) + '\n@ ' + String(e.filename || '').split('/').pop() + ':' + e.lineno;
+    document.body.appendChild(d);
+  });
   const $ = sel => document.querySelector(sel);
   const $$ = sel => Array.from(document.querySelectorAll(sel));
   const wait = s => new Promise(r => setTimeout(r, s * 1000));
