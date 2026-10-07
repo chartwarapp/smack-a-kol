@@ -46,6 +46,35 @@ SAK.Wallet = (function () {
     return null;
   }
 
+  /** Debug: list all detected wallet injections. Exposed as SAK.Wallet.debug(). */
+  function debug() {
+    const w = window;
+    const out = { ua: navigator.userAgent.slice(0, 120) };
+    const probe = (label, obj) => {
+      if (!obj) return null;
+      try {
+        return {
+          exists: true,
+          keys: Object.keys(obj).slice(0, 12),
+          isPhantom: !!obj.isPhantom,
+          isSolflare: !!obj.isSolflare,
+          isBackpack: !!obj.isBackpack,
+          hasConnect: typeof obj.connect === 'function',
+          hasSignMessage: typeof obj.signMessage === 'function',
+          isConnected: !!obj.isConnected,
+        };
+      } catch (e) { return { exists: true, error: String(e).slice(0, 60) }; }
+    };
+    out.phantom_solana = probe('phantom.solana', w.phantom && w.phantom.solana);
+    out.solflare = probe('solflare', w.solflare);
+    out.backpack = probe('backpack', w.backpack);
+    out.jupiter = probe('jupiter', w.jupiter);
+    out.jupiter_solana = probe('jupiter.solana', w.jupiter && w.jupiter.solana);
+    out.solana = probe('solana', w.solana);
+    out.detected = getProvider() ? getProvider().name : null;
+    return out;
+  }
+
   async function connect() {
     const found = getProvider();
     if (!found) {
@@ -135,7 +164,7 @@ SAK.Wallet = (function () {
   }
 
   return {
-    connect, disconnect, signLogin, signMessage, shortAddress,
+    connect, disconnect, signLogin, signMessage, shortAddress, debug, getProvider,
     NO_WALLET_HELP,
     onChange(fn) { listeners.push(fn); },
     get isConnected() { return !!S().wallet.connected && !!S().wallet.address; },
