@@ -1159,18 +1159,22 @@ SAK.Scene3D = (function () {
     for (let i = 0; i < 3; i++) AG.add(mesh(new T.CylinderGeometry(0.12, 0.12, 0.035, 10), coinMat, -0.4, 1.075 + i * 0.037, -0.15));
 
     // crowd: a full 360° ring of little fight fans with faces, hair and clothes
-    // waving glow sticks — no blank side no matter where the camera swings
-    const skinTones = ['#f2c49b', '#e8b088', '#d9a066', '#b07a4a', '#8a5a35', '#6e4426'];
-    const shirtCols = ['#ff4fd8', '#39c5ff', '#ffe23d', '#39ff88', '#ff7a1a', '#b44dff', '#ff3b5c', '#f5f5f5', '#2e9dff', '#7dff6a'];
-    const hairCols = ['#141414', '#3a2410', '#6e4a1f', '#c9a24a', '#a33327', '#2b4f9e', '#6e6e6e', '#1f7a4d', '#d97fb0'];
+    // waving glow sticks — no blank side no matter where the camera swings.
+    // FIXED deterministic variety (seeded by index): same crowd every load,
+    // but no two neighbors look alike.
+    const skinTones = ['#f2c49b', '#e8b088', '#d9a066', '#b07a4a', '#8a5a35', '#6e4426', '#9fd3ff', '#f6c9a0'];
+    const shirtCols = ['#ff4fd8', '#39c5ff', '#ffe23d', '#39ff88', '#ff7a1a', '#b44dff', '#ff3b5c', '#f5f5f5', '#2e9dff', '#7dff6a', '#ffd23f', '#1f1f2e'];
+    const hairCols = ['#141414', '#3a2410', '#6e4a1f', '#c9a24a', '#a33327', '#2b4f9e', '#6e6e6e', '#1f7a4d', '#d97fb0', '#ff5a36'];
     const capCols = ['#ff3b5c', '#2e9dff', '#39ff88', '#ffd23f', '#f5f5f5', '#ff4fd8'];
+    // Seeded pseudo-random: deterministic per index, looks organic
+    const srand = (seed) => { const x = Math.sin(seed * 127.1 + 311.7) * 43758.5453; return x - Math.floor(x); };
     for (let i = 0; i < 30; i++) {
       const ang = (i / 30) * Math.PI * 2;
-      const r = 5.6 + (i % 2) * 0.8;
+      const r = 5.6 + (srand(i * 3 + 1) > 0.5 ? 0.8 : 0);
       const g = new T.Group();
-      const skin = skinTones[i % skinTones.length];
-      const shirt = shirtCols[(i * 3 + 1) % shirtCols.length];
-      const s = 0.9 + ((i * 37) % 10) / 10 * 0.25; // height variety, deterministic
+      const skin = skinTones[Math.floor(srand(i * 7 + 2) * skinTones.length)];
+      const shirt = shirtCols[Math.floor(srand(i * 13 + 5) * shirtCols.length)];
+      const s = 0.85 + srand(i * 17 + 3) * 0.35; // height variety
       // torso (clothing)
       const torso = new T.Mesh(new T.CylinderGeometry(0.28, 0.34, 0.85, 8), mat(shirt));
       g.add(torso);
@@ -1190,12 +1194,29 @@ SAK.Scene3D = (function () {
       head.position.y = 0.7; g.add(head);
       // hair or beanie cap (+z faces the ring after lookAt). No brim — brims
       // shade the eyes out from the fight camera, reading as a missing face.
-      if (i % 3 === 2) {
-        const capC = capCols[i % capCols.length];
+      // hair, cap, or occasional standout (mohawk/crown in the crowd)
+      const headRoll = srand(i * 23 + 7);
+      if (headRoll > 0.92) {
+        // Rare: tiny crown in the crowd
+        const cg = mat('#ffd23f');
+        g.add(mesh(new T.CylinderGeometry(0.2, 0.22, 0.1, 8), cg, 0, 0.95, 0));
+        for (let k = 0; k < 5; k++) {
+          const a2 = k / 5 * Math.PI * 2;
+          g.add(mesh(new T.ConeGeometry(0.04, 0.1, 4), cg, Math.sin(a2) * 0.2, 1.04, Math.cos(a2) * 0.2));
+        }
+      } else if (headRoll > 0.85) {
+        // Rare: mohawk in the crowd
+        const mh = mat(hairCols[Math.floor(srand(i * 29 + 11) * hairCols.length)]);
+        for (let k = 0; k < 4; k++) {
+          const t2 = -0.45 + k * 0.3;
+          g.add(mesh(new T.BoxGeometry(0.07, 0.2 - Math.abs(t2) * 0.1, 0.12), mh, 0, 0.85 + Math.cos(t2) * 0.25, Math.sin(t2) * 0.24));
+        }
+      } else if (srand(i * 31 + 13) > 0.6) {
+        const capC = capCols[Math.floor(srand(i * 37 + 17) * capCols.length)];
         const dome = new T.Mesh(new T.SphereGeometry(0.315, 12, 8, 0, Math.PI * 2, 0, Math.PI * 0.55), mat(capC));
         dome.position.set(0, 0.78, -0.03); g.add(dome);
       } else {
-        const hair = new T.Mesh(new T.SphereGeometry(0.32, 12, 8, 0, Math.PI * 2, 0, Math.PI * 0.5), mat(hairCols[(i * 5 + 2) % hairCols.length]));
+        const hair = new T.Mesh(new T.SphereGeometry(0.32, 12, 8, 0, Math.PI * 2, 0, Math.PI * 0.5), mat(hairCols[Math.floor(srand(i * 41 + 19) * hairCols.length)]));
         hair.position.set(0, 0.78, -0.03); g.add(hair);
       }
       // face: big unlit eyes + smile or cheering "O" mouth
