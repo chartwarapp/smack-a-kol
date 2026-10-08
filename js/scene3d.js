@@ -1842,7 +1842,7 @@ SAK.Scene3D = (function () {
 
     scene = new T.Scene();
     scene.fog = new T.Fog('#2a0b5e', 16, 34);
-    camera = new T.PerspectiveCamera(45, 1, 0.1, 100);
+    camera = new T.PerspectiveCamera(50, 1, 0.1, 100); // 10% wider view
 
     scene.add(new T.HemisphereLight('#ffffff', '#9b6bff', 2.0));
     const sun = new T.DirectionalLight('#fff4e0', 2.6);
