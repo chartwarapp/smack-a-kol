@@ -457,7 +457,7 @@ SAK.Scene3D = (function () {
       this.look = look; this.facing = facing; this.armSide = armSide;
       this.root = new T.Group();
       this.root.rotation.y = facing > 0 ? 0 : Math.PI;
-      this.homeZ = facing > 0 ? -0.8 : 0.8;
+      this.homeZ = facing > 0 ? -1.1 : 1.1;
       this.root.position.set(0, 0, this.homeZ);
       // animated pose values (tweened), applied every frame
       this.pose = { lift: 0.12, swing: 0, elbow: 0.15, twist: 0, lean: 0, lunge: 0, guard: 0 };
@@ -2783,7 +2783,7 @@ SAK.Scene3D = (function () {
       // side three-quarter view: both faces + the slapping arms read clearly
       camBase.look.set(0, 1.75, 0);
       const dir = new T.Vector3(1, 0.42, 0.42).normalize();
-      camBase.pos.copy(camBase.look).addScaledVector(dir, 5.9 * k);
+      camBase.pos.copy(camBase.look).addScaledVector(dir, 6.8 * k);
       camBase.look.y -= 0.35 * (k - 1); // leave room for the meter at the bottom
       camFight.pos.copy(camBase.pos); camFight.look.copy(camBase.look);
     }
