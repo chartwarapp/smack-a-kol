@@ -147,6 +147,28 @@
     </div>
     <div style="font-size:12px;color:#888;margin-top:6px">AI auto-detection coming in the full version — pick manually for now.</div>
 
+    <h2 style="margin-top:18px">🧔 Facial Hair &nbsp;📿 Necklace &nbsp;🕶️ Glasses</h2>
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+      <select id="facialHairSel" style="flex:1;min-width:120px;padding:10px;border-radius:10px;background:#1a1a2e;color:#fff;border:1px solid #39ff8855;font-size:15px">
+        <option value="none">No facial hair</option>
+        <option value="mustache">Mustache</option>
+        <option value="handlebar">Handlebar</option>
+        <option value="beard">Beard</option>
+        <option value="goatee">Goatee</option>
+      </select>
+      <select id="necklaceSel" style="flex:1;min-width:120px;padding:10px;border-radius:10px;background:#1a1a2e;color:#fff;border:1px solid #39ff8855;font-size:15px">
+        <option value="none">No necklace</option>
+        <option value="chain">Gold Chain</option>
+        <option value="beads">Beads</option>
+        <option value="pendant">Pendant</option>
+      </select>
+      <select id="glassesSel" style="flex:1;min-width:120px;padding:10px;border-radius:10px;background:#1a1a2e;color:#fff;border:1px solid #39ff8855;font-size:15px">
+        <option value="none">No glasses</option>
+        <option value="shades">Shades</option>
+      </select>
+    </div>
+    <div style="font-size:12px;color:#888;margin-top:6px">AI auto-detection coming in the full version — pick manually for now.</div>
+
     <h2 style="margin-top:18px">🧬 Trait JSON</h2>
     <textarea id="traitJson" spellcheck="false"></textarea>
     <div class="btnrow">
@@ -194,7 +216,8 @@
     skin: 'Skin tone', shirt: 'Shirt', hair: 'Hair color', pants: 'Pants',
     hairStyle: 'Hair style', eyes: 'Eyes', eyeColor: 'Eye color',
     accessory: 'Accessory', body: 'Body type', gloves: 'Gloves',
-    outfit: 'Outfit', parody: 'Parody preset', species: 'Species 🐾'
+    outfit: 'Outfit', parody: 'Parody preset', species: 'Species 🐾',
+    facialHair: 'Facial hair 🧔', necklace: 'Necklace 📿', glasses: 'Glasses 🕶️'
   };
   var COLOR_KEYS = { skin: 1, shirt: 1, hair: 1, pants: 1, eyeColor: 1 };
 
@@ -298,6 +321,19 @@
     updateTraitField('accessory', document.getElementById('hatSel').value, 'Hat');
   });
 
+  /* ---------- Facial hair / Necklace / Glasses dropdowns ---------- */
+  document.getElementById('facialHairSel').addEventListener('change', function () {
+    updateTraitField('facialHair', document.getElementById('facialHairSel').value, 'Facial hair');
+  });
+
+  document.getElementById('necklaceSel').addEventListener('change', function () {
+    updateTraitField('necklace', document.getElementById('necklaceSel').value, 'Necklace');
+  });
+
+  document.getElementById('glassesSel').addEventListener('change', function () {
+    updateTraitField('glasses', document.getElementById('glassesSel').value, 'Glasses');
+  });
+
   /* ---------- Analyze PFP (prototype: dominant-color sampling) ---------- */
   document.getElementById('analyzeBtn').addEventListener('click', function () {
     var img = document.getElementById('pfpPreview');
@@ -358,7 +394,10 @@
       body: 'classic',
       gloves: 'mma',
       outfit: document.getElementById('clothingSel').value,
-      species: document.getElementById('speciesSel').value
+      species: document.getElementById('speciesSel').value,
+      facialHair: document.getElementById('facialHairSel').value,
+      necklace: document.getElementById('necklaceSel').value,
+      glasses: document.getElementById('glassesSel').value
     };
     document.getElementById('traitJson').value = JSON.stringify(traits, null, 2);
     renderTraits(traits);

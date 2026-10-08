@@ -408,6 +408,9 @@ SAK.Scene3D = (function () {
       this.buildAccessory();
       this.buildParody(); // V3: parody fighter overlays (horns, visor, mustache, etc.)
       this.buildSpecies(); // animal species overlays (ears, horns, snouts, eye patches)
+      this.buildFacialHair(); // accessories: mustache / handlebar / beard / goatee
+      this.buildNecklace(); // accessories: chain / beads / pendant
+      this.buildGlasses(); // accessories: shades (separate from head accessory so cap+shades works)
       // ⛑ Defense Helmet power-up (hidden until used)
       this.helmet = new T.Group(); this.helmet.visible = false; this.head.add(this.helmet);
       const hm = mat('#ffd23f', {}); hm.emissive = new T.Color('#4a3300');
@@ -1127,6 +1130,133 @@ SAK.Scene3D = (function () {
         add(new T.SphereGeometry(0.14, 12, 10), dark, sx * 0.18, 0.5, 0.44, m => {
           m.scale.set(1, 1.25, 0.4);
         });
+      }
+    }
+
+    /* =====================================================================
+     * ACCESSORIES — facial hair + necklaces (NFT-style "Accessories" trait).
+     * look.facialHair: 'none' | 'mustache' | 'handlebar' | 'beard' | 'goatee'
+     * look.necklace:   'none' | 'chain' | 'beads' | 'pendant'
+     * look.glasses:    'none' | 'shades'
+     * Bold comic style: outlined shapes, hair color from look.hair.
+     * ===================================================================== */
+    buildGlasses() {
+      const G = (this.look && this.look.glasses) || 'none';
+      if (!G || G === 'none') return;
+      const H = this.head;
+      const dark = mat('#111111');
+      const add = (geo, x, y, z, fn) => {
+        const m = mesh(geo, dark, x, y, z);
+        m.userData.accessory = true; if (fn) fn(m); H.add(m); return m;
+      };
+      if (G === 'shades') {
+        for (const sx of [-1, 1]) {
+          const lens = add(new T.BoxGeometry(0.28, 0.17, 0.07), sx * 0.19, 0.5, 0.5);
+          outline(lens, 1.12);
+        }
+        add(new T.BoxGeometry(0.12, 0.045, 0.05), 0, 0.53, 0.5);
+        // Shine streaks
+        const shine = new T.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0.35 });
+        for (const sx of [-1, 1]) {
+          const st = new T.Mesh(new T.BoxGeometry(0.05, 0.12, 0.01), shine);
+          st.position.set(sx * 0.13, 0.52, 0.54); st.rotation.z = 0.4; H.add(st);
+        }
+      }
+    }
+
+    buildFacialHair() {
+      const F = (this.look && this.look.facialHair) || 'none';
+      if (!F || F === 'none') return;
+      const H = this.head;
+      const hairMat = mat(this.look.hair || '#3b2416');
+      const add = (geo, x, y, z, fn) => {
+        const m = mesh(geo, hairMat, x, y, z);
+        m.userData.accessory = true; if (fn) fn(m); H.add(m); return m;
+      };
+      // Mouth sits at (0, 0.2, 0.46) — facial hair frames it, never covers it,
+      // so the expression system (mouth morphs, teeth) stays fully visible.
+      switch (F) {
+        case 'mustache':
+          for (const sx of [-1, 1]) {
+            const mo = add(new T.CapsuleGeometry(0.045, 0.14, 4, 10), sx * 0.1, 0.28, 0.48, m => {
+              m.rotation.z = Math.PI / 2 + sx * 0.3;
+              m.rotation.y = sx * 0.2;
+            });
+            outline(mo, 1.18);
+          }
+          break;
+        case 'handlebar': {
+          for (const sx of [-1, 1]) {
+            const mo = add(new T.CapsuleGeometry(0.05, 0.2, 4, 10), sx * 0.13, 0.28, 0.48, m => {
+              m.rotation.z = Math.PI / 2 + sx * 0.25;
+              m.rotation.y = sx * 0.25;
+            });
+            outline(mo, 1.18);
+            // Upward-curled tips
+            const tip = add(new T.ConeGeometry(0.035, 0.12, 8), sx * 0.3, 0.36, 0.46, m => {
+              m.rotation.z = sx * -0.5;
+            });
+            outline(tip, 1.2);
+          }
+          break; }
+        case 'beard': {
+          // Jaw/chin coverage — sits BELOW the mouth so expressions stay visible
+          const beard = add(new T.SphereGeometry(0.34, 16, 12), 0, 0.02, 0.3, m => {
+            m.scale.set(1.15, 0.75, 0.8);
+          });
+          outline(beard, 1.08);
+          // Chin tuft
+          const tuft = add(new T.ConeGeometry(0.09, 0.16, 8), 0, -0.18, 0.42, m => {
+            m.rotation.x = Math.PI;
+          });
+          outline(tuft, 1.15);
+          break; }
+        case 'goatee': {
+          const g = add(new T.CapsuleGeometry(0.045, 0.08, 4, 8), 0, 0.08, 0.47);
+          outline(g, 1.2);
+          break; }
+      }
+    }
+
+    buildNecklace() {
+      const N = (this.look && this.look.necklace) || 'none';
+      if (!N || N === 'none') return;
+      const B = this.body || { h: 1 };
+      const yBase = 0.82 * (B.h || 1); // upper chest, below the neck
+      const addT = (geo, material, x, y, z, fn) => {
+        const m = mesh(geo, material, x, y, z);
+        m.userData.accessory = true; if (fn) fn(m); this.torso.add(m); return m;
+      };
+      const goldMat = new T.MeshStandardMaterial({ color: '#ffd23f', metalness: 0.85, roughness: 0.3 });
+      switch (N) {
+        case 'chain': {
+          const ch = addT(new T.TorusGeometry(0.21, 0.028, 8, 24), goldMat, 0, yBase, 0.1, m => {
+            m.rotation.x = Math.PI / 2 - 0.25; // drape tilt
+          });
+          outline(ch, 1.15);
+          break; }
+        case 'beads': {
+          // Colorful beaded strand — draped circle on the upper chest
+          const cols = ['#ff5a5a', '#ffd23f', '#39ff88', '#4fa8ff', '#c86bff', '#ff8fab'];
+          const nB = 18, r = 0.22;
+          for (let i = 0; i < nB; i++) {
+            const a = (i / nB) * Math.PI * 2;
+            const x = Math.sin(a) * r;
+            const z = Math.cos(a) * r * 0.6 + 0.12;
+            if (z < 0.04) continue; // front half only
+            const y = yBase - Math.abs(Math.sin(a)) * 0.09;
+            addT(new T.SphereGeometry(0.032, 8, 6), mat(cols[i % cols.length]), x, y, z);
+          }
+          break; }
+        case 'pendant': {
+          const ch = addT(new T.TorusGeometry(0.2, 0.025, 8, 24), goldMat, 0, yBase + 0.02, 0.1, m => {
+            m.rotation.x = Math.PI / 2 - 0.25;
+          });
+          outline(ch, 1.15);
+          // Pendant — gold diamond hanging on the chest
+          const pd = addT(new T.OctahedronGeometry(0.06), goldMat, 0, yBase - 0.16, 0.3);
+          outline(pd, 1.2);
+          break; }
       }
     }
 
