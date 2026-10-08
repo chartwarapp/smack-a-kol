@@ -169,6 +169,17 @@
     </div>
     <div style="font-size:12px;color:#888;margin-top:6px">AI auto-detection coming in the full version — pick manually for now.</div>
 
+    <h2 style="margin-top:18px">🖋️ Tattoos</h2>
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+      <select id="tattooSel" style="flex:1;min-width:160px;padding:10px;border-radius:10px;background:#1a1a2e;color:#fff;border:1px solid #39ff8855;font-size:15px">
+        <option value="none">No tattoos</option>
+        <option value="sleeves">Arm Sleeves</option>
+        <option value="chest">Chest Piece</option>
+        <option value="full">Full (Sleeves + Chest)</option>
+      </select>
+    </div>
+    <div style="font-size:12px;color:#888;margin-top:6px">AI auto-detection coming in the full version — pick manually for now.</div>
+
     <h2 style="margin-top:18px">🧬 Trait JSON</h2>
     <textarea id="traitJson" spellcheck="false"></textarea>
     <div class="btnrow">
@@ -217,7 +228,8 @@
     hairStyle: 'Hair style', eyes: 'Eyes', eyeColor: 'Eye color',
     accessory: 'Accessory', body: 'Body type', gloves: 'Gloves',
     outfit: 'Outfit', parody: 'Parody preset', species: 'Species 🐾',
-    facialHair: 'Facial hair 🧔', necklace: 'Necklace 📿', glasses: 'Glasses 🕶️'
+    facialHair: 'Facial hair 🧔', necklace: 'Necklace 📿', glasses: 'Glasses 🕶️',
+    tattoo: 'Tattoos 🖋️'
   };
   var COLOR_KEYS = { skin: 1, shirt: 1, hair: 1, pants: 1, eyeColor: 1 };
 
@@ -321,6 +333,11 @@
     updateTraitField('accessory', document.getElementById('hatSel').value, 'Hat');
   });
 
+  /* ---------- Tattoos dropdown ---------- */
+  document.getElementById('tattooSel').addEventListener('change', function () {
+    updateTraitField('tattoo', document.getElementById('tattooSel').value, 'Tattoos');
+  });
+
   /* ---------- Facial hair / Necklace / Glasses dropdowns ---------- */
   document.getElementById('facialHairSel').addEventListener('change', function () {
     updateTraitField('facialHair', document.getElementById('facialHairSel').value, 'Facial hair');
@@ -397,7 +414,8 @@
       species: document.getElementById('speciesSel').value,
       facialHair: document.getElementById('facialHairSel').value,
       necklace: document.getElementById('necklaceSel').value,
-      glasses: document.getElementById('glassesSel').value
+      glasses: document.getElementById('glassesSel').value,
+      tattoo: document.getElementById('tattooSel').value
     };
     document.getElementById('traitJson').value = JSON.stringify(traits, null, 2);
     renderTraits(traits);

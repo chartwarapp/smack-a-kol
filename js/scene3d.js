@@ -110,6 +110,115 @@ SAK.Scene3D = (function () {
     const c = v => Math.max(0, Math.min(255, Math.round(v)));
     return '#' + ((1 << 24) + (c(r) << 16) + (c(g) << 8) + c(b)).toString(16).slice(1);
   }
+  /* ------------------------------------------------------------------
+   * Tattoo ink textures — canvas-generated, cached, shared across fighters.
+   * White background (tinted to skin tone by the material color), bold
+   * dark ink patterns. 256x256 keeps it cheap; patterns stay readable
+   * on mobile. Bold comic style: thick strokes, high contrast.
+   * ------------------------------------------------------------------ */
+  const TATTOO_INK = '#22345e'; // deep blue-black ink
+  let sleeveTex = null, torsoTex = null;
+  function tatBlossom(x, cx, cy, r) {
+    // simple 5-petal cherry blossom
+    x.save(); x.translate(cx, cy); x.fillStyle = TATTOO_INK;
+    for (let p = 0; p < 5; p++) {
+      x.save(); x.rotate((p / 5) * Math.PI * 2);
+      x.beginPath(); x.ellipse(0, -r * 0.62, r * 0.34, r * 0.62, 0, 0, Math.PI * 2); x.fill();
+      x.restore();
+    }
+    x.beginPath(); x.arc(0, 0, r * 0.3, 0, Math.PI * 2); x.fill();
+    x.restore();
+  }
+  function tatWaves(x, y, w, r, gap) {
+    // seigaiha-style overlapping wave arcs, two staggered rows
+    x.strokeStyle = TATTOO_INK; x.lineWidth = 3.5;
+    for (let row = 0; row < 2; row++) {
+      const yy = y + row * r;
+      const off = row * gap / 2;
+      for (let cx = -r + off; cx < w + r; cx += gap) {
+        for (const rr of [r, r * 0.64, r * 0.3]) {
+          x.beginPath(); x.arc(cx, yy, rr, Math.PI, 0); x.stroke();
+        }
+      }
+    }
+  }
+  function tatSwirls(x, w, h) {
+    // bold tribal-style curves
+    x.strokeStyle = TATTOO_INK; x.lineCap = 'round';
+    x.lineWidth = 9;
+    x.beginPath(); x.moveTo(8, h * 0.38);
+    x.quadraticCurveTo(w * 0.3, h * 0.22, w * 0.58, h * 0.4);
+    x.quadraticCurveTo(w * 0.78, h * 0.53, w - 8, h * 0.36); x.stroke();
+    x.lineWidth = 4;
+    x.beginPath(); x.moveTo(8, h * 0.47);
+    x.quadraticCurveTo(w * 0.32, h * 0.31, w * 0.6, h * 0.49);
+    x.quadraticCurveTo(w * 0.8, h * 0.62, w - 8, h * 0.45); x.stroke();
+    x.lineWidth = 6;
+    x.beginPath(); x.moveTo(w * 0.2, h * 0.85);
+    x.quadraticCurveTo(w * 0.5, h * 0.7, w * 0.8, h * 0.86); x.stroke();
+  }
+  function tattooSleeveTexture() {
+    if (sleeveTex) return sleeveTex;
+    const c = document.createElement('canvas'); c.width = c.height = 256;
+    const x = c.getContext('2d');
+    x.fillStyle = '#ffffff'; x.fillRect(0, 0, 256, 256);
+    tatWaves(x, 36, 256, 18, 36);
+    tatSwirls(x, 256, 256);
+    tatWaves(x, 196, 256, 18, 36);
+    tatBlossom(x, 42, 150, 17);
+    tatBlossom(x, 208, 96, 15);
+    tatBlossom(x, 128, 226, 14);
+    tatBlossom(x, 226, 200, 16);
+    x.fillStyle = TATTOO_INK;
+    const dots = [[70, 22], [170, 66], [30, 120], [232, 140], [92, 176], [180, 236], [130, 120], [20, 216]];
+    for (const [dx, dy] of dots) { x.beginPath(); x.arc(dx, dy, 3.5, 0, Math.PI * 2); x.fill(); }
+    sleeveTex = new T.CanvasTexture(c);
+    if ('colorSpace' in sleeveTex) sleeveTex.colorSpace = T.SRGBColorSpace;
+    sleeveTex.wrapS = sleeveTex.wrapT = T.RepeatWrapping;
+    return sleeveTex;
+  }
+  function tattooTorsoTexture() {
+    if (torsoTex) return torsoTex;
+    const c = document.createElement('canvas'); c.width = c.height = 256;
+    const x = c.getContext('2d');
+    x.fillStyle = '#ffffff'; x.fillRect(0, 0, 256, 256);
+    x.strokeStyle = TATTOO_INK; x.fillStyle = TATTOO_INK; x.lineCap = 'round';
+    // central medallion — rising-sun wave disc (canvas center maps to chest front via texture offset)
+    for (const rr of [54, 44, 34, 24]) {
+      x.lineWidth = 4.5;
+      x.beginPath(); x.arc(128, 104, rr, 0, Math.PI * 2); x.stroke();
+    }
+    x.lineWidth = 5;
+    for (let a = 0; a < 12; a++) {
+      const t = (a / 12) * Math.PI * 2;
+      x.beginPath();
+      x.moveTo(128 + Math.cos(t) * 15, 104 + Math.sin(t) * 15);
+      x.lineTo(128 + Math.cos(t) * 23, 104 + Math.sin(t) * 23);
+      x.stroke();
+    }
+    // koi S-curves flanking the medallion
+    for (const s of [-1, 1]) {
+      x.lineWidth = 7;
+      x.beginPath();
+      x.moveTo(128 + s * 72, 208);
+      x.bezierCurveTo(128 + s * 112, 176, 128 + s * 42, 156, 128 + s * 80, 122);
+      x.stroke();
+      x.lineWidth = 3;
+      x.beginPath();
+      x.moveTo(128 + s * 84, 208);
+      x.bezierCurveTo(128 + s * 124, 176, 128 + s * 54, 156, 128 + s * 92, 122);
+      x.stroke();
+    }
+    tatWaves(x, 232, 256, 15, 30);
+    tatBlossom(x, 30, 52, 15);
+    tatBlossom(x, 226, 52, 15);
+    tatBlossom(x, 128, 196, 13);
+    torsoTex = new T.CanvasTexture(c);
+    if ('colorSpace' in torsoTex) torsoTex.colorSpace = T.SRGBColorSpace;
+    torsoTex.wrapS = torsoTex.wrapT = T.RepeatWrapping;
+    torsoTex.offset.x = 0.5; // canvas center -> cylinder front (+z at u=0)
+    return torsoTex;
+  }
   const wait = s => new Promise(r => setTimeout(r, s * 1000));
 
   /* Slapstick KO landing poses — cartoon meme energy, no gore.
@@ -296,7 +405,9 @@ SAK.Scene3D = (function () {
       this.torso = new T.Group(); this.torso.position.y = 0.95; this.root.add(this.torso);
       const body = mesh(new T.CylinderGeometry(0.5 * B.w * Math.min(1.25, B.taper), 0.42 * B.w / Math.max(1, B.taper * 0.85), 0.88 * B.h, 20), shirt, 0, 0.44 * B.h, 0);
       body.scale.z = 0.68 * B.d; this.torso.add(body); outline(body, 1.055);
-      if (B.belly) { const belly = mesh(new T.SphereGeometry(0.42, 18, 14), shirt, 0, 0.3, 0.28); belly.scale.set(1.15, 0.9, 0.85); this.torso.add(belly); outline(belly, 1.06); }
+      this.bodyMesh = body; // stored so buildTattoos() can swap to inked skin
+      if (B.belly) { const belly = mesh(new T.SphereGeometry(0.42, 18, 14), shirt, 0, 0.3, 0.28); belly.scale.set(1.15, 0.9, 0.85); this.torso.add(belly); outline(belly, 1.06); this.bellyMesh = belly; }
+      else this.bellyMesh = null;
       this.torso.add(mesh(new T.BoxGeometry(0.86 * Math.max(B.w / Math.max(1, B.taper * 0.85), 0.8), 0.1, 0.42 * B.d), pants, 0, 0.03, 0)); // belt
       this.buildOutfit();
       this.buildMuscles(shirt, B); // V3: pec/ab definition
@@ -411,6 +522,7 @@ SAK.Scene3D = (function () {
       this.buildFacialHair(); // accessories: mustache / handlebar / beard / goatee
       this.buildNecklace(); // accessories: chain / beads / pendant
       this.buildGlasses(); // accessories: shades (separate from head accessory so cap+shades works)
+      this.buildTattoos(); // accessories: tattoo sleeves / chest piece (inked skin)
       // ⛑ Defense Helmet power-up (hidden until used)
       this.helmet = new T.Group(); this.helmet.visible = false; this.head.add(this.helmet);
       const hm = mat('#ffd23f', {}); hm.emissive = new T.Color('#4a3300');
@@ -435,7 +547,7 @@ SAK.Scene3D = (function () {
         const handMat = mat(L.skin, {}); // own material so it can turn golden
         // Open palm with individual fingers (Slap Kings-style readability) —
         // a Group so the slap squash-scale still flattens the whole hand.
-        const hand = new T.Group(); hand.position.set(0, -0.52, 0); hand.scale.setScalar(1.2); elbow.add(hand); // 20% bigger hands
+        const hand = new T.Group(); hand.position.set(0, -0.52, 0); hand.scale.setScalar(1.5); elbow.add(hand); // +25% hand size — it's a slap game, big cartoon hands read better
         const palm = mesh(new T.SphereGeometry(0.11, 14, 10), handMat, 0, -0.02, 0);
         palm.scale.set(0.95, 0.75, 0.45); hand.add(palm); // rounded palm
         outline(palm, 1.14); // V5: bold comic outline on the slap hand
@@ -454,9 +566,9 @@ SAK.Scene3D = (function () {
           tip.add(mesh(new T.CylinderGeometry(0.022, 0.026, fingerLen[f] * 0.45, 8), handMat, 0, -fingerLen[f] * 0.22, 0));
           tip.add(mesh(new T.SphereGeometry(0.024, 10, 8), handMat, 0, -fingerLen[f] * 0.45, 0)); // fingertip
         }
-        const th = new T.Group(); // thumb on the inner side
-        th.position.set(-side * 0.1, -0.03, 0.01);
-        th.rotation.z = -side * 0.85; th.rotation.x = -0.2;
+        const th = new T.Group(); // thumb on the outer side
+        th.position.set(side * 0.1, -0.03, 0.01);
+        th.rotation.z = side * 0.85; th.rotation.x = -0.2;
         hand.add(th);
         th.add(mesh(new T.CylinderGeometry(0.023, 0.028, 0.11, 8), handMat, 0, -0.055, 0));
         th.add(mesh(new T.SphereGeometry(0.023, 8, 6), handMat, 0, -0.11, 0));
@@ -1161,6 +1273,52 @@ SAK.Scene3D = (function () {
           const st = new T.Mesh(new T.BoxGeometry(0.05, 0.12, 0.01), shine);
           st.position.set(sx * 0.13, 0.52, 0.54); st.rotation.z = 0.4; H.add(st);
         }
+      }
+    }
+
+    /* =====================================================================
+     * TATTOOS — NFT-style "Accessories" trait (PFP culture: irezumi sleeves,
+     * tribal, chest pieces). look.tattoo: 'none' | 'sleeves' | 'chest' | 'full'
+     * Implementation: swap limb/torso materials to skin-tinted toon materials
+     * using the cached canvas ink textures. Reads as bare inked skin —
+     * bold dark patterns, clear on mobile.
+     * ===================================================================== */
+    buildTattoos() {
+      const TT = (this.look && this.look.tattoo) || 'none';
+      if (!TT || TT === 'none') return;
+      const skinC = this.look.skin || '#ffe0c4';
+      const sleeves = (TT === 'sleeves' || TT === 'full');
+      const chest = (TT === 'chest' || TT === 'full');
+      if (sleeves) {
+        // Full ink sleeves: delt + upper arm + forearm become tattooed skin
+        const inkMat = mat(skinC, { map: tattooSleeveTexture(), polygonOffset: true, polygonOffsetFactor: -2 });
+        for (const side of [-1, 1]) {
+          const A = this.arms[side];
+          if (!A) continue;
+          A.shoulder.traverse(o => {
+            if (o.isMesh && !o.userData.outline && o.material && o !== A.elbow) {
+              // swap delt + upper arm (children of shoulder, excluding the elbow group)
+              if (o.parent === A.shoulder) { o.material = inkMat; o.userData.tattoo = true; }
+            }
+          });
+          A.elbow.traverse(o => {
+            if (o.isMesh && !o.userData.outline && o.parent === A.elbow && o !== A.hand) {
+              // swap forearm cylinder only (not the hand group)
+              o.material = inkMat; o.userData.tattoo = true;
+            }
+          });
+        }
+      }
+      if (chest) {
+        // Bare inked chest: torso body (+ belly) become tattooed skin
+        const chestMat = mat(skinC, { map: tattooTorsoTexture(), polygonOffset: true, polygonOffsetFactor: -2 });
+        if (this.bodyMesh) { this.bodyMesh.material = chestMat; this.bodyMesh.userData.tattoo = true; }
+        if (this.bellyMesh) { this.bellyMesh.material = chestMat; this.bellyMesh.userData.tattoo = true; }
+        // pecs/abs become plain skin so they read as part of the bare chest
+        const bareSkin = mat(skinC, {});
+        this.torso.traverse(o => {
+          if (o.userData.muscle) { o.material = bareSkin; o.userData.tattoo = true; }
+        });
       }
     }
 
