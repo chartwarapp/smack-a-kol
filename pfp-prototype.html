@@ -98,7 +98,7 @@
 <div class="sub">Smack-a-KOL parody fighter generator — proof of concept</div>
 
 <div class="steps">
-  <b>1.</b> Upload a PFP &nbsp;→&nbsp; <b>2.</b> Pick a species 🐾 &nbsp;→&nbsp;
+  <b>1.</b> Upload a PFP &nbsp;→&nbsp; <b>2.</b> Pick species 🐾, clothing 👕 &amp; hat 🎩 &nbsp;→&nbsp;
   <b>3.</b> Hit <b>Analyze PFP</b> &nbsp;→&nbsp; <b>4.</b> Hit <b>Generate Fighter</b> 🥊
 </div>
 
@@ -123,6 +123,26 @@
         <option value="frog">Frog</option>
         <option value="rabbit">Rabbit</option>
         <option value="panda">Panda</option>
+      </select>
+    </div>
+    <div style="font-size:12px;color:#888;margin-top:6px">AI auto-detection coming in the full version — pick manually for now.</div>
+
+    <h2 style="margin-top:18px">👕 Clothing &nbsp;🎩 Hat</h2>
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+      <select id="clothingSel" style="flex:1;min-width:120px;padding:10px;border-radius:10px;background:#1a1a2e;color:#fff;border:1px solid #39ff8855;font-size:15px">
+        <option value="tee">Tee</option>
+        <option value="none">None</option>
+        <option value="hoodie">Hoodie</option>
+        <option value="robe">Robe</option>
+        <option value="jacket">Jacket</option>
+        <option value="tank">Tank</option>
+      </select>
+      <select id="hatSel" style="flex:1;min-width:120px;padding:10px;border-radius:10px;background:#1a1a2e;color:#fff;border:1px solid #39ff8855;font-size:15px">
+        <option value="none">No hat</option>
+        <option value="cap">Cap</option>
+        <option value="beanie">Beanie</option>
+        <option value="conical">Conical</option>
+        <option value="crown">Crown</option>
       </select>
     </div>
     <div style="font-size:12px;color:#888;margin-top:6px">AI auto-detection coming in the full version — pick manually for now.</div>
@@ -265,6 +285,33 @@
     } catch (e) { /* invalid JSON — leave it alone */ }
   });
 
+  /* ---------- Clothing / Hat dropdowns: update JSON live ---------- */
+  document.getElementById('clothingSel').addEventListener('change', function () {
+    var v = document.getElementById('clothingSel').value;
+    try {
+      var obj = JSON.parse(ta.value);
+      if (obj && typeof obj === 'object' && !Array.isArray(obj)) {
+        obj.outfit = v;
+        ta.value = JSON.stringify(obj, null, 2);
+        renderTraits(obj);
+        setStatus('Outfit set to ' + v + ' — hit Generate Fighter to see it.', true);
+      }
+    } catch (e) { /* invalid JSON — leave it alone */ }
+  });
+
+  document.getElementById('hatSel').addEventListener('change', function () {
+    var v = document.getElementById('hatSel').value;
+    try {
+      var obj = JSON.parse(ta.value);
+      if (obj && typeof obj === 'object' && !Array.isArray(obj)) {
+        obj.accessory = v;
+        ta.value = JSON.stringify(obj, null, 2);
+        renderTraits(obj);
+        setStatus('Hat set to ' + v + ' — hit Generate Fighter to see it.', true);
+      }
+    } catch (e) { /* invalid JSON — leave it alone */ }
+  });
+
   /* ---------- Analyze PFP (prototype: dominant-color sampling) ---------- */
   document.getElementById('analyzeBtn').addEventListener('click', function () {
     var img = document.getElementById('pfpPreview');
@@ -274,16 +321,45 @@
     var w = c.width = 64, h = c.height = 64;
     var ctx = c.getContext('2d');
     ctx.drawImage(img, 0, 0, w, h);
-    function avg(x0, y0, x1, y1) {
-      var d = ctx.getImageData(x0, y0, x1 - x0, y1 - y0).data;
-      var r = 0, g = 0, b = 0, n = 0;
-      for (var i = 0; i < d.length; i += 16) { r += d[i]; g += d[i+1]; b += d[i+2]; n++; }
-      r = Math.round(r/n); g = Math.round(g/n); b = Math.round(b/n);
-      return '#' + [r,g,b].map(function(v){ return v.toString(16).padStart(2,'0'); }).join('');
+
+    /* --- Background estimate: median of 4 corners + 4 edge midpoints --- */
+    function bgColor() {
+      var pts = [[2,2],[61,2],[2,61],[61,61],[32,2],[32,61],[2,32],[61,32]];
+      var rs = [], gs = [], bs = [];
+      pts.forEach(function (p) {
+        var d = ctx.getImageData(p[0], p[1], 1, 1).data;
+        rs.push(d[0]); gs.push(d[1]); bs.push(d[2]);
+      });
+      rs.sort(function (a, b) { return a - b; });
+      gs.sort(function (a, b) { return a - b; });
+      bs.sort(function (a, b) { return a - b; });
+      return [rs[4], gs[4], bs[4]]; // median of 8
     }
-    var hairC  = avg(16, 2, 48, 14);    // top = hair/hat
-    var skinC  = avg(20, 20, 44, 40);   // center = face
-    var shirtC = avg(12, 46, 52, 62);   // bottom = clothing
+    var bg = bgColor();
+
+    function pxDist(p, q) {
+      var dr = p[0] - q[0], dg = p[1] - q[1], db = p[2] - q[2];
+      return Math.sqrt(dr * dr + dg * dg + db * db);
+    }
+
+    /* --- Region average, ignoring pixels near the background color --- */
+    function avgNoBg(x0, y0, x1, y1, fallback) {
+      var d = ctx.getImageData(x0, y0, x1 - x0, y1 - y0).data;
+      var r = 0, g = 0, b = 0, n = 0, total = 0;
+      for (var i = 0; i < d.length; i += 4) {
+        total++;
+        var px = [d[i], d[i + 1], d[i + 2]];
+        if (pxDist(px, bg) < 40) continue; // background pixel — skip it
+        r += d[i]; g += d[i + 1]; b += d[i + 2]; n++;
+      }
+      if (n / total < 0.2) return fallback; // >80% rejected → use default
+      r = Math.round(r / n); g = Math.round(g / n); b = Math.round(b / n);
+      return '#' + [r, g, b].map(function (v) { return v.toString(16).padStart(2, '0'); }).join('');
+    }
+
+    var hairC  = avgNoBg(16, 2, 48, 14, '#1a1a1a');  // top = hair/hat
+    var skinC  = avgNoBg(20, 20, 44, 40, '#f6c9a0'); // center = face
+    var shirtC = avgNoBg(12, 46, 52, 62, '#2f6fd8'); // bottom = clothing
     var traits = {
       skin: skinC,
       shirt: shirtC,
@@ -292,15 +368,15 @@
       hairStyle: 'short',
       eyes: 'round',
       eyeColor: '#1a1a1a',
-      accessory: 'none',
+      accessory: document.getElementById('hatSel').value,
       body: 'classic',
       gloves: 'mma',
-      outfit: 'tee',
+      outfit: document.getElementById('clothingSel').value,
       species: document.getElementById('speciesSel').value
     };
     document.getElementById('traitJson').value = JSON.stringify(traits, null, 2);
     renderTraits(traits);
-    setStatus('Traits generated from PFP colors — tweak the JSON if you like, then hit Generate Fighter.', true);
+    setStatus('Traits generated from PFP colors (background rejected) — tweak the JSON if you like, then hit Generate Fighter.', true);
   });
 
   /* ---------- Generate ---------- */
