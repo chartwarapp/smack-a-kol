@@ -111,6 +111,33 @@ SAK.Scene3D = (function () {
     return '#' + ((1 << 24) + (c(r) << 16) + (c(g) << 8) + c(b)).toString(16).slice(1);
   }
   /* ------------------------------------------------------------------
+   * V6 ANIME: radial-gradient iris texture for big anime eyes.
+   * Dark limbal ring -> eye color -> bright center. Cached per color.
+   * ------------------------------------------------------------------ */
+  const irisTexCache = {};
+  function irisTexture(color) {
+    if (irisTexCache[color]) return irisTexCache[color];
+    const c = document.createElement('canvas'); c.width = c.height = 128;
+    const x = c.getContext('2d');
+    const g = x.createRadialGradient(64, 64, 8, 64, 64, 64);
+    g.addColorStop(0.0, shade(color, 0.45));
+    g.addColorStop(0.45, color);
+    g.addColorStop(0.8, shade(color, -0.3));
+    g.addColorStop(1.0, '#0d0d12'); // dark limbal ring
+    x.fillStyle = g; x.fillRect(0, 0, 128, 128);
+    // anime iris spokes — subtle radial detail
+    x.strokeStyle = 'rgba(0,0,0,0.25)'; x.lineWidth = 3;
+    for (let i = 0; i < 24; i++) {
+      const a = (i / 24) * Math.PI * 2;
+      x.beginPath(); x.moveTo(64 + Math.cos(a) * 30, 64 + Math.sin(a) * 30);
+      x.lineTo(64 + Math.cos(a) * 52, 64 + Math.sin(a) * 52); x.stroke();
+    }
+    const t = new T.CanvasTexture(c);
+    t.colorSpace = T.SRGBColorSpace;
+    irisTexCache[color] = t;
+    return t;
+  }
+  /* ------------------------------------------------------------------
    * Tattoo ink textures — canvas-generated, cached, shared across fighters.
    * White background (tinted to skin tone by the material color), bold
    * dark ink patterns. 256x256 keeps it cheap; patterns stay readable
@@ -392,17 +419,19 @@ SAK.Scene3D = (function () {
       const B = BODY[L.body] || BODY.classic;
       this.body = B;
       this.brows = []; // rebuilt with the head (rebuild() disposes old meshes)
+      // V6 ANIME: chibi proportions — shorter body, much bigger head. Opt-in via look.chibi.
+      const CH = (L.chibi === true) ? 0.88 : 1;
 
       // legs — V4: smooth high-seg cylinders, rounded capsule shoes
       for (const sx of [-0.22, 0.22]) {
-        const thigh = mesh(new T.CylinderGeometry(0.15, 0.13, 0.95, 14), pants, sx, 0.475, 0);
+        const thigh = mesh(new T.CylinderGeometry(0.15, 0.13, 0.95 * CH, 14), pants, sx, 0.475 * CH, 0);
         this.root.add(thigh); outline(thigh, 1.075);
-        const shoe = mesh(new T.CapsuleGeometry(0.095, 0.2, 4, 10), mat('#22242e'), sx, 0.095, 0.07);
+        const shoe = mesh(new T.CapsuleGeometry(0.095, 0.2, 4, 10), mat('#22242e'), sx, 0.095 * CH, 0.07);
         shoe.rotation.x = Math.PI / 2; // point forward
         this.root.add(shoe);
       }
       // torso pivot at hips
-      this.torso = new T.Group(); this.torso.position.y = 0.95; this.root.add(this.torso);
+      this.torso = new T.Group(); this.torso.position.y = 0.95 * CH; this.root.add(this.torso);
       const body = mesh(new T.CylinderGeometry(0.5 * B.w * Math.min(1.25, B.taper), 0.42 * B.w / Math.max(1, B.taper * 0.85), 0.88 * B.h, 20), shirt, 0, 0.44 * B.h, 0);
       body.scale.z = 0.68 * B.d; this.torso.add(body); outline(body, 1.055);
       this.bodyMesh = body; // stored so buildTattoos() can swap to inked skin
@@ -414,8 +443,8 @@ SAK.Scene3D = (function () {
       const neck = mesh(new T.CylinderGeometry(0.14, 0.16, 0.18, 12), skin, 0, 0.92 * B.h, 0);
       this.torso.add(neck);
 
-      // head — V4: smooth high-poly cartoon head with bold outline
-      this.head = new T.Group(); this.head.position.y = 0.98 * B.h; this.head.scale.setScalar(B.head * 1.18); this.torso.add(this.head); // V2: bigger cartoon heads
+      // head — V4: smooth high-poly cartoon head with bold outline. V6: chibi = 1.32x head.
+      this.head = new T.Group(); this.head.position.y = 0.98 * B.h; this.head.scale.setScalar(B.head * 1.18 * (L.chibi === true ? 1.32 : 1)); this.torso.add(this.head); // V2: bigger cartoon heads
       const skull = mesh(new T.SphereGeometry(0.5, 28, 20), skin, 0, 0.42, 0);
       skull.scale.set(1, 1.06, 0.98); this.head.add(skull); outline(skull, 1.055);
       this.skull = skull;
@@ -430,25 +459,40 @@ SAK.Scene3D = (function () {
         const inner = mesh(new T.SphereGeometry(0.06, 10, 8), innerEarMat, sx * 0.5, 0.4, 0.03);
         inner.scale.set(0.4, 0.75, 0.5); this.head.add(inner);
       }
-      // eyes — V4: bigger cartoon eyes, smooth sclera
+      // eyes — V6 ANIME: big expressive eyes, layered gradient iris, dual highlights, ink lash line
       this.eyes = new T.Group(); this.head.add(this.eyes);
-      const eyeStyle = L.eyes || 'round', pupil = mat(L.eyeColor || '#1a1a1a');
+      const eyeStyle = L.eyes || 'round', eyeCol = L.eyeColor || '#1a1a1a';
       for (const sx of [-1, 1]) {
+        const ex = sx * 0.18, ey = 0.5;
         if (eyeStyle === 'dot') {
-          this.eyes.add(mesh(new T.SphereGeometry(0.07, 12, 10), pupil, sx * 0.18, 0.5, 0.46));
+          this.eyes.add(mesh(new T.SphereGeometry(0.07, 12, 10), mat(eyeCol), ex, ey, 0.46));
         } else {
-          const big = eyeStyle === 'big';
-          this.eyes.add(mesh(new T.SphereGeometry(big ? 0.13 : 0.105, 16, 12), mat('#ffffff'), sx * 0.18, 0.5, big ? 0.41 : 0.42));
-          const pr = big ? 0.068 : eyeStyle === 'angry' ? 0.045 : 0.055, pz = big ? 0.535 : 0.51;
-          this.eyes.add(mesh(new T.SphereGeometry(pr, 12, 10), pupil, sx * 0.18, 0.5, pz));
-          const hl = mesh(new T.SphereGeometry(pr * 0.38, 8, 6), new T.MeshBasicMaterial({ color: '#ffffff' }), sx * 0.18 - pr * 0.35, 0.5 + pr * 0.42, pz + pr * 0.92);
-          hl.castShadow = false; this.eyes.add(hl); // V2: specular catchlight
-          if (eyeStyle === 'sleepy') this.eyes.add(mesh(new T.BoxGeometry(0.25, 0.11, 0.1), skin, sx * 0.18, 0.565, 0.49)); // heavy lids
+          const s = eyeStyle === 'big' ? 1.25 : 1.15; // V6 anime eye boost
+          // sclera — bigger, smooth
+          this.eyes.add(mesh(new T.SphereGeometry(0.105 * s, 18, 14), mat('#ffffff'), ex, ey, 0.40));
+          // iris — radial-gradient anime iris disc hugging the sclera
+          const iris = mesh(new T.SphereGeometry(0.072 * s, 18, 14),
+            new T.MeshBasicMaterial({ map: irisTexture(eyeCol) }), ex, ey, 0.50);
+          iris.scale.z = 0.45; iris.castShadow = false; this.eyes.add(iris);
+          // pupil — deep black core
+          const pr = (eyeStyle === 'angry' ? 0.03 : 0.038) * s;
+          const pup = mesh(new T.SphereGeometry(pr, 12, 10), new T.MeshBasicMaterial({ color: '#101014' }), ex, ey, 0.53);
+          pup.castShadow = false; this.eyes.add(pup);
+          // highlights — big primary sparkle + tiny secondary (anime shine)
+          const h1 = mesh(new T.SphereGeometry(0.02 * s, 8, 6), new T.MeshBasicMaterial({ color: '#ffffff' }), ex - 0.032 * s, ey + 0.036 * s, 0.55);
+          h1.castShadow = false; this.eyes.add(h1);
+          const h2 = mesh(new T.SphereGeometry(0.011 * s, 8, 6), new T.MeshBasicMaterial({ color: '#ffffff' }), ex + 0.03 * s, ey - 0.028 * s, 0.548);
+          h2.castShadow = false; this.eyes.add(h2);
+          // upper eyelid ink line — thick anime lash arc over the eye
+          const lash = new T.Mesh(new T.TorusGeometry(0.125 * s, 0.02, 6, 14, Math.PI * 0.85), new T.MeshBasicMaterial({ color: '#14141c' }));
+          lash.position.set(ex, ey + 0.015, 0.43);
+          lash.rotation.z = Math.PI * 0.075;
+          lash.castShadow = false; this.eyes.add(lash);
+          if (eyeStyle === 'sleepy') this.eyes.add(mesh(new T.BoxGeometry(0.25, 0.11, 0.1), skin, ex, 0.565, 0.49)); // heavy lids
         }
-        const angry = eyeStyle === 'angry';
-        // V4: tapered brow (cylinder laid horizontal, thin end outward) — thicker, more expressive
-        const brow = mesh(new T.CylinderGeometry(0.03, 0.045, 0.28, 8), hair, sx * 0.19, angry ? 0.63 : 0.67, 0.45);
-        brow.rotation.z = -sx * Math.PI / 2 + sx * (angry ? 0.42 : -0.18);
+        // V6: thicker brows, fiercer default angle (determined). Expression tweens still apply on top.
+        const brow = mesh(new T.CylinderGeometry(0.04, 0.058, 0.32, 8), hair, sx * 0.19, eyeStyle === 'angry' ? 0.63 : 0.68, 0.45);
+        brow.rotation.z = -sx * Math.PI / 2 + sx * (eyeStyle === 'angry' ? 0.45 : 0.3);
         this.head.add(brow);
         brow.userData.baseY = brow.position.y; brow.userData.baseRotZ = brow.rotation.z;
         this.brows.push(brow);
@@ -576,6 +620,8 @@ SAK.Scene3D = (function () {
       }
       this.buildGloves();
       this.root.traverse(o => { o.userData.fighter = this; });
+      // V6: establish the fierce default expression (grin + teeth) right away
+      try { this.setExpression('neutral', 0.01); } catch (e) {}
     }
 
     /** NFT trait: glove variants. Each wraps the hand with distinct geometry. */
@@ -713,6 +759,36 @@ SAK.Scene3D = (function () {
           add(new T.TorusGeometry(0.18, 0.02, 6, 16), om('#ffd23f'), 0, 0.65, 0.15).rotation.x = Math.PI / 2.3; // gold chain
           break;
         }
+        case 'streetwear': {
+          // V6 ANIME: degen crypto-kid streetwear — open jacket, zipper, patches, waist chain
+          const jCol = om(shade((this.look && this.look.shirt) || '#d42a2a', -0.32)); // jacket = darker shade of shirt
+          const zipCol = om('#1a1a1c');
+          // open jacket panels (shirt shows down the middle)
+          for (const sx of [-1, 1]) {
+            const panel = add(new T.BoxGeometry(0.3, 0.72, 0.1), jCol, sx * 0.3, 0.5, 0.3);
+            panel.rotation.y = -sx * 0.18; panel.rotation.z = sx * 0.06;
+            outline(panel, 1.06);
+          }
+          // popped collar
+          for (const sx of [-1, 1]) {
+            const collar = add(new T.BoxGeometry(0.22, 0.16, 0.08), jCol, sx * 0.16, 0.86, 0.22);
+            collar.rotation.x = -0.5; collar.rotation.z = sx * 0.2;
+          }
+          // zipper track + pull tab
+          add(new T.BoxGeometry(0.035, 0.66, 0.03), zipCol, 0.09, 0.5, 0.36);
+          add(new T.BoxGeometry(0.05, 0.09, 0.04), om('#c0c0d0'), 0.09, 0.32, 0.37);
+          // patches — gold star, green bolt, white burst
+          const p1 = add(new T.CylinderGeometry(0.07, 0.07, 0.03, 5), om('#ffd23f'), -0.3, 0.62, 0.36);
+          p1.rotation.x = Math.PI / 2;
+          const p2 = add(new T.BoxGeometry(0.1, 0.1, 0.03), om('#39ff88'), 0.3, 0.56, 0.36);
+          p2.rotation.z = 0.2;
+          const p3 = add(new T.CylinderGeometry(0.055, 0.055, 0.03, 3), om('#ffffff'), -0.3, 0.38, 0.36);
+          p3.rotation.x = Math.PI / 2;
+          // waist chain — chunky silver U draped across the belt
+          const chain = add(new T.TorusGeometry(0.4, 0.028, 6, 20, Math.PI), om('#c8ccd8'), 0, 0.28, 0.28);
+          chain.rotation.z = Math.PI; // bottom half = draped
+          break;
+        }
       }
     }
 
@@ -745,17 +821,42 @@ SAK.Scene3D = (function () {
       const cap = (r, arc) => add(new T.SphereGeometry(r, 18, 12, 0, Math.PI * 2, 0, Math.PI * arc), 0, 0.47, -0.04, m => { m.rotation.x = -0.35; });
       let style = this.look.hairStyle || 'short';
       // tall styles get squashed under a hat (no clipping through cap/beanie/top hat)
-      if (['cap', 'beanie', 'tophat'].includes(this.look.accessory) && ['spiky', 'mohawk', 'afro', 'bun'].includes(style)) style = 'short';
+      if (['cap', 'beanie', 'tophat'].includes(this.look.accessory) && ['spiky', 'wild', 'mohawk', 'afro', 'bun'].includes(style)) style = 'short';
       switch (style) {
         case 'bald': break;
         case 'buzz': cap(0.515, 0.42); break;
-        case 'spiky':
+        case 'spiky': {
+          // V6 ANIME: 16 spikes in two rings — longer, more dynamic, layered
           cap(0.53, 0.46);
-          for (let i = 0; i < 7; i++) {
-            const a = (i / 7) * Math.PI * 2;
-            add(new T.ConeGeometry(0.11, 0.32, 8), Math.sin(a) * 0.26, 0.93 + (i % 2) * 0.04, Math.cos(a) * 0.26 - 0.06, m => { m.rotation.set(Math.cos(a) * 0.55, 0, -Math.sin(a) * 0.55); });
+          for (let ring = 0; ring < 2; ring++) {
+            const n = 8, rad = ring === 0 ? 0.3 : 0.18, y = ring === 0 ? 0.9 : 1.04;
+            const len = ring === 0 ? 0.44 : 0.38;
+            for (let i = 0; i < n; i++) {
+              const a = (i / n) * Math.PI * 2 + ring * 0.4;
+              const tilt = 0.65 + (i % 3) * 0.14;
+              add(new T.ConeGeometry(0.1, len, 7),
+                Math.sin(a) * rad, y + (i % 2) * 0.03, Math.cos(a) * rad - 0.06,
+                m => { m.rotation.set(Math.cos(a) * tilt, 0, -Math.sin(a) * tilt); });
+            }
           }
-          add(new T.ConeGeometry(0.12, 0.36, 8), 0, 1.02, -0.02); break;
+          add(new T.ConeGeometry(0.11, 0.46, 7), 0, 1.14, -0.04);
+          break; }
+        case 'wild': {
+          // V6 ANIME: shonen-protagonist wild hair — 18 huge spikes, extreme angles
+          cap(0.53, 0.44);
+          for (let i = 0; i < 18; i++) {
+            const a = (i / 18) * Math.PI * 2;
+            const v = ((i * 7919) % 10) / 10; // deterministic variation
+            const rad = 0.16 + v * 0.18, len = 0.5 + v * 0.24;
+            const tilt = 0.7 + v * 0.5;
+            add(new T.ConeGeometry(0.11, len, 7),
+              Math.sin(a) * rad, 0.98 + v * 0.12, Math.cos(a) * rad - 0.08,
+              m => { m.rotation.set(Math.cos(a) * tilt, (i % 5) * 0.2, -Math.sin(a) * tilt); });
+          }
+          // dramatic hero spikes on top
+          add(new T.ConeGeometry(0.12, 0.62, 7), 0.1, 1.28, -0.05, m => { m.rotation.z = -0.35; });
+          add(new T.ConeGeometry(0.12, 0.58, 7), -0.12, 1.25, -0.02, m => { m.rotation.z = 0.4; });
+          break; }
         case 'mohawk': {
           cap(0.508, 0.3);
           // Tall dramatic mohawk with color tips
@@ -811,12 +912,15 @@ SAK.Scene3D = (function () {
     setExpression(expr, dur) {
       this.expr = expr;
       const d = dur || 0.18;
-      const M = this.mouthShapes[expr === 'shock' ? 'open' : expr === 'pain' ? 'grimace' : expr === 'grin' ? 'grin' : 'neutral'] || this.mouthShapes.neutral;
+      // V6: fierce default — neutral shows a determined grin with teeth (opt out via look.fierce === false)
+      const fierce = this.look.fierce !== false;
+      const key = expr === 'shock' ? 'open' : expr === 'pain' ? 'grimace' : (expr === 'grin' || (expr === 'neutral' && fierce)) ? 'grin' : 'neutral';
+      const M = this.mouthShapes[key] || this.mouthShapes.neutral;
       SAK.Tween.to(this.mouth.scale, { x: M.sx / 0.22, y: M.sy / 0.07 }, d);
       SAK.Tween.to(this.mouth.position, { y: M.y }, d);
-      // V3: teeth show on grin/grimace/shock, hide on neutral
+      // V3: teeth show on grin/grimace/shock, hide on neutral. V6: fierce neutral keeps teeth.
       if (this.teeth) {
-        const showTeeth = (expr === 'grin' || expr === 'pain' || expr === 'shock');
+        const showTeeth = (expr === 'grin' || expr === 'pain' || expr === 'shock') || (fierce && expr === 'neutral');
         this.teeth.visible = showTeeth;
         if (showTeeth) {
           SAK.Tween.to(this.teeth.position, { y: M.y - 0.2 }, d);

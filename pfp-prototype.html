@@ -127,6 +127,25 @@
     </div>
     <div style="font-size:12px;color:#888;margin-top:6px">AI auto-detection coming in the full version — pick manually for now.</div>
 
+    <h2 style="margin-top:18px">✨ Style</h2>
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+      <select id="hairStyleSel" style="flex:1;min-width:120px;padding:10px;border-radius:10px;background:#1a1a2e;color:#fff;border:1px solid #39ff8855;font-size:15px">
+        <option value="short">Short hair</option>
+        <option value="spiky">Spiky (anime)</option>
+        <option value="wild">Wild (shonen)</option>
+        <option value="buzz">Buzz</option>
+        <option value="bald">Bald</option>
+        <option value="long">Long</option>
+        <option value="bun">Bun</option>
+        <option value="afro">Afro</option>
+        <option value="mohawk">Mohawk</option>
+      </select>
+      <label style="display:flex;align-items:center;gap:8px;color:#fff;font-size:15px;cursor:pointer">
+        <input type="checkbox" id="chibiChk" style="width:20px;height:20px;accent-color:#39ff88"> Chibi proportions
+      </label>
+    </div>
+    <div style="font-size:12px;color:#888;margin-top:6px">V6 anime-chibi style options.</div>
+
     <h2 style="margin-top:18px">👕 Clothing &nbsp;🎩 Hat</h2>
     <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
       <select id="clothingSel" style="flex:1;min-width:120px;padding:10px;border-radius:10px;background:#1a1a2e;color:#fff;border:1px solid #39ff8855;font-size:15px">
@@ -136,6 +155,7 @@
         <option value="robe">Robe</option>
         <option value="jacket">Jacket</option>
         <option value="tank">Tank</option>
+        <option value="streetwear">Streetwear</option>
       </select>
       <select id="hatSel" style="flex:1;min-width:120px;padding:10px;border-radius:10px;background:#1a1a2e;color:#fff;border:1px solid #39ff8855;font-size:15px">
         <option value="none">No hat</option>
@@ -229,7 +249,7 @@
     accessory: 'Accessory', body: 'Body type', gloves: 'Gloves',
     outfit: 'Outfit', parody: 'Parody preset', species: 'Species 🐾',
     facialHair: 'Facial hair 🧔', necklace: 'Necklace 📿', glasses: 'Glasses 🕶️',
-    tattoo: 'Tattoos 🖋️'
+    tattoo: 'Tattoos 🖋️', chibi: 'Chibi ✨'
   };
   var COLOR_KEYS = { skin: 1, shirt: 1, hair: 1, pants: 1, eyeColor: 1 };
 
@@ -324,6 +344,14 @@
     updateTraitField('species', document.getElementById('speciesSel').value, 'Species');
   });
 
+  /* ---------- V6: hairstyle + chibi ---------- */
+  document.getElementById('hairStyleSel').addEventListener('change', function () {
+    updateTraitField('hairStyle', document.getElementById('hairStyleSel').value, 'Hair style');
+  });
+  document.getElementById('chibiChk').addEventListener('change', function () {
+    updateTraitField('chibi', document.getElementById('chibiChk').checked, 'Chibi');
+  });
+
   /* ---------- Clothing / Hat dropdowns: update JSON live ---------- */
   document.getElementById('clothingSel').addEventListener('change', function () {
     updateTraitField('outfit', document.getElementById('clothingSel').value, 'Outfit');
@@ -404,7 +432,7 @@
       shirt: shirtC,
       hair: hairC,
       pants: '#1f1f2e',
-      hairStyle: 'short',
+      hairStyle: document.getElementById('hairStyleSel').value,
       eyes: 'round',
       eyeColor: '#1a1a1a',
       accessory: document.getElementById('hatSel').value,
@@ -415,7 +443,8 @@
       facialHair: document.getElementById('facialHairSel').value,
       necklace: document.getElementById('necklaceSel').value,
       glasses: document.getElementById('glassesSel').value,
-      tattoo: document.getElementById('tattooSel').value
+      tattoo: document.getElementById('tattooSel').value,
+      chibi: document.getElementById('chibiChk').checked
     };
     document.getElementById('traitJson').value = JSON.stringify(traits, null, 2);
     renderTraits(traits);
