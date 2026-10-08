@@ -272,44 +272,30 @@
   }
 
   /* ---------- Species dropdown: update JSON live ---------- */
-  document.getElementById('speciesSel').addEventListener('change', function () {
-    var sp = document.getElementById('speciesSel').value;
+  /* ---------- Dropdown helper: works even with empty/invalid JSON ---------- */
+  function updateTraitField(field, value, label) {
+    var obj;
     try {
-      var obj = JSON.parse(ta.value);
-      if (obj && typeof obj === 'object' && !Array.isArray(obj)) {
-        obj.species = sp;
-        ta.value = JSON.stringify(obj, null, 2);
-        renderTraits(obj);
-        setStatus('Species set to ' + sp + ' — hit Generate Fighter to see it.', true);
-      }
-    } catch (e) { /* invalid JSON — leave it alone */ }
+      obj = JSON.parse(ta.value);
+      if (!obj || typeof obj !== 'object' || Array.isArray(obj)) obj = {};
+    } catch (e) { obj = {}; }
+    obj[field] = value;
+    ta.value = JSON.stringify(obj, null, 2);
+    renderTraits(obj);
+    setStatus(label + ' set to ' + value + ' — hit Generate Fighter to see it.', true);
+  }
+
+  document.getElementById('speciesSel').addEventListener('change', function () {
+    updateTraitField('species', document.getElementById('speciesSel').value, 'Species');
   });
 
   /* ---------- Clothing / Hat dropdowns: update JSON live ---------- */
   document.getElementById('clothingSel').addEventListener('change', function () {
-    var v = document.getElementById('clothingSel').value;
-    try {
-      var obj = JSON.parse(ta.value);
-      if (obj && typeof obj === 'object' && !Array.isArray(obj)) {
-        obj.outfit = v;
-        ta.value = JSON.stringify(obj, null, 2);
-        renderTraits(obj);
-        setStatus('Outfit set to ' + v + ' — hit Generate Fighter to see it.', true);
-      }
-    } catch (e) { /* invalid JSON — leave it alone */ }
+    updateTraitField('outfit', document.getElementById('clothingSel').value, 'Outfit');
   });
 
   document.getElementById('hatSel').addEventListener('change', function () {
-    var v = document.getElementById('hatSel').value;
-    try {
-      var obj = JSON.parse(ta.value);
-      if (obj && typeof obj === 'object' && !Array.isArray(obj)) {
-        obj.accessory = v;
-        ta.value = JSON.stringify(obj, null, 2);
-        renderTraits(obj);
-        setStatus('Hat set to ' + v + ' — hit Generate Fighter to see it.', true);
-      }
-    } catch (e) { /* invalid JSON — leave it alone */ }
+    updateTraitField('accessory', document.getElementById('hatSel').value, 'Hat');
   });
 
   /* ---------- Analyze PFP (prototype: dominant-color sampling) ---------- */
