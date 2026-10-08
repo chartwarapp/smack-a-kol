@@ -912,8 +912,8 @@ SAK.Scene3D = (function () {
     setExpression(expr, dur) {
       this.expr = expr;
       const d = dur || 0.18;
-      // V6: fierce default — neutral shows a determined grin with teeth (opt out via look.fierce === false)
-      const fierce = this.look.fierce !== false;
+      // V6: fierce is opt-in via look.fierce === true — random fighters get a clean neutral mouth
+      const fierce = this.look.fierce === true;
       const key = expr === 'shock' ? 'open' : expr === 'pain' ? 'grimace' : (expr === 'grin' || (expr === 'neutral' && fierce)) ? 'grin' : 'neutral';
       const M = this.mouthShapes[key] || this.mouthShapes.neutral;
       SAK.Tween.to(this.mouth.scale, { x: M.sx / 0.22, y: M.sy / 0.07 }, d);
