@@ -114,6 +114,7 @@
     <h2 style="margin-top:18px">🧬 Trait JSON</h2>
     <textarea id="traitJson" spellcheck="false"></textarea>
     <div class="btnrow">
+      <button id="analyzeBtn" style="display:none">🔍 Analyze PFP</button>
       <button id="genBtn">🥊 Generate Fighter</button>
       <button id="copyBtn">📋 Copy Trait JSON</button>
     </div>
@@ -198,7 +199,11 @@
     r.onload = function () {
       pfpPreview.src = r.result;
       pfpPreview.style.display = 'block';
-      setStatus('PFP loaded: ' + f.name + ' — now paste trait JSON below.', true);
+      // Clear old traits so it's obvious new ones are needed for this PFP
+      document.getElementById('traitJson').value = '';
+      traitList.innerHTML = '<div class="trait-empty">Upload a PFP, then tap <b>Analyze PFP</b> to generate traits.</div>';
+      setStatus('PFP loaded: ' + f.name + ' — tap Analyze PFP to generate traits.', true);
+      document.getElementById('analyzeBtn').style.display = '';
     };
     r.readAsDataURL(f);
   }
@@ -229,6 +234,43 @@
   function escapeHtml(s) {
     return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   }
+
+  /* ---------- Analyze PFP (prototype: dominant-color sampling) ---------- */
+  document.getElementById('analyzeBtn').addEventListener('click', function () {
+    var img = document.getElementById('pfpPreview');
+    if (!img.src) { setStatus('Upload a PFP first.', false); return; }
+    setStatus('Analyzing PFP colors…', true);
+    var c = document.createElement('canvas');
+    var w = c.width = 64, h = c.height = 64;
+    var ctx = c.getContext('2d');
+    ctx.drawImage(img, 0, 0, w, h);
+    function avg(x0, y0, x1, y1) {
+      var d = ctx.getImageData(x0, y0, x1 - x0, y1 - y0).data;
+      var r = 0, g = 0, b = 0, n = 0;
+      for (var i = 0; i < d.length; i += 16) { r += d[i]; g += d[i+1]; b += d[i+2]; n++; }
+      r = Math.round(r/n); g = Math.round(g/n); b = Math.round(b/n);
+      return '#' + [r,g,b].map(function(v){ return v.toString(16).padStart(2,'0'); }).join('');
+    }
+    var hairC  = avg(16, 2, 48, 14);    // top = hair/hat
+    var skinC  = avg(20, 20, 44, 40);   // center = face
+    var shirtC = avg(12, 46, 52, 62);   // bottom = clothing
+    var traits = {
+      skin: skinC,
+      shirt: shirtC,
+      hair: hairC,
+      pants: '#1f1f2e',
+      hairStyle: 'short',
+      eyes: 'round',
+      eyeColor: '#1a1a1a',
+      accessory: 'none',
+      body: 'classic',
+      gloves: 'mma',
+      outfit: 'tee'
+    };
+    document.getElementById('traitJson').value = JSON.stringify(traits, null, 2);
+    renderTraits(traits);
+    setStatus('Traits generated from PFP colors — tweak the JSON if you like, then hit Generate Fighter.', true);
+  });
 
   /* ---------- Generate ---------- */
   var currentPreview = null;
