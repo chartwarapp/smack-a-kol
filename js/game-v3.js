@@ -643,6 +643,7 @@
     if (rarity === 'legendary') A.fanfare && A.fanfare();
     else A.coin();
     renderSubTraits();
+    renderDraft(); // update the preview with the new traits
     if (rarity === 'epic' || rarity === 'legendary') {
       toast(`🎰 ${SAK.Traits.RARITY[rarity].label.toUpperCase()} KOL!`, 2200);
     }
@@ -664,7 +665,14 @@
   function renderDraft() {
     const name = $('#sub-name').value.trim() || 'Anon';
     const L = lookFromName(name, draft.shirt), st = SAK.customKolStats(L.difficulty);
-    const look = { skin: L.skin, shirt: L.shirt, hair: L.hair, accessory: L.accessory, accent: L.accessory === 'laser' ? '#ff1a1a' : '#ffd23f' };
+    // If they rerolled traits, the roll wins over the name-hash look
+    let look;
+    if (subRoll) {
+      const av = SAK.Traits.toAvatar(subRoll);
+      look = { skin: av.skin, shirt: draft.shirt, hair: av.hairColor, hairStyle: av.hairStyle, eyes: av.eyes, accessory: av.accessory, accent: av.accessory === 'laser' ? '#ff1a1a' : '#ffd23f', gloves: av.gloves, outfit: av.outfit };
+    } else {
+      look = { skin: L.skin, shirt: L.shirt, hair: L.hair, accessory: L.accessory, accent: L.accessory === 'laser' ? '#ff1a1a' : '#ffd23f' };
+    }
     $('#sub-preview').innerHTML = SAK.avatarSVG(look) + `<div class="sub-stats">${'★'.repeat(L.difficulty)} ❤${st.hp} ✊${st.power}</div>`;
     $$('.swatches[data-key="shirt"] button').forEach(b => b.classList.toggle('on', b.dataset.c === draft.shirt));
   }
