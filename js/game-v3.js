@@ -422,6 +422,11 @@
   $('#cr-next').addEventListener('click', () => {
     const n = SAK.Account.validateName($('#fit-name').value), v = n.ok ? validateText(n.ok, SAK.UGC.maxName) : n;
     if (v.err) { $('#cr-name-err').textContent = 'Name: ' + v.err; return; }
+    // Unique fighter names: no duplicates with KOL roster or other custom KOLs
+    const nameLower = v.ok.toLowerCase();
+    if (roster().some(k => k.name.toLowerCase() === nameLower)) {
+      $('#cr-name-err').textContent = 'That name is taken'; return;
+    }
     A.click();
     $('#cr-name').value = v.ok;
     if (crIsNew) crDraft = SAK.Account.randomAvatar();   // fresh degen, tweak from here
@@ -468,6 +473,12 @@
     e.preventDefault();
     const n = SAK.Account.validateName($('#cr-name').value), v = n.ok ? validateText(n.ok, SAK.UGC.maxName) : n;
     if (v.err) { $('#cr-look-err').textContent = 'Name: ' + v.err; return; }
+    // Unique check on save too (in case they edited the name in step 2)
+    const nameLower = v.ok.toLowerCase();
+    const isOwnName = S.profile && S.profile.name.toLowerCase() === nameLower;
+    if (!isOwnName && roster().some(k => k.name.toLowerCase() === nameLower)) {
+      $('#cr-look-err').textContent = 'That name is taken'; return;
+    }
     const rawPh = $('#fit-phrase').value.trim();
     const ph = rawPh ? validateText(rawPh, SAK.UGC.maxCatchphrase) : { ok: '' };
     if (ph.err) { $('#cr-look-err').textContent = 'Quote: ' + ph.err; return; }
@@ -594,6 +605,7 @@
 
   /* ======================================================= SUBMIT A KOL (UGC) */
   let draft = null;
+  let subRoll = null, subRerollsLeft = SAK.Traits.MAX_REROLLS;
   /** Deterministic look/stats from the name, so the form stays tiny (name, colour, catchphrase). */
   function lookFromName(name, colour) {
     let h = 0; for (const ch of name.toLowerCase()) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
@@ -610,6 +622,8 @@
     }
     const pal = SAK.UGC.palettes;
     draft = { shirt: pick(pal.shirt) };
+    subRoll = null; subRerollsLeft = SAK.Traits.MAX_REROLLS; // reset trait rerolls
+    $('#sub-traits').classList.add('hidden');
     $('#sub-name').value = ''; $('#sub-phrase').value = '';
     const box = $('.swatches[data-key="shirt"]');
     box.innerHTML = pal.shirt.map(c => `<button type="button" data-c="${c}" style="background:${c}"></button>`).join('');
@@ -618,6 +632,34 @@
     $('#sub-slots').textContent = `Slots used ${used}/${slots}` + (next !== undefined ? ` · next slot at ${fmt(next)} lifetime PTS (you: ${fmt(S.stats.lifetimePts)})` : '');
     renderDraft();
     $('#modal-submit').classList.remove('hidden');
+  }
+  // Submit KOL trait reroll (same system as fighter creator)
+  $('#sub-reroll').addEventListener('click', () => {
+    A.click();
+    if (subRerollsLeft <= 0) { toast('No rerolls left — lock it in!', 1800); return; }
+    subRerollsLeft--;
+    subRoll = SAK.Traits.rollFighter();
+    const rarity = SAK.Traits.getRarity(subRoll);
+    if (rarity === 'legendary') A.fanfare && A.fanfare();
+    else A.coin();
+    renderSubTraits();
+    if (rarity === 'epic' || rarity === 'legendary') {
+      toast(`🎰 ${SAK.Traits.RARITY[rarity].label.toUpperCase()} KOL!`, 2200);
+    }
+  });
+  function renderSubTraits() {
+    const box = $('#sub-traits'), list = $('#sub-trait-list');
+    if (!subRoll) { box.classList.add('hidden'); return; }
+    box.classList.remove('hidden');
+    const rarity = SAK.Traits.getRarity(subRoll);
+    const rc = SAK.Traits.RARITY[rarity];
+    $('#sub-rarity-badge').innerHTML = `<span style="color:${rc.color}">◆ ${rc.label.toUpperCase()}</span>`;
+    $('#sub-reroll-left').textContent = `${subRerollsLeft} reroll${subRerollsLeft === 1 ? '' : 's'} left`;
+    $('#sub-reroll-count').textContent = subRerollsLeft > 0 ? `(${subRerollsLeft})` : '';
+    list.innerHTML = SAK.Traits.LAYER_ORDER.map(lid => {
+      const t = subRoll[lid], tc = SAK.Traits.RARITY[t.rarity];
+      return `<div><span style="opacity:.6">${SAK.Traits.LAYER_LABELS[lid]}:</span> <b style="color:${tc.color}">${t.label}</b></div>`;
+    }).join('');
   }
   function renderDraft() {
     const name = $('#sub-name').value.trim() || 'Anon';
@@ -643,7 +685,15 @@
     if (ph.err) return toast('Catchphrase: ' + ph.err);
     if (roster().some(k => k.name.toLowerCase() === n.ok.toLowerCase())) return toast('That name is taken');
     if (S.customKols.length >= ugcSlotsUnlocked()) return toast('No free slots');
-    const entry = Object.assign(lookFromName(n.ok, draft.shirt), { id: 'ugc_' + Date.now().toString(36), name: n.ok, phrase: ph.ok, createdAt: Date.now() });
+    const base = lookFromName(n.ok, draft.shirt);
+    // Merge trait roll if they rerolled (gloves/outfit/accessory carry over)
+    if (subRoll) {
+      const av = SAK.Traits.toAvatar(subRoll);
+      base.gloves = av.gloves; base.outfit = av.outfit;
+      base.accessory = av.accessory; base.hairStyle = av.hairStyle;
+      base.traits = subRoll; // save the full roll for NFT metadata later
+    }
+    const entry = Object.assign(base, { id: 'ugc_' + Date.now().toString(36), name: n.ok, phrase: ph.ok, createdAt: Date.now() });
     S.customKols.push(entry);
     SAK.Storage.save();
     $('#modal-submit').classList.add('hidden');

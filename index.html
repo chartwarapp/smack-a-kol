@@ -215,7 +215,15 @@
         <div class="sub-fields">
           <label>Name<input id="sub-name" maxlength="16" placeholder="e.g. Shillvester" required /></label>
           <label>Catchphrase<input id="sub-phrase" maxlength="60" placeholder="e.g. Wen lambo? Wen slap!" required /></label>
+          <button type="button" class="btn btn-purple" id="sub-reroll" style="margin-top:8px;width:100%">🎰 REROLL TRAITS <span id="sub-reroll-count"></span></button>
         </div>
+      </div>
+      <div id="sub-traits" class="hidden" style="margin:8px 0;padding:10px;background:rgba(0,0,0,.25);border-radius:10px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+          <b id="sub-rarity-badge" style="font-size:15px"></b>
+          <span id="sub-reroll-left" style="font-size:12px;opacity:.8"></span>
+        </div>
+        <div id="sub-trait-list" style="display:grid;grid-template-columns:1fr 1fr;gap:4px;font-size:12px"></div>
       </div>
       <div class="swatch-row"><span>Colour</span><div class="swatches" data-key="shirt"></div></div>
       <p class="fine dark">Keep it a playful parody: no real photos, no exact handles, nothing hateful. Look &amp; stats auto-generate from the name.</p>
