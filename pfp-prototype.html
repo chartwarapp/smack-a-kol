@@ -98,8 +98,8 @@
 <div class="sub">Smack-a-KOL parody fighter generator — proof of concept</div>
 
 <div class="steps">
-  <b>1.</b> Upload a PFP &nbsp;→&nbsp; <b>2.</b> Get trait JSON from AI analysis &nbsp;→&nbsp;
-  <b>3.</b> Paste it below &nbsp;→&nbsp; <b>4.</b> Hit <b>Generate Fighter</b> 🥊
+  <b>1.</b> Upload a PFP &nbsp;→&nbsp; <b>2.</b> Pick a species 🐾 &nbsp;→&nbsp;
+  <b>3.</b> Hit <b>Analyze PFP</b> &nbsp;→&nbsp; <b>4.</b> Hit <b>Generate Fighter</b> 🥊
 </div>
 
 <div class="grid">
@@ -110,6 +110,22 @@
       <input type="file" id="fileInput" accept="image/*" style="display:none">
     </div>
     <img id="pfpPreview" alt="PFP preview">
+
+    <h2 style="margin-top:18px">🐾 Species</h2>
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+      <select id="speciesSel" style="flex:1;min-width:160px;padding:10px;border-radius:10px;background:#1a1a2e;color:#fff;border:1px solid #39ff8855;font-size:15px">
+        <option value="human">Human</option>
+        <option value="bear">Bear</option>
+        <option value="bull">Bull</option>
+        <option value="ape">Ape</option>
+        <option value="dog">Dog</option>
+        <option value="cat">Cat</option>
+        <option value="frog">Frog</option>
+        <option value="rabbit">Rabbit</option>
+        <option value="panda">Panda</option>
+      </select>
+    </div>
+    <div style="font-size:12px;color:#888;margin-top:6px">AI auto-detection coming in the full version — pick manually for now.</div>
 
     <h2 style="margin-top:18px">🧬 Trait JSON</h2>
     <textarea id="traitJson" spellcheck="false"></textarea>
@@ -158,7 +174,7 @@
     skin: 'Skin tone', shirt: 'Shirt', hair: 'Hair color', pants: 'Pants',
     hairStyle: 'Hair style', eyes: 'Eyes', eyeColor: 'Eye color',
     accessory: 'Accessory', body: 'Body type', gloves: 'Gloves',
-    outfit: 'Outfit', parody: 'Parody preset'
+    outfit: 'Outfit', parody: 'Parody preset', species: 'Species 🐾'
   };
   var COLOR_KEYS = { skin: 1, shirt: 1, hair: 1, pants: 1, eyeColor: 1 };
 
@@ -235,6 +251,20 @@
     return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   }
 
+  /* ---------- Species dropdown: update JSON live ---------- */
+  document.getElementById('speciesSel').addEventListener('change', function () {
+    var sp = document.getElementById('speciesSel').value;
+    try {
+      var obj = JSON.parse(ta.value);
+      if (obj && typeof obj === 'object' && !Array.isArray(obj)) {
+        obj.species = sp;
+        ta.value = JSON.stringify(obj, null, 2);
+        renderTraits(obj);
+        setStatus('Species set to ' + sp + ' — hit Generate Fighter to see it.', true);
+      }
+    } catch (e) { /* invalid JSON — leave it alone */ }
+  });
+
   /* ---------- Analyze PFP (prototype: dominant-color sampling) ---------- */
   document.getElementById('analyzeBtn').addEventListener('click', function () {
     var img = document.getElementById('pfpPreview');
@@ -265,7 +295,8 @@
       accessory: 'none',
       body: 'classic',
       gloves: 'mma',
-      outfit: 'tee'
+      outfit: 'tee',
+      species: document.getElementById('speciesSel').value
     };
     document.getElementById('traitJson').value = JSON.stringify(traits, null, 2);
     renderTraits(traits);

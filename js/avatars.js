@@ -86,6 +86,27 @@ SAK.avatarSVG = function (look, opts) {
     </g>`;
   }
 
+  // Animal species overlays (drawn right after the head circle, under hair/eyes).
+  let speciesFx = '';
+  const sp = look.species || 'human';
+  if (sp === 'bear') {
+    speciesFx = `<g><circle cx="28" cy="24" r="9" fill="${s}" stroke="#0003" stroke-width="2"/><circle cx="72" cy="24" r="9" fill="${s}" stroke="#0003" stroke-width="2"/><circle cx="28" cy="24" r="4" fill="#e8b98a"/><circle cx="72" cy="24" r="4" fill="#e8b98a"/><ellipse cx="50" cy="63" rx="10" ry="7" fill="#f0d0a8"/></g>`;
+  } else if (sp === 'bull' && look.parody !== 'patty' && look.parody !== 'ansom') {
+    speciesFx = `<g><path d="M30 26 Q20 8 28 0 Q32 10 38 20 Z" fill="#e8dcc8" stroke="#0003" stroke-width="1.5"/><path d="M70 26 Q80 8 72 0 Q68 10 62 20 Z" fill="#e8dcc8" stroke="#0003" stroke-width="1.5"/><rect x="38" y="55" width="24" height="9" rx="4" fill="${s}" stroke="#0003" stroke-width="1.5"/></g>`;
+  } else if (sp === 'ape') {
+    speciesFx = `<g><rect x="28" y="36" width="44" height="8" rx="4" fill="${s}" stroke="#0003" stroke-width="1.5"/><rect x="35" y="66" width="30" height="10" rx="5" fill="${s}" stroke="#0003" stroke-width="1.5"/></g>`;
+  } else if (sp === 'dog') {
+    speciesFx = `<g><ellipse cx="22" cy="34" rx="8" ry="16" fill="${s}" stroke="#0003" stroke-width="2" transform="rotate(18 22 34)"/><ellipse cx="78" cy="34" rx="8" ry="16" fill="${s}" stroke="#0003" stroke-width="2" transform="rotate(-18 78 34)"/><ellipse cx="50" cy="62" rx="11" ry="8" fill="${s}" stroke="#0003" stroke-width="1.5"/></g>`;
+  } else if (sp === 'cat') {
+    speciesFx = `<g><path d="M28 30 L22 8 L42 20 Z" fill="${s}" stroke="#0003" stroke-width="2"/><path d="M72 30 L78 8 L58 20 Z" fill="${s}" stroke="#0003" stroke-width="2"/><path d="M29 24 L26 13 L36 19 Z" fill="#f0a0a0"/><path d="M71 24 L74 13 L64 19 Z" fill="#f0a0a0"/></g>`;
+  } else if (sp === 'frog') {
+    speciesFx = `<g><circle cx="35" cy="18" r="9" fill="${s}" stroke="#0003" stroke-width="2"/><circle cx="65" cy="18" r="9" fill="${s}" stroke="#0003" stroke-width="2"/><circle cx="35" cy="17" r="3.5" fill="#2a1e16"/><circle cx="65" cy="17" r="3.5" fill="#2a1e16"/></g>`;
+  } else if (sp === 'rabbit') {
+    speciesFx = `<g><ellipse cx="36" cy="10" rx="7" ry="16" fill="${s}" stroke="#0003" stroke-width="2"/><ellipse cx="64" cy="10" rx="7" ry="16" fill="${s}" stroke="#0003" stroke-width="2"/><ellipse cx="36" cy="11" rx="3" ry="10" fill="#f0a0a0"/><ellipse cx="64" cy="11" rx="3" ry="10" fill="#f0a0a0"/></g>`;
+  } else if (sp === 'panda') {
+    speciesFx = `<g><circle cx="28" cy="24" r="8" fill="#1a1a1a"/><circle cx="72" cy="24" r="8" fill="#1a1a1a"/><ellipse cx="38" cy="48" rx="8" ry="10" fill="#1a1a1a"/><ellipse cx="62" cy="48" rx="8" ry="10" fill="#1a1a1a"/></g>`;
+  }
+
   // Evolving battle damage (0 clean → 3 wrecked), drawn over the face.
   // Wrecked = maximum cartoon damage for the loser: bloodied + bandaged.
   const wrecked = !!opts.wrecked;
@@ -120,6 +141,7 @@ SAK.avatarSVG = function (look, opts) {
     ${hairBack}
     <path d="M${sw[0]} 100 Q50 72 ${sw[1]} 100 Z" fill="${look.shirt}" stroke="#0003" stroke-width="2"/>
     <circle cx="50" cy="50" r="30" fill="${s}" stroke="#0003" stroke-width="2"/>
+    ${speciesFx}
     ${hairFront}
     <circle cx="24" cy="54" r="5" fill="${s}" stroke="#0002" stroke-width="2"/>
     <circle cx="76" cy="54" r="5" fill="${s}" stroke="#0002" stroke-width="2"/>

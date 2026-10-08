@@ -364,6 +364,7 @@ SAK.Scene3D = (function () {
       cut2.position.set(-0.26, 0.3, 0.44); cut2.rotation.z = -0.5; this.head.add(cut2);
       this.buildAccessory();
       this.buildParody(); // V3: parody fighter overlays (horns, visor, mustache, etc.)
+      this.buildSpecies(); // animal species overlays (ears, horns, snouts, eye patches)
       // ⛑ Defense Helmet power-up (hidden until used)
       this.helmet = new T.Group(); this.helmet.visible = false; this.head.add(this.helmet);
       const hm = mat('#ffd23f', {}); hm.emissive = new T.Color('#4a3300');
@@ -916,6 +917,142 @@ SAK.Scene3D = (function () {
         const collar = mesh(new T.BoxGeometry(0.2, 0.25, 0.08), collarMat, sx * 0.2, 0.78, 0.28);
         collar.rotation.z = sx * -0.3; collar.rotation.x = -0.15;
         collar.userData.parody = true; this.torso.add(collar);
+      }
+    }
+
+    /* =====================================================================
+     * SPECIES TRAITS — animal species overlays triggered by look.species:
+     * 'bear' | 'bull' | 'ape' | 'dog' | 'cat' | 'frog' | 'rabbit' | 'panda'.
+     * Default 'human' (or unset) = no extra geometry. Simple low-poly
+     * primitives matching the cartoon style. All species meshes are tagged
+     * userData.species; rebuild() disposes everything and rebuilds clean.
+     * Parody presets that already add horns (patty, ansom) skip the bull
+     * horns so nothing doubles up — the wider bull nose still applies.
+     * ===================================================================== */
+    buildSpecies() {
+      const S = (this.look && this.look.species) || 'human';
+      if (!S || S === 'human') return;
+      const H = this.head;
+      const add = (geo, material, x, y, z, fn) => {
+        const m = mesh(geo, material, x, y, z);
+        m.userData.species = true; if (fn) fn(m); H.add(m); return m;
+      };
+      const skin = mat(this.look.skin || '#ffe0c4');
+      const dark = mat('#2a1e16');
+      switch (S) {
+        case 'bear': this.speciesBear(add, skin, dark); break;
+        case 'bull': this.speciesBull(add, skin, dark); break;
+        case 'ape': this.speciesApe(add, skin, dark); break;
+        case 'dog': this.speciesDog(add, skin, dark); break;
+        case 'cat': this.speciesCat(add, skin, dark); break;
+        case 'frog': this.speciesFrog(add, skin, dark); break;
+        case 'rabbit': this.speciesRabbit(add, skin, dark); break;
+        case 'panda': this.speciesPanda(add, skin, dark); break;
+        default: break; // unknown species → human
+      }
+    }
+
+    /** Bear: round ears on top + rounded muzzle. */
+    speciesBear(add, skin, dark) {
+      for (const sx of [-1, 1]) {
+        add(new T.SphereGeometry(0.15, 8, 6), skin, sx * 0.38, 0.88, -0.05);
+        add(new T.SphereGeometry(0.07, 7, 5), mat('#e8b98a'), sx * 0.38, 0.86, 0.06);
+      }
+      add(new T.SphereGeometry(0.16, 8, 6), mat('#f0d0a8'), 0, 0.27, 0.5, m => {
+        m.scale.set(1.3, 0.8, 0.9);
+      });
+      add(new T.SphereGeometry(0.05, 7, 5), dark, 0, 0.31, 0.62);
+    }
+
+    /** Bull: curved horns (skipped if a parody preset already added horns) + wide nose. */
+    speciesBull(add, skin, dark) {
+      const P = this.look.parody;
+      if (P !== 'patty' && P !== 'ansom') {
+        // Curved horns — stacked cones, bone colored (same curl style as Patty's)
+        const hornMat = new T.MeshStandardMaterial({ color: '#e8dcc8', roughness: 0.4, metalness: 0.1 });
+        for (const sx of [-1, 1]) {
+          add(new T.ConeGeometry(0.11, 0.42, 8), hornMat, sx * 0.4, 0.98, -0.05, m => {
+            m.rotation.z = sx * -0.55;
+          });
+          add(new T.ConeGeometry(0.07, 0.34, 8), hornMat, sx * 0.58, 1.22, -0.05, m => {
+            m.rotation.z = sx * -1.0;
+          });
+          add(new T.ConeGeometry(0.04, 0.2, 8), hornMat, sx * 0.68, 1.4, -0.05, m => {
+            m.rotation.z = sx * -1.35;
+          });
+        }
+      }
+      // Wide nose with big nostrils
+      add(new T.BoxGeometry(0.26, 0.11, 0.13), skin, 0, 0.33, 0.52);
+      for (const sx of [-1, 1]) {
+        add(new T.SphereGeometry(0.035, 6, 5), dark, sx * 0.08, 0.31, 0.585, m => {
+          m.scale.set(1, 0.7, 0.5);
+        });
+      }
+    }
+
+    /** Ape: pronounced brow ridge, larger jaw, round side ears. */
+    speciesApe(add, skin, dark) {
+      add(new T.BoxGeometry(0.5, 0.09, 0.12), skin, 0, 0.63, 0.44);
+      add(new T.BoxGeometry(0.34, 0.14, 0.12), skin, 0, 0.11, 0.42);
+      for (const sx of [-1, 1]) {
+        add(new T.SphereGeometry(0.09, 7, 6), skin, sx * 0.52, 0.45, -0.02);
+      }
+    }
+
+    /** Dog: floppy ears + snout with nose tip. */
+    speciesDog(add, skin, dark) {
+      for (const sx of [-1, 1]) {
+        add(new T.BoxGeometry(0.14, 0.42, 0.09), skin, sx * 0.48, 0.66, -0.05, m => {
+          m.rotation.z = sx * 0.5; // flop outward/down
+        });
+      }
+      add(new T.BoxGeometry(0.2, 0.16, 0.22), skin, 0, 0.3, 0.55);
+      add(new T.SphereGeometry(0.045, 7, 5), dark, 0, 0.34, 0.66);
+    }
+
+    /** Cat: pointed triangular ears + tiny nose. */
+    speciesCat(add, skin, dark) {
+      const pink = mat('#f0a0a0');
+      for (const sx of [-1, 1]) {
+        add(new T.ConeGeometry(0.12, 0.3, 6), skin, sx * 0.3, 0.98, -0.02);
+        add(new T.ConeGeometry(0.06, 0.15, 6), pink, sx * 0.3, 0.94, 0.045);
+      }
+      add(new T.ConeGeometry(0.032, 0.045, 5), pink, 0, 0.38, 0.55, m => {
+        m.rotation.x = Math.PI / 2; // point forward
+      });
+    }
+
+    /** Frog: bulging eyes on top of head + wide mouth. */
+    speciesFrog(add, skin, dark) {
+      for (const sx of [-1, 1]) {
+        add(new T.SphereGeometry(0.13, 8, 6), skin, sx * 0.2, 0.95, 0.12);
+        add(new T.SphereGeometry(0.05, 7, 5), dark, sx * 0.2, 0.98, 0.22);
+      }
+      add(new T.BoxGeometry(0.42, 0.06, 0.05), mat('#6b1d1d'), 0, 0.18, 0.46);
+    }
+
+    /** Rabbit: long upright ears. */
+    speciesRabbit(add, skin, dark) {
+      const pink = mat('#f0a0a0');
+      for (const sx of [-1, 1]) {
+        add(new T.CapsuleGeometry(0.07, 0.45, 4, 8), skin, sx * 0.18, 1.15, -0.08, m => {
+          m.rotation.z = sx * -0.12; // slight outward tilt
+        });
+        add(new T.CapsuleGeometry(0.035, 0.32, 4, 8), pink, sx * 0.18, 1.12, -0.02, m => {
+          m.rotation.z = sx * -0.12;
+        });
+      }
+    }
+
+    /** Panda: black round ears + black eye patches. */
+    speciesPanda(add, skin, dark) {
+      for (const sx of [-1, 1]) {
+        add(new T.SphereGeometry(0.14, 8, 6), dark, sx * 0.36, 0.9, -0.05);
+        // Eye patch — flattened dark ellipse hugging the face, behind the eye meshes
+        add(new T.SphereGeometry(0.14, 8, 6), dark, sx * 0.18, 0.5, 0.44, m => {
+          m.scale.set(1, 1.25, 0.4);
+        });
       }
     }
 
