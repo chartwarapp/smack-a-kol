@@ -217,6 +217,16 @@
       <canvas id="fighterCanvas"></canvas>
       <div class="empty" id="previewHint" style="margin-top:8px">Paste trait JSON &amp; hit Generate — drag the fighter to spin it</div>
     </div>
+    <h2 style="margin-top:18px">😤 Expressions</h2>
+    <div class="btnrow" id="exprRow" style="display:none">
+      <button data-expr="neutral">😐 Neutral</button>
+      <button data-expr="focused">😠 Focused</button>
+      <button data-expr="grin">😁 Grin</button>
+      <button data-expr="shock">😲 Shock</button>
+      <button data-expr="pain">😖 Pain</button>
+      <button data-expr="dizzy">😵 Dizzy</button>
+      <button data-expr="ko">💀 KO</button>
+    </div>
     <h2 style="margin-top:18px">📋 Parsed Traits</h2>
     <ul id="traitList"><li class="empty">No traits parsed yet.</li></ul>
   </div>
@@ -478,8 +488,30 @@
       previewHint.style.display = 'none';
       renderTraits(obj);
       setStatus('✅ Fighter generated — drag to spin!', true);
+      document.getElementById('exprRow').style.display = '';
     } catch (e) {
       setStatus('❌ Render failed: ' + e.message, false);
+    }
+  });
+
+  /* ---------- Expressions ---------- */
+  document.getElementById('exprRow').addEventListener('click', function (e) {
+    var btn = e.target.closest('button[data-expr]');
+    if (!btn || !currentPreview) return;
+    var expr = btn.getAttribute('data-expr');
+    try {
+      // createPreview returns {apply, yaw, dispose} — the fighter is accessible via apply or we find it
+      if (currentPreview.fighter && currentPreview.fighter.setExpression) {
+        currentPreview.fighter.setExpression(expr, 0.25);
+      } else if (currentPreview.setExpression) {
+        currentPreview.setExpression(expr, 0.25);
+      } else {
+        setStatus('❌ Expression API not available on this preview.', false);
+        return;
+      }
+      setStatus('😤 Expression: ' + expr, true);
+    } catch (err) {
+      setStatus('❌ Expression failed: ' + err.message, false);
     }
   });
 

@@ -2781,6 +2781,7 @@ SAK.Scene3D = (function () {
     size(); requestAnimationFrame(tick);
     return {
       apply(params) { applyAvatar(F, params); F.root.rotation.y = yaw; },
+      setExpression(expr, dur) { try { F.setExpression(expr, dur); } catch (e) {} },
       get yaw() { return yaw; },
       dispose() {
         alive = false; F.dispose(); pad.geometry.dispose(); pad.material.dispose(); r.dispose();
