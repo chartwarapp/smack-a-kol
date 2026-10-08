@@ -801,12 +801,15 @@ SAK.Scene3D = (function () {
           break;
         }
         case 'suit': {
-          // Suit — lapels + tie
+          // Suit — blazer with lapels, dress shirt, tie, pocket square
+          add(new T.BoxGeometry(0.3, 0.55, 0.05), om('#f5f5f5'), 0, 0.55, 0.28); // dress shirt
           for (const sx of [-1, 1]) {
             const lapel = add(new T.BoxGeometry(0.14, 0.4, 0.04), om('#1f1f2e'), sx * 0.12, 0.6, 0.3);
-            lapel.rotation.z = sx * 0.25;
+            lapel.rotation.z = sx * 0.25; outline(lapel, 1.05);
           }
           add(new T.BoxGeometry(0.09, 0.35, 0.03), om('#ff3b5c'), 0, 0.58, 0.32); // tie
+          add(new T.BoxGeometry(0.06, 0.08, 0.02), om('#ff3b5c'), 0, 0.78, 0.32); // tie knot
+          add(new T.BoxGeometry(0.1, 0.06, 0.02), om('#ffffff'), -0.22, 0.68, 0.33); // pocket square
           break;
         }
         case 'gold': {
@@ -3440,10 +3443,27 @@ SAK.Scene3D = (function () {
 
     // 1) Wind-up: arm rises HIGH above/behind the head, body coiled back,
     // held for a readable beat — bigger coil for stronger styles.
-    // Faces: attacker focuses, defender tenses.
+    // DOUBLE wind-up on green (perfect): fake-out pull-back, a beat, then a
+    // DEEPER coil — reads as a power-up before the slam. Faces: attacker
+    // focuses, defender tenses.
+    const doubleWindup = opts.grade === 'perfect' && opts.landed !== false && !!tier;
     try { A.setExpression('focused'); D.setExpression('neutral'); } catch (e) {}
     SAK.Tween.to(A.root.scale, { x: ST.squash, y: 2 - ST.squash, z: ST.squash }, windup * 0.55, E.outCubic);
-    await SAK.Tween.to(p, { lift: ST.wind.lift, swing: ST.wind.swing, elbow: ST.wind.elbow, twist: sd * ST.wind.twist, lean: ST.wind.lean }, windup, E.outCubic);
+    if (doubleWindup) {
+      // Stage 1: quick half coil (the fake-out)
+      await SAK.Tween.to(p, {
+        lift: ST.wind.lift * 0.55, swing: ST.wind.swing * 0.55, elbow: ST.wind.elbow * 0.6,
+        twist: sd * ST.wind.twist * 0.55, lean: ST.wind.lean * 0.5
+      }, windup * 0.35, E.outCubic);
+      await wait(0.07); // the tell — beat before the real coil
+      // Stage 2: coil DEEPER than a normal wind-up
+      await SAK.Tween.to(p, {
+        lift: ST.wind.lift * 1.18, swing: ST.wind.swing * 1.18, elbow: ST.wind.elbow * 1.1,
+        twist: sd * ST.wind.twist * 1.18, lean: ST.wind.lean * 1.15
+      }, windup * 0.35, E.inOutQuad);
+    } else {
+      await SAK.Tween.to(p, { lift: ST.wind.lift, swing: ST.wind.swing, elbow: ST.wind.elbow, twist: sd * ST.wind.twist, lean: ST.wind.lean }, windup, E.outCubic);
+    }
     if (opts.onWindupDone) opts.onWindupDone();
     // Anticipation hold at the coil peak — the beat before the snap (longer for heavy)
     await wait(ST.fx >= 1.5 ? 0.09 : 0.06);
