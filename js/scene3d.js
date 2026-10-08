@@ -3497,6 +3497,15 @@ SAK.Scene3D = (function () {
       if (opts.dmg > 0) damageNumber(hp, '-' + opts.dmg, tier === 'perfect' ? '#39ff88' : tier === 'heavy' ? '#ffd23f' : '#ffffff'); // V2
       impactFlash(hp, tier); // glow-flash pop on every landed smack, bigger for heavy/perfect
       if (tier === 'heavy' || tier === 'perfect') slowMo(0.3, 0.32); // V2: dramatic beat
+      // DOUBLE wind-up payoff: head boggle + star burst + white face flash.
+      // The big anticipation deserves a big cartoon payoff.
+      if (doubleWindup) {
+        boggleHead(D);
+        burst(hp, ['#ffffff', '#ffd23f', '#fff7ae', '#ff4fd8'], 24, 6.5);
+        dizzyStars(D, 8);
+        faceFlash(D);
+        shake = Math.max(shake, 0.7);
+      }
       // Style FX: heavy/devastating add shockwave rings + extra shake; devastating gets a big flash
       if (ST.fx >= 1.5) {
         ring(hp, styleId === 'devastating' ? '#ff4fd8' : '#ffd23f');
