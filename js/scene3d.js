@@ -1658,6 +1658,7 @@ SAK.Scene3D = (function () {
       Object.assign(this.pose, { lift: 0.12, swing: 0, elbow: 0.15, twist: 0, lean: 0, lunge: 0, guard: 0 });
       this.yaw.x = this.yaw.v = this.roll.x = this.roll.v = 0;
       this.ko = null; this.xEyes.visible = false; this.eyes.visible = true;
+      this._wobbling = this._spinning = this._bobbling = false; // clear bonus-reaction locks
       this.mouth.scale.set(1, 1, 1);
       if (this.eyes) this.eyes.scale.set(1, 1, 1);
       this.clearHitFX();
@@ -2864,9 +2865,110 @@ SAK.Scene3D = (function () {
     tick();
   }
 
+  /* ------------------------------------------------------------------
+   * BONUS slap-hit reaction variants — random picks on top of the base
+   * reaction (medium+ hits). Each is self-contained, KO-safe (bails the
+   * moment D.ko is set), and restores the fighter's exact pre-reaction
+   * transform so there's never any drift.
+   * ------------------------------------------------------------------ */
+
+  /** Wobbly — whole body rocks side-to-side like jelly with decaying
+   *  amplitude, torso squash-and-stretches in parallel. Drunk/unstable. */
+  function wobblyReact(D) {
+    if (D.ko || D._wobbling) return;
+    D._wobbling = true;
+    const rz0 = D.root.rotation.z;
+    const sx0 = D.torso.scale.x, sy0 = D.torso.scale.y, sz0 = D.torso.scale.z;
+    const restore = () => {
+      D._wobbling = false;
+      D.root.rotation.z = rz0;
+      D.torso.scale.set(sx0, sy0, sz0);
+    };
+    // decaying side-to-side rock: ±0.15 → 0 over ~0.8s
+    const rocks = [0.15, -0.11, 0.08, -0.05, 0.025];
+    let chain = Promise.resolve();
+    rocks.forEach(amp => {
+      chain = chain.then(() => {
+        if (D.ko) { restore(); return; }
+        return SAK.Tween.to(D.root.rotation, { z: rz0 + amp }, 0.13, SAK.Ease.outCubic);
+      });
+    });
+    chain.then(() => {
+      if (D.ko) { restore(); return; }
+      return SAK.Tween.to(D.root.rotation, { z: rz0 }, 0.14, SAK.Ease.inOutQuad);
+    }).then(() => { if (!D.ko) D._wobbling = false; });
+    // squash-and-stretch on the torso, running in parallel
+    SAK.Tween.to(D.torso.scale, { x: sx0 * 1.14, y: sy0 * 0.8, z: sz0 * 1.14 }, 0.15, SAK.Ease.outCubic)
+      .then(() => {
+        if (D.ko) { restore(); return; }
+        return SAK.Tween.to(D.torso.scale, { x: sx0 * 0.93, y: sy0 * 1.12, z: sz0 * 0.93 }, 0.17, SAK.Ease.inOutQuad);
+      })
+      .then(() => {
+        if (D.ko) { restore(); return; }
+        return SAK.Tween.to(D.torso.scale, { x: sx0, y: sy0, z: sz0 }, 0.2, SAK.Ease.inOutQuad);
+      });
+  }
+
+  /** 360 spin — fighter whips a full 360° around Y in the slap direction,
+   *  with a cartoon hop mid-spin. Snaps back to the exact base rotation. */
+  function spinReact(D) {
+    if (D.ko || D._spinning) return;
+    D._spinning = true;
+    const dir = -D.facing; // spin away from the incoming slap
+    const y0 = D.root.position.y;
+    const ry0 = D.root.rotation.y;
+    SAK.Tween.to(D.root.rotation, { y: ry0 + dir * Math.PI * 2 }, 0.5, SAK.Ease.outCubic)
+      .then(() => {
+        D._spinning = false;
+        if (!D.ko) D.root.rotation.y = ry0; // kill float drift
+      });
+    // hop: up fast, land with a thud
+    SAK.Tween.to(D.root.position, { y: y0 + 0.22 }, 0.14, SAK.Ease.outCubic)
+      .then(() => {
+        if (D.ko) return;
+        return SAK.Tween.to(D.root.position, { y: y0 }, 0.2, SAK.Ease.inCubic);
+      });
+  }
+
+  /** Bouncing head — bobblehead effect: head bounces up/down rapidly with
+   *  decaying amplitude while the spring system adds side-to-side tilt.
+   *  Body stays put; it's all in the neck. */
+  function bobbleheadReact(D) {
+    if (D.ko || D._bobbling) return;
+    D._bobbling = true;
+    const hy0 = D.head.position.y;
+    // springy tilt via the existing spring physics (decays on its own)
+    D.roll.v += (Math.random() > 0.5 ? 1 : -1) * 4;
+    D.yaw.v += -D.facing * 2;
+    // 5 decaying bounces over ~0.85s
+    const bounces = [0.14, -0.06, 0.09, -0.04, 0.05];
+    let chain = Promise.resolve();
+    bounces.forEach(dy => {
+      chain = chain.then(() => {
+        if (D.ko) { D._bobbling = false; D.head.position.y = hy0; return; }
+        return SAK.Tween.to(D.head.position, { y: hy0 + dy }, 0.14, SAK.Ease.outCubic);
+      });
+    });
+    chain.then(() => {
+      D._bobbling = false;
+      if (D.ko) { D.head.position.y = hy0; return; }
+      return SAK.Tween.to(D.head.position, { y: hy0 }, 0.16, SAK.Ease.inOutQuad);
+    });
+  }
+
   function applyHitReact(D, tier, fire) {
     const R = HIT_REACT[tier] || HIT_REACT.light;
     const fireMul = fire ? 1.35 : 1;
+    // Random bonus reaction variant (medium+ only — light slaps keep the
+    // base flinch): 20% wobbly, 20% spin, 20% bobblehead, 40% base only.
+    // The spin brings its own hop, so the base hop is skipped for it.
+    let bonus = null, skipBaseHop = false;
+    if (tier !== 'light') {
+      const br = Math.random();
+      if (br < 0.2) bonus = 'wobbly';
+      else if (br < 0.4) { bonus = 'spin'; skipBaseHop = true; }
+      else if (br < 0.6) bonus = 'bobble';
+    }
     const hp = D.headWorld(); hp.x += 0.35; hp.y -= 0.05;
     // Head WHIP + springy overshoot: hard snap to the side, then a wobble back
     // the other way so it reads springy instead of stiff (Slap Kings feel).
@@ -2916,8 +3018,9 @@ SAK.Scene3D = (function () {
       D.mouth.scale.set(1, 1, 1);
       if (D.eyes) D.eyes.scale.set(1, 1, 1);
     }, R.mouthMs * (0.9 + Math.random() * 0.25));
-    // Tiny cartoon hop on heavier hits
-    if (R.hop) {
+    // Tiny cartoon hop on heavier hits (skipped when the spin reaction
+    // brings its own bigger hop)
+    if (R.hop && !skipBaseHop) {
       const y0 = D.root.position.y;
       SAK.Tween.to(D.root.position, { y: y0 + R.hop }, 0.07, SAK.Ease.outCubic)
         .then(() => { if (!D.ko) return SAK.Tween.to(D.root.position, { y: y0 }, 0.18, SAK.Ease.inCubic); });
@@ -2949,6 +3052,10 @@ SAK.Scene3D = (function () {
     // Yelp slightly after contact so the slap "lands" first
     const yelpTier = tier;
     setTimeout(() => { if (SAK.Audio && SAK.Audio.yelp) SAK.Audio.yelp(yelpTier); }, (R.yelpDelay || 0) * 1000);
+    // Bonus reaction variant (runs in parallel with the base reaction above)
+    if (bonus === 'wobbly') wobblyReact(D);
+    else if (bonus === 'spin') spinReact(D);
+    else if (bonus === 'bobble') bobbleheadReact(D);
     return R;
   }
 
@@ -3131,7 +3238,9 @@ SAK.Scene3D = (function () {
     const flyChance = hardKO ? 0.25 : 0.08;
     let variant;
     if (Math.random() < flyChance) {
-      variant = Math.random() < 0.5 ? 'launch' : 'rocket';
+      // towardcam replaces some launch/rocket chance — stumbles at the camera
+      const fr = Math.random();
+      variant = fr < 0.35 ? 'launch' : fr < 0.7 ? 'rocket' : 'towardcam';
     } else {
       // No faceplant — the loser's face must stay visible at the end (funny > hidden).
       // 'flatback': launched onto their back, dazed face looking up at the sky.
@@ -3198,16 +3307,42 @@ SAK.Scene3D = (function () {
       F.stampLandPose({ id: 'faceplant-rest', rx: Math.PI * 1.5, ry: yEnd - faceY, rz: 0, y: 0.12,
         tx: 0.85, ty: 0.05, tz: 0.1, hx: 1.15, hy: 0.1, hz: 0.25,
         armL: [1.25, -0.55, 0.35], armR: [1.3, 0.55, 0.3] });
+    } else if (variant === 'towardcam') {
+      // Stumbles toward the camera (+Z), arms flailing, then pitches forward
+      // into a faceplant. The face-reveal finale turns the head to camera
+      // after landing, so the battered face still reads.
+      const pose = LAND_POSES.find(p => p.id === 'faceplant') || pickLandPose();
+      const z0 = F.root.position.z;
+      // arms flail wildly (pose-driven; the update loop applies it live)
+      const flail = () => {
+        if (F.ko) return Promise.resolve();
+        return SAK.Tween.to(F.pose, { lift: 1.9, swing: 0.9, elbow: 0.6 }, 0.13, SAK.Ease.outCubic)
+          .then(() => {
+            if (F.ko) return;
+            return SAK.Tween.to(F.pose, { lift: -0.2, swing: -0.9, elbow: 0.1 }, 0.13, SAK.Ease.inOutQuad);
+          });
+      };
+      flail().then(() => flail()).then(() => flail());
+      // two lurching steps toward the camera
+      SAK.Tween.to(F.root.position, { z: z0 + 0.7 }, 0.3, SAK.Ease.outCubic);
+      await SAK.Tween.to(F.root.position, { z: z0 + 1.3 }, 0.3, SAK.Ease.inOutQuad);
+      // pitch forward into the faceplant (matches the land pose, no pop)
+      await SAK.Tween.to(F.root.rotation, { x: pose.rx }, 0.35, SAK.Ease.inCubic);
+      await SAK.Tween.to(F.root.position, { y: pose.y }, 0.2, SAK.Ease.inCubic);
+      const dust = F.root.position.clone(); dust.y = 0.15;
+      burst(dust, ['#c4a574', '#e8d5a3', '#ffffff'], 18, 2.8);
+      ring(dust, '#ffd23f');
+      F.stampLandPose(pose);
     } else {
-      // launch: backflip-style backward launch, lands flat on back.
+      // launch: backflip-style launch arcing TOWARD the camera (stays visible).
       // rocket: the classic — body goes rigid then ragdoll-spins, random landing.
       const isRocket = variant === 'rocket';
       F.ko = {
         phase: 'fly',
         landPose: isRocket ? pickLandPose() : (LAND_POSES.find(p => p.id === 'starfished') || pickLandPose()),
         vel: isRocket
-          ? new T.Vector3(-5.2 + Math.random() * 2.2, 13.5 + Math.random() * 3, -F.facing * (13.5 + Math.random() * 2))
-          : new T.Vector3(-2 + Math.random() * 1.5, 8.5 + Math.random() * 2, -F.facing * (8 + Math.random() * 2)),
+          ? new T.Vector3(2 + Math.random() * 2, 13.5 + Math.random() * 3, 8 + Math.random() * 2)
+          : new T.Vector3(1 + Math.random() * 1.5, 8.5 + Math.random() * 2, 5 + Math.random() * 2),
         spin: isRocket
           ? new T.Vector3(-F.facing * (18 + Math.random() * 8), 5 + Math.random() * 8, 14 + Math.random() * 6)
           : new T.Vector3(-F.facing * (13 + Math.random() * 4), 2 + Math.random() * 3, 3 + Math.random() * 3)
@@ -3216,9 +3351,11 @@ SAK.Scene3D = (function () {
       burst(F.headWorld(), ['#ffd23f', '#ffffff', '#39ff88'], 24, 5);
     }
 
-    // Follow-cam: lock onto the loser through fly-out AND landing
+    // Follow-cam: lock onto the loser through fly-out AND landing.
+    // Starts WIDE (7, 3.5, 4.5) so the full fall reads, then pushes in close
+    // after landing for the face-reveal finale.
     const head0 = F.headWorld();
-    const followOff = new T.Vector3(5.2, 2.6, 3.4); // pulled-back three-quarter
+    const followOff = new T.Vector3(7, 3.5, 4.5); // wide during flight/fall
     camBase.look.set(head0.x, Math.max(0.35, head0.y - 0.2), head0.z);
     camBase.pos.set(head0.x + followOff.x, Math.max(1.8, head0.y + followOff.y), head0.z + followOff.z);
     const fov0 = camera.fov;
