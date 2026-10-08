@@ -368,7 +368,7 @@ SAK.Scene3D = (function () {
         const handMat = mat(L.skin, {}); // own material so it can turn golden
         // Open palm with individual fingers (Slap Kings-style readability) —
         // a Group so the slap squash-scale still flattens the whole hand.
-        const hand = new T.Group(); hand.position.set(0, -0.52, 0); elbow.add(hand);
+        const hand = new T.Group(); hand.position.set(0, -0.52, 0); hand.scale.setScalar(1.2); elbow.add(hand); // 20% bigger hands
         hand.add(mesh(new T.BoxGeometry(0.2, 0.16, 0.09), handMat, 0, -0.02, 0)); // palm
         // Knuckle ridge for definition
         hand.add(mesh(new T.BoxGeometry(0.19, 0.04, 0.08), handMat, 0, -0.09, 0.01));
