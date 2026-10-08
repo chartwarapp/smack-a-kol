@@ -313,6 +313,21 @@ SAK.Scene3D = (function () {
       this.head.add(mesh(new T.IcosahedronGeometry(0.1, 0), skin, 0, 0.36, 0.53));
       this.mouth = mesh(new T.BoxGeometry(0.22, 0.07, 0.05), mat('#6b1d1d'), 0, 0.2, 0.46);
       this.head.add(this.mouth);
+      // --- Expression system: morphable mouth + eyelids + brow control ---
+      // Mouth shapes: neutral (thin line), open (shock "O"), grimace (pain), grin (taunt)
+      this.mouthShapes = {
+        neutral: { sx: 0.22, sy: 0.07, y: 0.2 },
+        open:    { sx: 0.16, sy: 0.22, y: 0.16 },  // shock "O"
+        grimace: { sx: 0.3, sy: 0.05, y: 0.2 },     // pain grimace (wide, thin)
+        grin:    { sx: 0.28, sy: 0.1, y: 0.2 },     // taunt grin
+      };
+      this.expr = 'neutral';
+      // Eyelids for squint/wide — thin boxes above eyes that scale
+      this.lids = [];
+      for (const sx of [-1, 1]) {
+        const lid = mesh(new T.BoxGeometry(0.24, 0.02, 0.08), skin, sx * 0.18, 0.62, 0.47);
+        lid.visible = false; this.head.add(lid); this.lids.push(lid);
+      }
       // cheeks: blush grows with damage taken (both cheeks so it reads from any angle)
       this.blushMat = new T.MeshBasicMaterial({ color: '#ff2a2a', transparent: true, opacity: 0, depthWrite: false });
       for (const sx of [-1, 1]) {
@@ -354,15 +369,20 @@ SAK.Scene3D = (function () {
         // a Group so the slap squash-scale still flattens the whole hand.
         const hand = new T.Group(); hand.position.set(0, -0.52, 0); elbow.add(hand);
         hand.add(mesh(new T.BoxGeometry(0.2, 0.16, 0.09), handMat, 0, -0.02, 0)); // palm
+        // Knuckle ridge for definition
+        hand.add(mesh(new T.BoxGeometry(0.19, 0.04, 0.08), handMat, 0, -0.09, 0.01));
         const fingerLen = [0.13, 0.155, 0.15, 0.12]; // index..pinky, middle longest
         for (let f = 0; f < 4; f++) {
           const fg = new T.Group();
-          fg.position.set((f - 1.5) * 0.052, -0.1, 0);
-          fg.rotation.z = (f - 1.5) * 0.09; // fan out
-          fg.rotation.x = -0.12; // slight natural curl
+          fg.position.set((f - 1.5) * 0.055, -0.11, 0);
+          fg.rotation.z = (f - 1.5) * 0.1; // fan out
+          fg.rotation.x = -0.15; // slight natural curl
           hand.add(fg);
-          fg.add(mesh(new T.CylinderGeometry(0.021, 0.026, fingerLen[f], 5), handMat, 0, -fingerLen[f] / 2, 0));
-          fg.add(mesh(new T.SphereGeometry(0.021, 5, 4), handMat, 0, -fingerLen[f], 0)); // fingertip
+          // Two-segment fingers for a more natural look
+          fg.add(mesh(new T.CylinderGeometry(0.026, 0.03, fingerLen[f] * 0.6, 6), handMat, 0, -fingerLen[f] * 0.3, 0));
+          const tip = new T.Group(); tip.position.set(0, -fingerLen[f] * 0.6, 0); tip.rotation.x = -0.2; fg.add(tip);
+          tip.add(mesh(new T.CylinderGeometry(0.022, 0.026, fingerLen[f] * 0.45, 6), handMat, 0, -fingerLen[f] * 0.22, 0));
+          tip.add(mesh(new T.SphereGeometry(0.024, 6, 5), handMat, 0, -fingerLen[f] * 0.45, 0)); // fingertip
         }
         const th = new T.Group(); // thumb on the inner side
         th.position.set(-side * 0.1, -0.03, 0.01);
@@ -423,6 +443,36 @@ SAK.Scene3D = (function () {
       this.look = look; this.hitFX = null; this.fire = false;
       this.build();
       this.resetPose();
+    }
+
+    /** Facial expression: neutral | focused | shock | pain | dizzy | grin | ko.
+     *  Morphs mouth shape, brow angle, eyelids — the face tells the story. */
+    setExpression(expr, dur) {
+      this.expr = expr;
+      const d = dur || 0.18;
+      const M = this.mouthShapes[expr === 'shock' ? 'open' : expr === 'pain' ? 'grimace' : expr === 'grin' ? 'grin' : 'neutral'] || this.mouthShapes.neutral;
+      SAK.Tween.to(this.mouth.scale, { x: M.sx / 0.22, y: M.sy / 0.07 }, d);
+      SAK.Tween.to(this.mouth.position, { y: M.y }, d);
+      // Brows: focused = angled down/in, shock = raised high, pain = pinched up/inner
+      const browCfg = {
+        neutral: { y: 0, rot: 0 }, focused: { y: -0.04, rot: 0.3 },
+        shock: { y: 0.08, rot: -0.25 }, pain: { y: 0.05, rot: 0.5 },
+        dizzy: { y: 0.03, rot: 0.15 }, grin: { y: -0.02, rot: -0.1 }, ko: { y: 0, rot: 0 },
+      }[expr] || { y: 0, rot: 0 };
+      this.brows.forEach((b, i) => {
+        const sx = i === 0 ? -1 : 1;
+        SAK.Tween.to(b.position, { y: b.userData.baseY + browCfg.y }, d);
+        SAK.Tween.to(b.rotation, { z: b.userData.baseRotZ + sx * browCfg.rot * 0.5 }, d);
+      });
+      // Eyelids: squint on pain/focused, wide (hidden) on shock
+      const lidOpen = { shock: 0, pain: 0.7, focused: 0.5, dizzy: 0.3 }[expr];
+      this.lids.forEach(lid => {
+        lid.visible = lidOpen !== undefined && lidOpen > 0;
+        if (lid.visible) SAK.Tween.to(lid.scale, { y: 1 + lidOpen * 4 }, d);
+      });
+      // X eyes on KO
+      if (this.xEyes) this.xEyes.visible = (expr === 'ko');
+      if (this.eyes) this.eyes.visible = (expr !== 'ko');
     }
 
     buildAccessory() {
@@ -1034,10 +1084,44 @@ SAK.Scene3D = (function () {
       b.position.set(Math.cos(ang) * r, 0.45, Math.sin(ang) * r); b.lookAt(0, 0.45, 0); AG.add(b);
     });
 
+    // Stage lighting truss behind the ring (Slap Kings arena feel) —
+    // dark metal frame with colored spotlights washing the fighters.
+    const trussMat = mat('#1a1a22');
+    const truss = new T.Group();
+    // Two vertical posts
+    for (const sx of [-3.2, 3.2]) {
+      truss.add(mesh(new T.BoxGeometry(0.25, 5.5, 0.25), trussMat, sx, 2.75, -4.5));
+      // Cross-brace X
+      const brace1 = mesh(new T.BoxGeometry(0.08, 5.8, 0.08), trussMat, sx, 2.75, -4.5);
+      brace1.rotation.z = 0.35; truss.add(brace1);
+      const brace2 = mesh(new T.BoxGeometry(0.08, 5.8, 0.08), trussMat, sx, 2.75, -4.5);
+      brace2.rotation.z = -0.35; truss.add(brace2);
+    }
+    // Horizontal bar
+    truss.add(mesh(new T.BoxGeometry(6.9, 0.25, 0.25), trussMat, 0, 5.5, -4.5));
+    // Spotlights with colored glow
+    const spotCols = ['#ff4f6d', '#ffd23f', '#4fa8ff', '#39ff88'];
+    spotCols.forEach((c, i) => {
+      const x = -2.4 + i * 1.6;
+      const housing = mesh(new T.CylinderGeometry(0.18, 0.24, 0.35, 8), trussMat, x, 5.25, -4.5);
+      housing.rotation.x = 0.5; truss.add(housing);
+      const glow = new T.Mesh(
+        new T.SphereGeometry(0.14, 8, 6),
+        new T.MeshBasicMaterial({ color: c })
+      );
+      glow.position.set(x, 5.1, -4.35); truss.add(glow);
+      // Light cone (additive, subtle)
+      const cone = new T.Mesh(
+        new T.ConeGeometry(0.9, 4.5, 12, 1, true),
+        new T.MeshBasicMaterial({ color: c, transparent: true, opacity: 0.07, blending: T.AdditiveBlending, depthWrite: false, side: T.DoubleSide })
+      );
+      cone.position.set(x, 3.0, -4.0); cone.rotation.x = 0.15; truss.add(cone);
+    });
+    AG.add(truss);
+
     // moon + stars
     const moon = new T.Mesh(new T.IcosahedronGeometry(2.6, 1), new T.MeshBasicMaterial({ color: '#fff4c2' }));
-    moon.position.set(-10, 12, -18); AG.add(moon);
-    for (let i = 0; i < 6; i++) {
+    moon.position.set(-10, 12, -18); AG.add(moon);    for (let i = 0; i < 6; i++) {
       const cr = new T.Mesh(new T.IcosahedronGeometry(0.35 + Math.random() * 0.4, 0), new T.MeshBasicMaterial({ color: '#e6d48a' }));
       const v = new T.Vector3(Math.random() - 0.5, Math.random() - 0.5, 1).normalize().multiplyScalar(2.45);
       cr.position.copy(moon.position).add(v); cr.scale.z = 0.4; cr.lookAt(moon.position); AG.add(cr);
@@ -1720,6 +1804,44 @@ SAK.Scene3D = (function () {
   }
 
   /** Apply tiered cartoon damage reaction to the defender (no gore). */
+  /** Dizzy stars circling the head — cartoon disorientation after heavy hits. */
+  function dizzyStars(D, count) {
+    if (!D || !D.head) return;
+    const hp = D.headWorld();
+    const stars = [];
+    for (let i = 0; i < count; i++) {
+      const s = new T.Mesh(
+        new T.OctahedronGeometry(0.09),
+        new T.MeshBasicMaterial({ color: '#ffe94f', transparent: true, opacity: 0.95 })
+      );
+      s.userData.phase = (i / count) * Math.PI * 2;
+      scene.add(s);
+      stars.push(s);
+    }
+    const start = time;
+    const dur = 1.6;
+    const tick = () => {
+      const t = time - start;
+      if (t > dur || D.ko) {
+        stars.forEach(s => scene.remove(s));
+        return;
+      }
+      const fade = t > dur - 0.4 ? (dur - t) / 0.4 : 1;
+      stars.forEach(s => {
+        const a = s.userData.phase + t * 5;
+        s.position.set(
+          hp.x + Math.cos(a) * 0.55,
+          hp.y + 0.35 + Math.sin(t * 3 + s.userData.phase) * 0.1,
+          hp.z + Math.sin(a) * 0.55
+        );
+        s.rotation.y = a * 2;
+        s.material.opacity = 0.95 * fade;
+      });
+      requestAnimationFrame(tick);
+    };
+    tick();
+  }
+
   function applyHitReact(D, tier, fire) {
     const R = HIT_REACT[tier] || HIT_REACT.light;
     const fireMul = fire ? 1.35 : 1;
@@ -1777,6 +1899,10 @@ SAK.Scene3D = (function () {
       const y0 = D.root.position.y;
       SAK.Tween.to(D.root.position, { y: y0 + R.hop }, 0.07, SAK.Ease.outCubic)
         .then(() => { if (!D.ko) return SAK.Tween.to(D.root.position, { y: y0 }, 0.18, SAK.Ease.inCubic); });
+    }
+    // Dizzy stars circling the head on heavy/perfect hits (Slap Kings feel)
+    if (tier === 'heavy' || tier === 'perfect') {
+      dizzyStars(D, tier === 'perfect' ? 5 : 3);
     }
     // Face squash
     D.clearHitFX();
@@ -1876,10 +2002,13 @@ SAK.Scene3D = (function () {
 
     // 1) Wind-up: arm rises HIGH above/behind the head, body coiled back,
     // held for a readable beat — bigger coil for stronger styles.
+    // Faces: attacker focuses, defender tenses.
+    try { A.setExpression('focused'); D.setExpression('neutral'); } catch (e) {}
     SAK.Tween.to(A.root.scale, { x: ST.squash, y: 2 - ST.squash, z: ST.squash }, windup * 0.55, E.outCubic);
     await SAK.Tween.to(p, { lift: ST.wind.lift, swing: ST.wind.swing, elbow: ST.wind.elbow, twist: sd * ST.wind.twist, lean: ST.wind.lean }, windup, E.outCubic);
     if (opts.onWindupDone) opts.onWindupDone();
-    await wait(0.06);
+    // Anticipation hold at the coil peak — the beat before the snap (longer for heavy)
+    await wait(ST.fx >= 1.5 ? 0.09 : 0.06);
 
     // 2) strike: arm whips down/forward FAST with follow-through across the body.
     // Open palm, never a punch; limp style keeps a floppy loose wrist.
@@ -1900,6 +2029,12 @@ SAK.Scene3D = (function () {
     await wait(0.1);
     if (opts.grade !== 'miss' && tier) {
       const R = applyHitReact(D, tier, !!opts.fire);
+      // Faces: defender shock on impact, then pain. Heavy hits leave them dizzy.
+      try {
+        D.setExpression('shock', 0.1);
+        setTimeout(() => { try { D.setExpression(tier === 'heavy' || tier === 'perfect' ? 'dizzy' : 'pain', 0.25); } catch (e) {} }, 180);
+        setTimeout(() => { try { D.setExpression('neutral', 0.4); } catch (e) {} }, 1200);
+      } catch (e) {}
       const hp = D.headWorld();
       if (opts.dmg > 0) damageNumber(hp, '-' + opts.dmg, tier === 'perfect' ? '#39ff88' : tier === 'heavy' ? '#ffd23f' : '#ffffff'); // V2
       impactFlash(hp, tier); // glow-flash pop on every landed smack, bigger for heavy/perfect
@@ -1928,6 +2063,11 @@ SAK.Scene3D = (function () {
     // 3) recover — hold on the reaction face a beat, then ease back for next round
     if (opts.grade === 'miss') SAK.Tween.to(D.pose, { lean: 0 }, 0.3);
     A.setFire(false);
+    // Attacker relaxes back to neutral (or grins on a big hit)
+    try {
+      if (tier === 'perfect' || tier === 'heavy') A.setExpression('grin', 0.3);
+      else A.setExpression('neutral', 0.3);
+    } catch (e) {}
     const holdS = tier === 'perfect' || tier === 'heavy' ? 0.42 : 0.28;
     wait(holdS).then(() => { if (hitCam === cam && !koCam) endHitCam(false, cam); });
     await SAK.Tween.to(p, { lift: 0.12, swing: 0, elbow: 0.15, twist: 0, lean: 0, lunge: 0 }, 0.38, E.inOutQuad);
