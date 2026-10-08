@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PFP → Fighter Prototype — Smack-a-KOL</title>
+<style>
+  :root {
+    --bg: #0a0a14;
+    --panel: #14141f;
+    --neon: #39ff88;
+    --neon2: #c86bff;
+    --neon3: #4fa8ff;
+    --txt: #e8e8f0;
+    --dim: #8a8aa0;
+    --err: #ff5c7a;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--txt);
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    min-height: 100vh; padding: 24px;
+  }
+  h1 {
+    text-align: center; font-size: 28px; margin: 0 0 4px;
+    background: linear-gradient(90deg, var(--neon), var(--neon2));
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .sub { text-align: center; color: var(--dim); margin-bottom: 20px; font-size: 14px; }
+  .steps {
+    max-width: 900px; margin: 0 auto 24px; padding: 14px 18px;
+    background: var(--panel); border: 1px solid #2a2a3d; border-radius: 12px;
+    font-size: 14px; line-height: 1.9;
+  }
+  .steps b { color: var(--neon); }
+  .grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 20px;
+    max-width: 1100px; margin: 0 auto;
+  }
+  @media (max-width: 860px) { .grid { grid-template-columns: 1fr; } }
+  .card {
+    background: var(--panel); border: 1px solid #2a2a3d; border-radius: 12px;
+    padding: 18px;
+  }
+  .card h2 { margin: 0 0 12px; font-size: 16px; color: var(--neon2); text-transform: uppercase; letter-spacing: 1px; }
+  #drop {
+    border: 2px dashed #3a3a55; border-radius: 10px; padding: 28px 16px;
+    text-align: center; color: var(--dim); cursor: pointer; transition: all .2s;
+  }
+  #drop:hover, #drop.over { border-color: var(--neon); color: var(--neon); background: rgba(57,255,136,.05); }
+  #pfpPreview { max-width: 100%; max-height: 260px; border-radius: 10px; margin-top: 12px; display: none; }
+  textarea {
+    width: 100%; min-height: 220px; background: #0d0d18; color: #b8f5cd;
+    border: 1px solid #2a2a3d; border-radius: 8px; padding: 12px;
+    font-family: 'Consolas', 'Courier New', monospace; font-size: 13px; resize: vertical;
+  }
+  textarea:focus { outline: none; border-color: var(--neon); }
+  .btnrow { display: flex; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
+  button {
+    flex: 1; min-width: 140px; padding: 12px 16px; border: none; border-radius: 8px;
+    font-size: 15px; font-weight: 700; cursor: pointer; transition: transform .1s;
+  }
+  button:active { transform: scale(.97); }
+  #genBtn { background: linear-gradient(90deg, #1fae5c, var(--neon)); color: #06130b; }
+  #copyBtn { background: #23232f; color: var(--neon3); border: 1px solid #3a3a55; }
+  #status { margin-top: 10px; font-size: 13px; min-height: 20px; }
+  #status.ok { color: var(--neon); }
+  #status.err { color: var(--err); }
+  #previewWrap { text-align: center; }
+  #fighterCanvas {
+    width: 100%; max-width: 420px; height: 520px;
+    background: radial-gradient(circle at 50% 30%, #1c1c30, #0d0d18);
+    border-radius: 12px; border: 1px solid #2a2a3d; cursor: grab;
+  }
+  #traitList { list-style: none; padding: 0; margin: 12px 0 0; font-size: 14px; }
+  #traitList li {
+    display: flex; align-items: center; gap: 10px; padding: 7px 0;
+    border-bottom: 1px solid #1f1f2c;
+  }
+  #traitList li:last-child { border-bottom: none; }
+  #traitList .k { color: var(--dim); min-width: 110px; text-transform: capitalize; }
+  #traitList .v { color: var(--txt); font-weight: 600; }
+  .swatch {
+    width: 22px; height: 22px; border-radius: 6px; display: inline-block;
+    border: 1px solid #444; vertical-align: middle;
+  }
+  .empty { color: var(--dim); font-style: italic; }
+  .proto-tag {
+    display: inline-block; background: #2a1f3d; color: var(--neon2);
+    font-size: 11px; padding: 3px 10px; border-radius: 20px; margin-left: 8px;
+    vertical-align: middle; letter-spacing: 1px;
+  }
+</style>
+</head>
+<body>
+
+<h1>🥊 PFP → FIGHTER <span class="proto-tag">PROTOTYPE</span></h1>
+<div class="sub">Smack-a-KOL parody fighter generator — proof of concept</div>
+
+<div class="steps">
+  <b>1.</b> Upload a PFP &nbsp;→&nbsp; <b>2.</b> Get trait JSON from AI analysis &nbsp;→&nbsp;
+  <b>3.</b> Paste it below &nbsp;→&nbsp; <b>4.</b> Hit <b>Generate Fighter</b> 🥊
+</div>
+
+<div class="grid">
+  <!-- LEFT: input -->
+  <div class="card">
+    <h2>📤 Input</h2>
+    <div id="drop">Drag &amp; drop a PFP here<br>or <u>click to browse</u>
+      <input type="file" id="fileInput" accept="image/*" style="display:none">
+    </div>
+    <img id="pfpPreview" alt="PFP preview">
+
+    <h2 style="margin-top:18px">🧬 Trait JSON</h2>
+    <textarea id="traitJson" spellcheck="false"></textarea>
+    <div class="btnrow">
+      <button id="genBtn">🥊 Generate Fighter</button>
+      <button id="copyBtn">📋 Copy Trait JSON</button>
+    </div>
+    <div id="status"></div>
+  </div>
+
+  <!-- RIGHT: preview -->
+  <div class="card">
+    <h2>👁️ 3D Preview</h2>
+    <div id="previewWrap">
+      <canvas id="fighterCanvas"></canvas>
+      <div class="empty" id="previewHint" style="margin-top:8px">Paste trait JSON &amp; hit Generate — drag the fighter to spin it</div>
+    </div>
+    <h2 style="margin-top:18px">📋 Parsed Traits</h2>
+    <ul id="traitList"><li class="empty">No traits parsed yet.</li></ul>
+  </div>
+</div>
+
+<script src="/vendor/three.min.js"></script>
+<script src="/js/scene3d.js"></script>
+<script>
+(function () {
+  'use strict';
+  window.SAK = window.SAK || {};
+
+  var EXAMPLE = {
+    skin: '#f6c9a0',
+    shirt: '#2f6fd8',
+    hair: '#1a1a1a',
+    pants: '#1f1f2e',
+    hairStyle: 'spiky',
+    eyes: 'angry',
+    eyeColor: '#3a6fd8',
+    accessory: 'shades',
+    body: 'gymbro',
+    gloves: 'mma',
+    outfit: 'hoodie'
+  };
+
+  var LABELS = {
+    skin: 'Skin tone', shirt: 'Shirt', hair: 'Hair color', pants: 'Pants',
+    hairStyle: 'Hair style', eyes: 'Eyes', eyeColor: 'Eye color',
+    accessory: 'Accessory', body: 'Body type', gloves: 'Gloves',
+    outfit: 'Outfit', parody: 'Parody preset'
+  };
+  var COLOR_KEYS = { skin: 1, shirt: 1, hair: 1, pants: 1, eyeColor: 1 };
+
+  var ta = document.getElementById('traitJson');
+  var statusEl = document.getElementById('status');
+  var traitList = document.getElementById('traitList');
+  var previewHint = document.getElementById('previewHint');
+  ta.value = JSON.stringify(EXAMPLE, null, 2);
+
+  function setStatus(msg, ok) {
+    statusEl.textContent = msg;
+    statusEl.className = ok === true ? 'ok' : ok === false ? 'err' : '';
+  }
+
+  /* ---------- PFP upload ---------- */
+  var drop = document.getElementById('drop');
+  var fileInput = document.getElementById('fileInput');
+  var pfpPreview = document.getElementById('pfpPreview');
+
+  drop.addEventListener('click', function () { fileInput.click(); });
+  ['dragover', 'dragenter'].forEach(function (ev) {
+    drop.addEventListener(ev, function (e) { e.preventDefault(); drop.classList.add('over'); });
+  });
+  ['dragleave', 'drop'].forEach(function (ev) {
+    drop.addEventListener(ev, function (e) { e.preventDefault(); drop.classList.remove('over'); });
+  });
+  drop.addEventListener('drop', function (e) {
+    var f = e.dataTransfer.files && e.dataTransfer.files[0];
+    if (f) loadFile(f);
+  });
+  fileInput.addEventListener('change', function () {
+    if (fileInput.files[0]) loadFile(fileInput.files[0]);
+  });
+
+  function loadFile(f) {
+    if (!f.type.match(/^image\//)) { setStatus('That file is not an image.', false); return; }
+    var r = new FileReader();
+    r.onload = function () {
+      pfpPreview.src = r.result;
+      pfpPreview.style.display = 'block';
+      setStatus('PFP loaded: ' + f.name + ' — now paste trait JSON below.', true);
+    };
+    r.readAsDataURL(f);
+  }
+
+  /* ---------- Trait list ---------- */
+  function renderTraits(obj) {
+    traitList.innerHTML = '';
+    var keys = Object.keys(obj);
+    if (!keys.length) {
+      traitList.innerHTML = '<li class="empty">No traits parsed yet.</li>';
+      return;
+    }
+    keys.forEach(function (k) {
+      var li = document.createElement('li');
+      var label = LABELS[k] || k;
+      var val = String(obj[k]);
+      var vHtml;
+      if (COLOR_KEYS[k] && /^#[0-9a-fA-F]{3,8}$/.test(val)) {
+        vHtml = '<span class="swatch" style="background:' + val + '"></span> <span class="v">' + val + '</span>';
+      } else {
+        vHtml = '<span class="v">' + escapeHtml(val) + '</span>';
+      }
+      li.innerHTML = '<span class="k">' + escapeHtml(label) + '</span>' + vHtml;
+      traitList.appendChild(li);
+    });
+  }
+
+  function escapeHtml(s) {
+    return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  /* ---------- Generate ---------- */
+  var currentPreview = null;
+  var canvas = document.getElementById('fighterCanvas');
+
+  document.getElementById('genBtn').addEventListener('click', function () {
+    var obj;
+    try {
+      obj = JSON.parse(ta.value);
+    } catch (e) {
+      setStatus('❌ Invalid JSON: ' + e.message, false);
+      return;
+    }
+    if (!obj || typeof obj !== 'object' || Array.isArray(obj)) {
+      setStatus('❌ Trait JSON must be an object, e.g. {"skin": "#f6c9a0", ...}', false);
+      return;
+    }
+    if (typeof SAK.Scene3D === 'undefined' || !SAK.Scene3D.createPreview) {
+      setStatus('❌ 3D engine not loaded (scene3d.js missing).', false);
+      return;
+    }
+    try {
+      if (currentPreview && currentPreview.dispose) currentPreview.dispose();
+      SAK.PLAYER = { look: obj };
+      currentPreview = SAK.Scene3D.createPreview(canvas);
+      previewHint.style.display = 'none';
+      renderTraits(obj);
+      setStatus('✅ Fighter generated — drag to spin!', true);
+    } catch (e) {
+      setStatus('❌ Render failed: ' + e.message, false);
+    }
+  });
+
+  /* ---------- Copy ---------- */
+  document.getElementById('copyBtn').addEventListener('click', function () {
+    var done = function () { setStatus('📋 Trait JSON copied to clipboard.', true); };
+    var fail = function () { setStatus('❌ Copy failed — select the text manually.', false); };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(ta.value).then(done, fail);
+    } else {
+      ta.select();
+      try { document.execCommand('copy') ? done() : fail(); }
+      catch (e) { fail(); }
+    }
+  });
+
+  // Render the initial trait list from the example
+  renderTraits(EXAMPLE);
+})();
+</script>
+</body>
+</html>
