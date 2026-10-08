@@ -85,6 +85,29 @@ SAK.Scene3D = (function () {
     m.castShadow = true; m.receiveShadow = true;
     return m;
   }
+  /* V4: cartoon outline (inverted hull). Adds a slightly larger BackSide black
+   * mesh as a CHILD so it follows squash/parent transforms automatically.
+   * Apply to big shapes only (head, torso, limbs) to keep draw calls low. */
+  function outline(target, thickness) {
+    const o = new T.Mesh(
+      target.geometry,
+      new T.MeshBasicMaterial({ color: '#14141c', side: T.BackSide })
+    );
+    o.scale.setScalar(thickness || 1.04);
+    o.castShadow = false; o.receiveShadow = false;
+    o.userData.outline = true;
+    target.add(o);
+    return o;
+  }
+  /* V4: darken/lighten a hex color by -1..1 for inner ears, lips, etc. */
+  function shade(hex, amt) {
+    const n = parseInt(String(hex).replace('#', ''), 16);
+    let r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;
+    if (amt >= 0) { r += (255 - r) * amt; g += (255 - g) * amt; b += (255 - b) * amt; }
+    else { r *= (1 + amt); g *= (1 + amt); b *= (1 + amt); }
+    const c = v => Math.max(0, Math.min(255, Math.round(v)));
+    return '#' + ((1 << 24) + (c(r) << 16) + (c(g) << 8) + c(b)).toString(16).slice(1);
+  }
   const wait = s => new Promise(r => setTimeout(r, s * 1000));
 
   /* Slapstick KO landing poses — cartoon meme energy, no gore.
@@ -259,49 +282,61 @@ SAK.Scene3D = (function () {
       this.body = B;
       this.brows = []; // rebuilt with the head (rebuild() disposes old meshes)
 
-      // legs
+      // legs — V4: smooth high-seg cylinders, rounded capsule shoes
       for (const sx of [-0.22, 0.22]) {
-        this.root.add(mesh(new T.CylinderGeometry(0.15, 0.13, 0.95, 6), pants, sx, 0.475, 0));
-        this.root.add(mesh(new T.BoxGeometry(0.26, 0.12, 0.38), mat('#222'), sx, 0.06, 0.06));
+        const thigh = mesh(new T.CylinderGeometry(0.15, 0.13, 0.95, 14), pants, sx, 0.475, 0);
+        this.root.add(thigh); outline(thigh, 1.05);
+        const shoe = mesh(new T.CapsuleGeometry(0.095, 0.2, 4, 10), mat('#22242e'), sx, 0.095, 0.07);
+        shoe.rotation.x = Math.PI / 2; // point forward
+        this.root.add(shoe);
       }
       // torso pivot at hips
       this.torso = new T.Group(); this.torso.position.y = 0.95; this.root.add(this.torso);
-      const body = mesh(new T.CylinderGeometry(0.5 * B.w * Math.min(1.25, B.taper), 0.42 * B.w / Math.max(1, B.taper * 0.85), 0.88 * B.h, 7), shirt, 0, 0.44 * B.h, 0);
-      body.scale.z = 0.68 * B.d; this.torso.add(body);
-      if (B.belly) { const belly = mesh(new T.IcosahedronGeometry(0.42, 1), shirt, 0, 0.3, 0.28); belly.scale.set(1.15, 0.9, 0.85); this.torso.add(belly); }
+      const body = mesh(new T.CylinderGeometry(0.5 * B.w * Math.min(1.25, B.taper), 0.42 * B.w / Math.max(1, B.taper * 0.85), 0.88 * B.h, 20), shirt, 0, 0.44 * B.h, 0);
+      body.scale.z = 0.68 * B.d; this.torso.add(body); outline(body, 1.035);
+      if (B.belly) { const belly = mesh(new T.SphereGeometry(0.42, 18, 14), shirt, 0, 0.3, 0.28); belly.scale.set(1.15, 0.9, 0.85); this.torso.add(belly); outline(belly, 1.04); }
       this.torso.add(mesh(new T.BoxGeometry(0.86 * Math.max(B.w / Math.max(1, B.taper * 0.85), 0.8), 0.1, 0.42 * B.d), pants, 0, 0.03, 0)); // belt
       this.buildOutfit();
       this.buildMuscles(shirt, B); // V3: pec/ab definition
-      this.torso.add(mesh(new T.CylinderGeometry(0.14, 0.16, 0.18, 6), skin, 0, 0.92 * B.h, 0)); // neck
+      const neck = mesh(new T.CylinderGeometry(0.14, 0.16, 0.18, 12), skin, 0, 0.92 * B.h, 0);
+      this.torso.add(neck);
 
-      // head
+      // head — V4: smooth high-poly cartoon head with bold outline
       this.head = new T.Group(); this.head.position.y = 0.98 * B.h; this.head.scale.setScalar(B.head * 1.18); this.torso.add(this.head); // V2: bigger cartoon heads
-      const skull = mesh(new T.IcosahedronGeometry(0.5, 1), skin, 0, 0.42, 0);
-      skull.scale.set(1, 1.06, 0.98); this.head.add(skull);
+      const skull = mesh(new T.SphereGeometry(0.5, 28, 20), skin, 0, 0.42, 0);
+      skull.scale.set(1, 1.06, 0.98); this.head.add(skull); outline(skull, 1.035);
       this.skull = skull;
       this.skullBase = new T.Vector3(1, 1.06, 0.98);
       this.hitFX = null; // { until, dur, sx, sy, sz, stars }
       this.buildHair(hair);
-      // ears
-      for (const sx of [-1, 1]) this.head.add(mesh(new T.IcosahedronGeometry(0.1, 0), skin, sx * 0.5, 0.4, 0));
-      // eyes
+      // ears — V4: proper C-shape (outer + darker inner)
+      const innerEarMat = mat(shade(L.skin || '#ffe0c4', -0.18));
+      for (const sx of [-1, 1]) {
+        const ear = mesh(new T.SphereGeometry(0.11, 14, 10), skin, sx * 0.48, 0.4, -0.02);
+        ear.scale.set(0.55, 1, 0.8); this.head.add(ear);
+        const inner = mesh(new T.SphereGeometry(0.06, 10, 8), innerEarMat, sx * 0.5, 0.4, 0.03);
+        inner.scale.set(0.4, 0.75, 0.5); this.head.add(inner);
+      }
+      // eyes — V4: bigger cartoon eyes, smooth sclera
       this.eyes = new T.Group(); this.head.add(this.eyes);
       const eyeStyle = L.eyes || 'round', pupil = mat(L.eyeColor || '#1a1a1a');
       for (const sx of [-1, 1]) {
         if (eyeStyle === 'dot') {
-          this.eyes.add(mesh(new T.SphereGeometry(0.07, 7, 5), pupil, sx * 0.18, 0.5, 0.46));
+          this.eyes.add(mesh(new T.SphereGeometry(0.07, 12, 10), pupil, sx * 0.18, 0.5, 0.46));
         } else {
           const big = eyeStyle === 'big';
-          this.eyes.add(mesh(new T.SphereGeometry(big ? 0.13 : 0.1, 8, 6), mat('#ffffff'), sx * 0.18, 0.5, big ? 0.41 : 0.42));
+          this.eyes.add(mesh(new T.SphereGeometry(big ? 0.13 : 0.105, 16, 12), mat('#ffffff'), sx * 0.18, 0.5, big ? 0.41 : 0.42));
           const pr = big ? 0.068 : eyeStyle === 'angry' ? 0.045 : 0.055, pz = big ? 0.535 : 0.51;
-          this.eyes.add(mesh(new T.SphereGeometry(pr, 6, 5), pupil, sx * 0.18, 0.5, pz));
-          const hl = mesh(new T.SphereGeometry(pr * 0.38, 6, 5), new T.MeshBasicMaterial({ color: '#ffffff' }), sx * 0.18 - pr * 0.35, 0.5 + pr * 0.42, pz + pr * 0.92);
+          this.eyes.add(mesh(new T.SphereGeometry(pr, 12, 10), pupil, sx * 0.18, 0.5, pz));
+          const hl = mesh(new T.SphereGeometry(pr * 0.38, 8, 6), new T.MeshBasicMaterial({ color: '#ffffff' }), sx * 0.18 - pr * 0.35, 0.5 + pr * 0.42, pz + pr * 0.92);
           hl.castShadow = false; this.eyes.add(hl); // V2: specular catchlight
           if (eyeStyle === 'sleepy') this.eyes.add(mesh(new T.BoxGeometry(0.25, 0.11, 0.1), skin, sx * 0.18, 0.565, 0.49)); // heavy lids
         }
         const angry = eyeStyle === 'angry';
-        const brow = mesh(new T.BoxGeometry(0.27, 0.075, 0.06), hair, sx * 0.19, angry ? 0.63 : 0.67, 0.45); // V2: thicker brows
-        brow.rotation.z = sx * (angry ? 0.42 : -0.18); this.head.add(brow);
+        // V4: tapered brow (cylinder laid horizontal, thin end outward) — thicker, more expressive
+        const brow = mesh(new T.CylinderGeometry(0.03, 0.045, 0.28, 8), hair, sx * 0.19, angry ? 0.63 : 0.67, 0.45);
+        brow.rotation.z = -sx * Math.PI / 2 + sx * (angry ? 0.42 : -0.18);
+        this.head.add(brow);
         brow.userData.baseY = brow.position.y; brow.userData.baseRotZ = brow.rotation.z;
         this.brows.push(brow);
       }
@@ -311,22 +346,28 @@ SAK.Scene3D = (function () {
         const b = mesh(new T.BoxGeometry(0.2, 0.045, 0.04), mat('#1a1a1a'), sx * 0.18, 0.5, 0.5);
         b.rotation.z = r; this.xEyes.add(b);
       }
-      // nose + mouth — chunkier to read in close-ups
-      // V3: detailed nose with nostrils
-      const nose = mesh(new T.IcosahedronGeometry(0.1, 0), skin, 0, 0.36, 0.53);
+      // nose + mouth — V4: smooth rounded nose, capsule mouth with lip definition
+      const nose = mesh(new T.SphereGeometry(0.105, 18, 14), skin, 0, 0.36, 0.52);
       nose.scale.set(1, 0.85, 0.9); this.head.add(nose);
       const nostrilMat = mat('#3a2a22');
       for (const sx of [-1, 1]) {
-        const nostril = mesh(new T.SphereGeometry(0.028, 6, 5), nostrilMat, sx * 0.045, 0.33, 0.58);
+        const nostril = mesh(new T.SphereGeometry(0.028, 8, 6), nostrilMat, sx * 0.045, 0.33, 0.575);
         nostril.scale.set(1, 0.7, 0.5); this.head.add(nostril);
       }
-      this.mouth = mesh(new T.BoxGeometry(0.22, 0.07, 0.05), mat('#6b1d1d'), 0, 0.2, 0.46);
+      // V4: capsule mouth (scales cleanly for expressions) + subtle lower lip.
+      // Rotation baked into geometry so expression scale tweens stay axis-aligned.
+      const mouthGeo = new T.CapsuleGeometry(0.035, 0.15, 4, 10);
+      mouthGeo.rotateZ(Math.PI / 2);
+      this.mouth = mesh(mouthGeo, mat('#7a2424'), 0, 0.2, 0.46);
       this.head.add(this.mouth);
-      // V3: upper teeth — visible when mouth opens (grin/grimace/shock)
+      const lip = mesh(new T.SphereGeometry(0.055, 10, 8), mat(shade(L.skin || '#ffe0c4', -0.12)), 0, 0.145, 0.45);
+      lip.scale.set(1.6, 0.5, 0.6); this.head.add(lip);
+      // V3: upper teeth — visible when mouth opens (grin/grimace/shock). V4: rounded.
       this.teeth = new T.Group(); this.head.add(this.teeth);
       const teethMat = mat('#ffffff');
       for (let t = 0; t < 4; t++) {
-        const tooth = mesh(new T.BoxGeometry(0.045, 0.05, 0.02), teethMat, (t - 1.5) * 0.055, 0.2, 0.485);
+        const toothGeo = new T.CapsuleGeometry(0.022, 0.025, 3, 8);
+        const tooth = mesh(toothGeo, teethMat, (t - 1.5) * 0.055, 0.2, 0.485);
         this.teeth.add(tooth);
       }
       this.teeth.visible = false;
@@ -348,7 +389,7 @@ SAK.Scene3D = (function () {
       // cheeks: blush grows with damage taken (both cheeks so it reads from any angle)
       this.blushMat = new T.MeshBasicMaterial({ color: '#ff2a2a', transparent: true, opacity: 0, depthWrite: false });
       for (const sx of [-1, 1]) {
-        const c = new T.Mesh(new T.SphereGeometry(0.13, 8, 6), this.blushMat);
+        const c = new T.Mesh(new T.SphereGeometry(0.13, 12, 10), this.blushMat);
         c.position.set(sx * 0.33, 0.3, 0.36); c.scale.set(1, 0.7, 0.4); this.head.add(c);
       }
       // Progressive battle damage: black-eye ring + cheek scratch, revealed as hits land (cartoon, no gore).
@@ -375,19 +416,23 @@ SAK.Scene3D = (function () {
       this.rage = new T.Mesh(new T.SphereGeometry(0.8, 12, 8), new T.MeshBasicMaterial({ color: '#ff2a2a', transparent: true, opacity: 0.22, depthWrite: false }));
       this.rage.position.y = 0.45; this.rage.visible = false; this.head.add(this.rage);
 
-      // arms
+      // arms — V4: smooth high-seg limbs with outlines, rounded palm
       this.arms = {};
       for (const side of [-1, 1]) {
         const shoulder = new T.Group(); shoulder.position.set(side * B.sh, 0.78 * B.h, 0); this.torso.add(shoulder);
-        shoulder.add(mesh(new T.IcosahedronGeometry(0.16 * B.arm, 0), shirt, 0, 0, 0));
-        shoulder.add(mesh(new T.CylinderGeometry(0.13 * B.arm, 0.11 * B.arm, 0.55, 6), shirt, 0, -0.27, 0));
+        const delt = mesh(new T.SphereGeometry(0.17 * B.arm, 14, 10), shirt, 0, 0, 0);
+        shoulder.add(delt); outline(delt, 1.05);
+        const upper = mesh(new T.CylinderGeometry(0.13 * B.arm, 0.11 * B.arm, 0.55, 12), shirt, 0, -0.27, 0);
+        shoulder.add(upper); outline(upper, 1.05);
         const elbow = new T.Group(); elbow.position.y = -0.55; shoulder.add(elbow);
-        elbow.add(mesh(new T.CylinderGeometry(0.105 * B.arm, 0.09 * B.arm, 0.45, 6), skin, 0, -0.22, 0));
+        const fore = mesh(new T.CylinderGeometry(0.105 * B.arm, 0.09 * B.arm, 0.45, 12), skin, 0, -0.22, 0);
+        elbow.add(fore); outline(fore, 1.05);
         const handMat = mat(L.skin, {}); // own material so it can turn golden
         // Open palm with individual fingers (Slap Kings-style readability) —
         // a Group so the slap squash-scale still flattens the whole hand.
         const hand = new T.Group(); hand.position.set(0, -0.52, 0); hand.scale.setScalar(1.2); elbow.add(hand); // 20% bigger hands
-        hand.add(mesh(new T.BoxGeometry(0.2, 0.16, 0.09), handMat, 0, -0.02, 0)); // palm
+        const palm = mesh(new T.SphereGeometry(0.11, 14, 10), handMat, 0, -0.02, 0);
+        palm.scale.set(0.95, 0.75, 0.45); hand.add(palm); // rounded palm
         // Knuckle ridge for definition
         hand.add(mesh(new T.BoxGeometry(0.19, 0.04, 0.08), handMat, 0, -0.09, 0.01));
         const fingerLen = [0.13, 0.155, 0.15, 0.12]; // index..pinky, middle longest
@@ -398,17 +443,17 @@ SAK.Scene3D = (function () {
           fg.rotation.x = -0.15; // slight natural curl
           hand.add(fg);
           // Two-segment fingers for a more natural look
-          fg.add(mesh(new T.CylinderGeometry(0.026, 0.03, fingerLen[f] * 0.6, 6), handMat, 0, -fingerLen[f] * 0.3, 0));
+          fg.add(mesh(new T.CylinderGeometry(0.026, 0.03, fingerLen[f] * 0.6, 8), handMat, 0, -fingerLen[f] * 0.3, 0));
           const tip = new T.Group(); tip.position.set(0, -fingerLen[f] * 0.6, 0); tip.rotation.x = -0.2; fg.add(tip);
-          tip.add(mesh(new T.CylinderGeometry(0.022, 0.026, fingerLen[f] * 0.45, 6), handMat, 0, -fingerLen[f] * 0.22, 0));
-          tip.add(mesh(new T.SphereGeometry(0.024, 6, 5), handMat, 0, -fingerLen[f] * 0.45, 0)); // fingertip
+          tip.add(mesh(new T.CylinderGeometry(0.022, 0.026, fingerLen[f] * 0.45, 8), handMat, 0, -fingerLen[f] * 0.22, 0));
+          tip.add(mesh(new T.SphereGeometry(0.024, 10, 8), handMat, 0, -fingerLen[f] * 0.45, 0)); // fingertip
         }
         const th = new T.Group(); // thumb on the inner side
         th.position.set(-side * 0.1, -0.03, 0.01);
         th.rotation.z = -side * 0.85; th.rotation.x = -0.2;
         hand.add(th);
-        th.add(mesh(new T.CylinderGeometry(0.023, 0.028, 0.11, 5), handMat, 0, -0.055, 0));
-        th.add(mesh(new T.SphereGeometry(0.023, 5, 4), handMat, 0, -0.11, 0));
+        th.add(mesh(new T.CylinderGeometry(0.023, 0.028, 0.11, 8), handMat, 0, -0.055, 0));
+        th.add(mesh(new T.SphereGeometry(0.023, 8, 6), handMat, 0, -0.11, 0));
         this.arms[side] = { shoulder, elbow, hand, handMat, side };
       }
       this.buildGloves();
@@ -553,7 +598,7 @@ SAK.Scene3D = (function () {
       }
     }
 
-    /** V3: subtle pec/ab muscle definition layered on the torso. */
+    /** V3: subtle pec/ab muscle definition layered on the torso. V4: smooth spheres. */
     buildMuscles(shirtMat, B) {
       // Skip for chonk (belly covers it) — keep it subtle for cartoon style
       if (B.belly) return;
@@ -564,13 +609,13 @@ SAK.Scene3D = (function () {
       const w = B.w;
       // Pecs — two rounded shapes on upper chest
       for (const sx of [-1, 1]) {
-        const pec = m(new T.SphereGeometry(0.16 * w, 8, 6), sx * 0.18 * w, 0.62 * B.h, 0.28 * B.d);
+        const pec = m(new T.SphereGeometry(0.16 * w, 14, 10), sx * 0.18 * w, 0.62 * B.h, 0.28 * B.d);
         pec.scale.set(1, 0.75, 0.45);
       }
       // Abs — subtle center line definition (only for gymbro/classic)
       if (B.arm >= 1) {
         for (let i = 0; i < 2; i++) {
-          const ab = m(new T.SphereGeometry(0.09 * w, 7, 5), 0, (0.42 - i * 0.14) * B.h, 0.3 * B.d);
+          const ab = m(new T.SphereGeometry(0.09 * w, 12, 8), 0, (0.42 - i * 0.14) * B.h, 0.3 * B.d);
           ab.scale.set(1.6, 0.7, 0.4);
         }
       }
@@ -579,7 +624,7 @@ SAK.Scene3D = (function () {
     /** Hair style (avatar.hairStyle); KOLs without one keep the classic cap. */
     buildHair(hair) {
       const H = this.head, add = (geo, x, y, z, fn) => { const m = mesh(geo, hair, x, y, z); if (fn) fn(m); H.add(m); return m; };
-      const cap = (r, arc) => add(new T.SphereGeometry(r, 9, 6, 0, Math.PI * 2, 0, Math.PI * arc), 0, 0.47, -0.04, m => { m.rotation.x = -0.35; });
+      const cap = (r, arc) => add(new T.SphereGeometry(r, 18, 12, 0, Math.PI * 2, 0, Math.PI * arc), 0, 0.47, -0.04, m => { m.rotation.x = -0.35; });
       let style = this.look.hairStyle || 'short';
       // tall styles get squashed under a hat (no clipping through cap/beanie/top hat)
       if (['cap', 'beanie', 'tophat'].includes(this.look.accessory) && ['spiky', 'mohawk', 'afro', 'bun'].includes(style)) style = 'short';
@@ -590,9 +635,9 @@ SAK.Scene3D = (function () {
           cap(0.53, 0.46);
           for (let i = 0; i < 7; i++) {
             const a = (i / 7) * Math.PI * 2;
-            add(new T.ConeGeometry(0.11, 0.32, 4), Math.sin(a) * 0.26, 0.93 + (i % 2) * 0.04, Math.cos(a) * 0.26 - 0.06, m => { m.rotation.set(Math.cos(a) * 0.55, 0, -Math.sin(a) * 0.55); });
+            add(new T.ConeGeometry(0.11, 0.32, 8), Math.sin(a) * 0.26, 0.93 + (i % 2) * 0.04, Math.cos(a) * 0.26 - 0.06, m => { m.rotation.set(Math.cos(a) * 0.55, 0, -Math.sin(a) * 0.55); });
           }
-          add(new T.ConeGeometry(0.12, 0.36, 4), 0, 1.02, -0.02); break;
+          add(new T.ConeGeometry(0.12, 0.36, 8), 0, 1.02, -0.02); break;
         case 'mohawk': {
           cap(0.508, 0.3);
           // Tall dramatic mohawk with color tips
@@ -620,11 +665,11 @@ SAK.Scene3D = (function () {
           for (const sx of [-1, 1]) add(new T.BoxGeometry(0.14, 0.6, 0.3), sx * 0.5, 0.2, -0.08);
           break;
         case 'afro': {
-          const fro = add(new T.IcosahedronGeometry(0.7, 1), 0, 0.72, -0.14);
+          const fro = add(new T.SphereGeometry(0.7, 20, 14), 0, 0.72, -0.14);
           fro.scale.set(1, 0.82, 0.92); break; }
         case 'bun':
           cap(0.535, 0.5);
-          add(new T.IcosahedronGeometry(0.19, 1), 0, 0.98, -0.3); break;
+          add(new T.SphereGeometry(0.19, 14, 10), 0, 0.98, -0.3); break;
         default: cap(0.535, 0.5);   // 'short' (classic cap, forehead visible)
       }
     }
@@ -719,8 +764,8 @@ SAK.Scene3D = (function () {
           const gm = new T.MeshBasicMaterial({ color: '#ff2222' });
           const gm2 = new T.MeshBasicMaterial({ color: '#ff8888', transparent: true, opacity: 0.75, blending: T.AdditiveBlending, depthWrite: false });
           for (const sx of [-1, 1]) {
-            add(new T.SphereGeometry(0.055, 8, 6), gm, sx * 0.18, 0.5, 0.5);
-            const halo = new T.Mesh(new T.SphereGeometry(0.1, 8, 6), gm2);
+            add(new T.SphereGeometry(0.055, 10, 8), gm, sx * 0.18, 0.5, 0.5);
+            const halo = new T.Mesh(new T.SphereGeometry(0.1, 10, 8), gm2);
             halo.position.set(sx * 0.18, 0.5, 0.5); H.add(halo);
           } break; }
         case 'headphones':
@@ -733,7 +778,7 @@ SAK.Scene3D = (function () {
         case 'beanie':
           add(new T.SphereGeometry(0.55, 9, 5, 0, Math.PI * 2, 0, Math.PI * 0.5), a, 0, 0.52, 0);
           add(new T.CylinderGeometry(0.56, 0.56, 0.14, 10), '#ffffff', 0, 0.55, 0);
-          add(new T.IcosahedronGeometry(0.11, 0), '#ffffff', 0, 1.1, 0); break;
+          add(new T.SphereGeometry(0.11, 12, 10), '#ffffff', 0, 1.1, 0); break;
         case 'visor':
           add(new T.BoxGeometry(0.78, 0.18, 0.12), mat(a, { transparent: true, opacity: 0.85 }), 0, 0.5, 0.47);
           add(new T.TorusGeometry(0.52, 0.03, 4, 16), '#222', 0, 0.5, 0, m => { m.rotation.x = Math.PI / 2; }); break;
@@ -801,7 +846,7 @@ SAK.Scene3D = (function () {
       }
       // Bull ears (wider, on sides)
       for (const sx of [-1, 1]) {
-        const ear = add(new T.SphereGeometry(0.16, 8, 6), crystal, sx * 0.58, 0.42, -0.05, m => {
+        const ear = add(new T.SphereGeometry(0.16, 14, 10), crystal, sx * 0.58, 0.42, -0.05, m => {
           m.scale.set(1.3, 0.7, 0.5); m.rotation.z = sx * 0.4;
         });
       }
@@ -860,7 +905,7 @@ SAK.Scene3D = (function () {
           const z = Math.cos(a) * radius * 0.55 + 0.18;
           if (z < 0.05) continue; // only front half
           const y = (0.82 - Math.abs(Math.sin(a)) * 0.14 - s * 0.07) * (B.h || 1);
-          const bead = mesh(new T.SphereGeometry(0.035, 6, 5), beadMat, x, y, z);
+          const bead = mesh(new T.SphereGeometry(0.035, 8, 6), beadMat, x, y, z);
           bead.userData.parody = true; this.torso.add(bead);
         }
       }
@@ -907,7 +952,7 @@ SAK.Scene3D = (function () {
       // Intense glowing eyes (subtle green tint)
       const eyeGlow = new T.MeshBasicMaterial({ color: '#a7ffcb', transparent: true, opacity: 0.25, blending: T.AdditiveBlending, depthWrite: false });
       for (const sx of [-1, 1]) {
-        const g = new T.Mesh(new T.SphereGeometry(0.12, 8, 6), eyeGlow);
+        const g = new T.Mesh(new T.SphereGeometry(0.12, 12, 10), eyeGlow);
         g.position.set(sx * 0.18, 0.5, 0.44); g.userData.parody = true;
         this.head.add(g);
       }
@@ -952,29 +997,29 @@ SAK.Scene3D = (function () {
       }
     }
 
-    /** Bear: round ears on top + rounded muzzle. */
+    /** Bear: round ears on top + rounded muzzle. V4: smooth high-seg. */
     speciesBear(add, skin, dark) {
       for (const sx of [-1, 1]) {
-        add(new T.SphereGeometry(0.15, 8, 6), skin, sx * 0.38, 0.88, -0.05);
-        add(new T.SphereGeometry(0.07, 7, 5), mat('#e8b98a'), sx * 0.38, 0.86, 0.06);
+        add(new T.SphereGeometry(0.15, 14, 10), skin, sx * 0.38, 0.88, -0.05);
+        add(new T.SphereGeometry(0.07, 10, 8), mat('#e8b98a'), sx * 0.38, 0.86, 0.06);
       }
-      add(new T.SphereGeometry(0.16, 8, 6), mat('#f0d0a8'), 0, 0.27, 0.5, m => {
+      add(new T.SphereGeometry(0.16, 14, 10), mat('#f0d0a8'), 0, 0.27, 0.5, m => {
         m.scale.set(1.3, 0.8, 0.9);
       });
-      add(new T.SphereGeometry(0.05, 7, 5), dark, 0, 0.31, 0.62);
+      add(new T.SphereGeometry(0.05, 10, 8), dark, 0, 0.31, 0.62);
     }
 
-    /** Bull: curved horns (skipped if a parody preset already added horns) + wide nose. */
+    /** Bull: curved horns (skipped if a parody preset already added horns) + wide nose. V4: smooth. */
     speciesBull(add, skin, dark) {
       const P = this.look.parody;
       if (P !== 'patty' && P !== 'ansom') {
         // Curved horns — stacked cones, bone colored (same curl style as Patty's)
         const hornMat = new T.MeshStandardMaterial({ color: '#e8dcc8', roughness: 0.4, metalness: 0.1 });
         for (const sx of [-1, 1]) {
-          add(new T.ConeGeometry(0.11, 0.42, 8), hornMat, sx * 0.4, 0.98, -0.05, m => {
+          add(new T.ConeGeometry(0.11, 0.42, 12), hornMat, sx * 0.4, 0.98, -0.05, m => {
             m.rotation.z = sx * -0.55;
           });
-          add(new T.ConeGeometry(0.07, 0.34, 8), hornMat, sx * 0.58, 1.22, -0.05, m => {
+          add(new T.ConeGeometry(0.07, 0.34, 10), hornMat, sx * 0.58, 1.22, -0.05, m => {
             m.rotation.z = sx * -1.0;
           });
           add(new T.ConeGeometry(0.04, 0.2, 8), hornMat, sx * 0.68, 1.4, -0.05, m => {
@@ -982,75 +1027,85 @@ SAK.Scene3D = (function () {
           });
         }
       }
-      // Wide nose with big nostrils
-      add(new T.BoxGeometry(0.26, 0.11, 0.13), skin, 0, 0.33, 0.52);
+      // Wide nose with big nostrils — V4: rounded
+      add(new T.SphereGeometry(0.14, 14, 10), skin, 0, 0.33, 0.5, m => {
+        m.scale.set(1, 0.7, 0.8);
+      });
       for (const sx of [-1, 1]) {
-        add(new T.SphereGeometry(0.035, 6, 5), dark, sx * 0.08, 0.31, 0.585, m => {
+        add(new T.SphereGeometry(0.035, 8, 6), dark, sx * 0.08, 0.31, 0.585, m => {
           m.scale.set(1, 0.7, 0.5);
         });
       }
     }
 
-    /** Ape: pronounced brow ridge, larger jaw, round side ears. */
+    /** Ape: pronounced brow ridge, larger jaw, round side ears. V4: rounded shapes. */
     speciesApe(add, skin, dark) {
-      add(new T.BoxGeometry(0.5, 0.09, 0.12), skin, 0, 0.63, 0.44);
-      add(new T.BoxGeometry(0.34, 0.14, 0.12), skin, 0, 0.11, 0.42);
+      add(new T.SphereGeometry(0.2, 12, 8), skin, 0, 0.63, 0.4, m => {
+        m.scale.set(1.4, 0.45, 0.7); // brow ridge
+      });
+      add(new T.SphereGeometry(0.16, 12, 8), skin, 0, 0.11, 0.4, m => {
+        m.scale.set(1.15, 0.7, 0.8); // heavy jaw
+      });
       for (const sx of [-1, 1]) {
-        add(new T.SphereGeometry(0.09, 7, 6), skin, sx * 0.52, 0.45, -0.02);
+        add(new T.SphereGeometry(0.09, 12, 8), skin, sx * 0.52, 0.45, -0.02);
       }
     }
 
-    /** Dog: floppy ears + snout with nose tip. */
+    /** Dog: floppy ears + snout with nose tip. V4: smooth capsules. */
     speciesDog(add, skin, dark) {
       for (const sx of [-1, 1]) {
-        add(new T.BoxGeometry(0.14, 0.42, 0.09), skin, sx * 0.48, 0.66, -0.05, m => {
+        add(new T.CapsuleGeometry(0.07, 0.3, 4, 10), skin, sx * 0.48, 0.62, -0.05, m => {
           m.rotation.z = sx * 0.5; // flop outward/down
         });
       }
-      add(new T.BoxGeometry(0.2, 0.16, 0.22), skin, 0, 0.3, 0.55);
-      add(new T.SphereGeometry(0.045, 7, 5), dark, 0, 0.34, 0.66);
+      add(new T.SphereGeometry(0.13, 12, 10), skin, 0, 0.3, 0.52, m => {
+        m.scale.set(1, 0.85, 1.1); // snout
+      });
+      add(new T.SphereGeometry(0.045, 10, 8), dark, 0, 0.34, 0.65);
     }
 
-    /** Cat: pointed triangular ears + tiny nose. */
+    /** Cat: pointed triangular ears + tiny nose. V4: smooth. */
     speciesCat(add, skin, dark) {
       const pink = mat('#f0a0a0');
       for (const sx of [-1, 1]) {
-        add(new T.ConeGeometry(0.12, 0.3, 6), skin, sx * 0.3, 0.98, -0.02);
-        add(new T.ConeGeometry(0.06, 0.15, 6), pink, sx * 0.3, 0.94, 0.045);
+        add(new T.ConeGeometry(0.12, 0.3, 10), skin, sx * 0.3, 0.98, -0.02);
+        add(new T.ConeGeometry(0.06, 0.15, 8), pink, sx * 0.3, 0.94, 0.045);
       }
-      add(new T.ConeGeometry(0.032, 0.045, 5), pink, 0, 0.38, 0.55, m => {
+      add(new T.ConeGeometry(0.032, 0.045, 8), pink, 0, 0.38, 0.55, m => {
         m.rotation.x = Math.PI / 2; // point forward
       });
     }
 
-    /** Frog: bulging eyes on top of head + wide mouth. */
+    /** Frog: bulging eyes on top of head + wide mouth. V4: smooth. */
     speciesFrog(add, skin, dark) {
       for (const sx of [-1, 1]) {
-        add(new T.SphereGeometry(0.13, 8, 6), skin, sx * 0.2, 0.95, 0.12);
-        add(new T.SphereGeometry(0.05, 7, 5), dark, sx * 0.2, 0.98, 0.22);
+        add(new T.SphereGeometry(0.13, 14, 10), skin, sx * 0.2, 0.95, 0.12);
+        add(new T.SphereGeometry(0.05, 10, 8), dark, sx * 0.2, 0.98, 0.22);
       }
-      add(new T.BoxGeometry(0.42, 0.06, 0.05), mat('#6b1d1d'), 0, 0.18, 0.46);
+      const frogMouth = new T.CapsuleGeometry(0.03, 0.36, 4, 8);
+      frogMouth.rotateZ(Math.PI / 2);
+      add(frogMouth, mat('#6b1d1d'), 0, 0.18, 0.46);
     }
 
-    /** Rabbit: long upright ears. */
+    /** Rabbit: long upright ears. V4: smooth. */
     speciesRabbit(add, skin, dark) {
       const pink = mat('#f0a0a0');
       for (const sx of [-1, 1]) {
-        add(new T.CapsuleGeometry(0.07, 0.45, 4, 8), skin, sx * 0.18, 1.15, -0.08, m => {
+        add(new T.CapsuleGeometry(0.07, 0.45, 6, 12), skin, sx * 0.18, 1.15, -0.08, m => {
           m.rotation.z = sx * -0.12; // slight outward tilt
         });
-        add(new T.CapsuleGeometry(0.035, 0.32, 4, 8), pink, sx * 0.18, 1.12, -0.02, m => {
+        add(new T.CapsuleGeometry(0.035, 0.32, 4, 10), pink, sx * 0.18, 1.12, -0.02, m => {
           m.rotation.z = sx * -0.12;
         });
       }
     }
 
-    /** Panda: black round ears + black eye patches. */
+    /** Panda: black round ears + black eye patches. V4: smooth. */
     speciesPanda(add, skin, dark) {
       for (const sx of [-1, 1]) {
-        add(new T.SphereGeometry(0.14, 8, 6), dark, sx * 0.36, 0.9, -0.05);
+        add(new T.SphereGeometry(0.14, 14, 10), dark, sx * 0.36, 0.9, -0.05);
         // Eye patch — flattened dark ellipse hugging the face, behind the eye meshes
-        add(new T.SphereGeometry(0.14, 8, 6), dark, sx * 0.18, 0.5, 0.44, m => {
+        add(new T.SphereGeometry(0.14, 12, 10), dark, sx * 0.18, 0.5, 0.44, m => {
           m.scale.set(1, 1.25, 0.4);
         });
       }
