@@ -285,6 +285,14 @@
           <div class="cr-fallback hidden" id="cr-fallback"></div>
           <span class="cr-spin-hint">⟲ drag to spin</span>
           <button type="button" class="cr-random" id="cr-random" aria-label="Randomize fighter">🎲 RANDOM</button>
+          <button type="button" class="cr-random" id="cr-reroll" aria-label="NFT-style trait reroll" style="top:52px">🎰 REROLL <span id="cr-reroll-count"></span></button>
+        </div>
+        <div id="cr-traits" class="hidden" style="margin:8px 0;padding:10px;background:rgba(0,0,0,.25);border-radius:10px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+            <b id="cr-rarity-badge" style="font-size:15px"></b>
+            <span id="cr-reroll-left" style="font-size:12px;opacity:.8"></span>
+          </div>
+          <div id="cr-trait-list" style="display:grid;grid-template-columns:1fr 1fr;gap:4px;font-size:12px"></div>
         </div>
         <label class="cr-label cr-inline">NAME<input id="cr-name" maxlength="16" autocapitalize="off" spellcheck="false" /></label>
         <div class="cr-rows">
@@ -398,6 +406,7 @@
 <script src="js/roster.js?v=https-fix-2"></script>
 <script src="js/storage.js?v=https-fix-2"></script>
 <script src="js/account.js?v=https-fix-2"></script>
+<script src="js/traits.js?v=1"></script>
 <script src="js/wallet.js?v=https-fix-2"></script>
 <script src="js/walletconnect.js?v=wc-2"></script>
 <script src="js/economy.js?v=https-fix-2"></script>

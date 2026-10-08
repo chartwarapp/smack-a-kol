@@ -377,6 +377,7 @@
   function openFighter(thenPlay) {
     playAfterFighter = !!thenPlay;
     crIsNew = !S.profile;
+    crRoll = null; crRerollsLeft = SAK.Traits.MAX_REROLLS; // reset NFT rerolls
     const p = profile();
     crDraft = Object.assign({}, p.avatar);
     $('#fit-name').value = S.profile ? p.name : '';
@@ -428,6 +429,39 @@
   });
   $('#fit-name').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); $('#cr-next').click(); } });
   $('#cr-random').addEventListener('click', () => { A.click(); crDraft = SAK.Account.randomAvatar(); renderCreatorOptions(); renderCreatorPreview(); });
+
+  // --- NFT-style trait reroll (Phase 1) ---
+  let crRoll = null, crRerollsLeft = SAK.Traits.MAX_REROLLS;
+  function renderTraitRoll() {
+    const box = $('#cr-traits'), list = $('#cr-trait-list');
+    if (!crRoll) { box.classList.add('hidden'); return; }
+    box.classList.remove('hidden');
+    const rarity = SAK.Traits.getRarity(crRoll);
+    const rc = SAK.Traits.RARITY[rarity];
+    $('#cr-rarity-badge').innerHTML = `<span style="color:${rc.color}">◆ ${rc.label.toUpperCase()}</span>`;
+    $('#cr-reroll-left').textContent = `${crRerollsLeft} reroll${crRerollsLeft === 1 ? '' : 's'} left`;
+    $('#cr-reroll-count').textContent = crRerollsLeft > 0 ? `(${crRerollsLeft})` : '';
+    list.innerHTML = SAK.Traits.LAYER_ORDER.map(lid => {
+      const t = crRoll[lid], tc = SAK.Traits.RARITY[t.rarity];
+      return `<div><span style="opacity:.6">${SAK.Traits.LAYER_LABELS[lid]}:</span> <b style="color:${tc.color}">${t.label}</b></div>`;
+    }).join('');
+    // Apply to the 3D preview
+    crDraft = Object.assign(crDraft || {}, SAK.Traits.toAvatar(crRoll));
+    renderCreatorOptions(); renderCreatorPreview();
+  }
+  $('#cr-reroll').addEventListener('click', () => {
+    A.click();
+    if (crRerollsLeft <= 0) { toast('No rerolls left — lock it in!', 1800); return; }
+    crRerollsLeft--;
+    crRoll = SAK.Traits.rollFighter();
+    const rarity = SAK.Traits.getRarity(crRoll);
+    if (rarity === 'legendary') A.fanfare && A.fanfare();
+    else A.coin();
+    renderTraitRoll();
+    if (rarity === 'epic' || rarity === 'legendary') {
+      toast(`🎰 ${SAK.Traits.RARITY[rarity].label.toUpperCase()} fighter!`, 2200);
+    }
+  });
   $('#cr-later').addEventListener('click', () => { closeCreator(); if (playAfterFighter) setTimeout(openPicker, 50); });   // play as guest
   $('#cr-cancel').addEventListener('click', () => { if (crIsNew) showCreatorStep('name'); else closeCreator(); });
   $('#fighter-form').addEventListener('submit', e => {
