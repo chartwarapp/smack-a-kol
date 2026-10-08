@@ -1272,8 +1272,19 @@
         if (target === 'k') pk.innerHTML = SAK.avatarSVG(F.kol.look, { blush: true, dmg: dmgLevel('kol') });
         else pk.innerHTML = SAK.avatarSVG(playerLook(), { blush: true, dmg: dmgLevel('player') });
         if (playerIsAtk && grade.id === 'perfect' && Math.random() < 0.5) sayPlayer(playerPhrase());
-        else if (playerIsAtk && Math.random() < 0.45) sayPlayer(pick(SAK.COPY.attackLines));
-        else if (!playerIsAtk && Math.random() < 0.5) say(pick(Math.random() < 0.5 ? F.kol.taunts : SAK.COPY.smackReactions));
+        else if (playerIsAtk && Math.random() < 0.45) {
+          // Tier-matched trash talk: cocky for light, harsh for heavy/perfect
+          const t = slapGrade;
+          if ((t === 'light' || t === 'weak') && Math.random() < 0.6) sayPlayer(pick(SAK.COPY.lightSlapTaunts));
+          else if ((t === 'heavy' || t === 'perfect') && Math.random() < 0.6) sayPlayer(pick(SAK.COPY.heavySlapTaunts));
+          else sayPlayer(pick(SAK.COPY.attackLines));
+        }
+        else if (!playerIsAtk && Math.random() < 0.5) {
+          const t = slapGrade;
+          if ((t === 'light' || t === 'weak') && Math.random() < 0.6) say(pick(SAK.COPY.lightSlapTaunts));
+          else if ((t === 'heavy' || t === 'perfect') && Math.random() < 0.6) say(pick(SAK.COPY.heavySlapTaunts));
+          else say(pick(Math.random() < 0.5 ? F.kol.taunts : SAK.COPY.smackReactions));
+        }
       } else {
         A.brace();
         haptic(25);
