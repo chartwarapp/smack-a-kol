@@ -1231,7 +1231,7 @@ SAK.Scene3D = (function () {
     AG.add(apron);
     billboard(textPanel('HODL', '#ffd23f', ['#12002b', '#3a2a0b'], 512, 220), 3.4, 1.5, 55, 8.6, 3.4);
     billboard(textPanel('WAGMI', '#39ff88', ['#12002b', '#2a0b5e'], 512, 220), 3.4, 1.5, 95, 8.6, 3.8);
-    billboard(textPanel('SLAP.FUN', '#ff4fd8', ['#2a0b2e', '#5e0b3a'], 640, 200), 3.8, 1.15, 130, 8.6, 3.2);
+    billboard(textPanel('SMACK-A-KOL', '#ff4fd8', ['#2a0b2e', '#5e0b3a'], 640, 200), 3.8, 1.15, 130, 8.6, 3.2);
   }
 
   /** Candlestick Colosseum — the original trading-floor arena, V2 dressed. */
@@ -1245,7 +1245,8 @@ SAK.Scene3D = (function () {
     billboard(chart.tex, 3.2, 2.0, 302, 8.6, 4.2);
     // Solana memecoin degen dressing
     billboard(textPanel('DIAMOND HANDS 💎🙌', '#39ff88', ['#12002b', '#1a3a2e'], 768, 200), 4.6, 1.2, 218, 8.8, 3.4);
-    billboard(textPanel('SLAP.FUN', '#ff4fd8', ['#2a0b2e', '#5e0b3a'], 640, 200), 3.8, 1.15, 262, 8.6, 4.0);
+    billboard(textPanel('PUMP.FUN', '#39ff88', ['#0b2e1a', '#1a5e3a'], 640, 200), 3.8, 1.15, 262, 8.6, 4.0);
+    billboard(textPanel('FOMO', '#ffd23f', ['#2e1a0b', '#5e3a1a'], 512, 200), 3.0, 1.15, 285, 8.6, 3.6);
     billboard(textPanel('SOL ▲ +420%', '#14f195', ['#1a0b3a', '#2a1a5e'], 640, 200), 3.8, 1.15, 158, 8.6, 4.0);
 
     // low ring-side banners
