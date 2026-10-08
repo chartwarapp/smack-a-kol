@@ -68,6 +68,24 @@ SAK.avatarSVG = function (look, opts) {
     ? `<ellipse cx="50" cy="70" rx="7" ry="5" fill="#5a1a1a"/>`
     : `<path d="M40 67 Q50 75 60 67" stroke="#5a1a1a" stroke-width="3" fill="none" stroke-linecap="round"/>`;
 
+  // V3: facial hair (mustache for Frankie NoGood parody)
+  let facialHair = '';
+  if (look.facialHair === 'mustache' || look.parody === 'frankie') {
+    facialHair = `<g>
+      <ellipse cx="41" cy="63" rx="9" ry="4" fill="#6b4423" transform="rotate(-12 41 63)"/>
+      <ellipse cx="59" cy="63" rx="9" ry="4" fill="#6b4423" transform="rotate(12 59 63)"/>
+    </g>`;
+  }
+
+  // V3: horns accessory (for Ansom Bull parody)
+  let horns = '';
+  if (look.accessory === 'horns' || look.parody === 'ansom') {
+    horns = `<g>
+      <path d="M28 28 Q18 10 26 2 Q30 12 36 22 Z" fill="#39ff88" opacity="0.9"/>
+      <path d="M72 28 Q82 10 74 2 Q70 12 64 22 Z" fill="#39ff88" opacity="0.9"/>
+    </g>`;
+  }
+
   // Evolving battle damage (0 clean → 3 wrecked), drawn over the face.
   // Wrecked = maximum cartoon damage for the loser: bloodied + bandaged.
   const wrecked = !!opts.wrecked;
@@ -109,6 +127,8 @@ SAK.avatarSVG = function (look, opts) {
     ${brows}
     <ellipse cx="50" cy="59" rx="4" ry="3" fill="#0002"/>
     ${mouth}
+    ${facialHair}
+    ${horns}
     ${opts.blush ? '<ellipse cx="68" cy="62" rx="9" ry="6" fill="#ff2d2d" opacity="0.55"/>' : ''}
     ${dmgFx}
     ${acc}

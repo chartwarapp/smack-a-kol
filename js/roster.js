@@ -76,5 +76,30 @@ SAK.KOLS = [
     difficulty: 5, hp: 240, power: 25, accuracy: 0.88, winPts: 850, minBet: 1000, payout: 3.0,
     look: { skin: '#f6d2b4', shirt: '#ff7ad9', hair: '#c9a46b', pants: '#2a2a40', accessory: 'unicorn', accent: '#ffffff', body: 'smol', hairStyle: 'afro', eyes: 'big', eyeColor: '#7a2bff' },
     taunts: ['Have you considered a layer-2 slap?', 'Ultrasound slap incoming.', 'Gas-efficient palm deployed.']
+  },
+  /* ---- V3 Parody Fighters -------------------------------------------------
+   * Cartoon parody presets inspired by reference images. The `parody` field
+   * triggers special 3D geometry in the Fighter builder (horns, visor, etc.).
+   * These are original parody characters, not depictions of real people. */
+  {
+    id: 'pattyspice', name: 'Patty Spice', handle: '@PattySpiceSlaps', level: 9,
+    tagline: 'Blue crystal bull. Horns up. Visor down.',
+    difficulty: 5, hp: 260, power: 27, accuracy: 0.85, winPts: 1000, minBet: 1000, payout: 3.2,
+    look: { skin: '#4fb8ff', shirt: '#1a3a5c', hair: '#1a1a1a', pants: '#0f1f2e', accessory: 'visor', accent: '#22d3ee', body: 'gymbro', hairStyle: 'spiky', eyes: 'angry', eyeColor: '#0ea5e9', parody: 'patty', gloves: 'diamond', outfit: 'gold' },
+    taunts: ['Feel the crystal sting.', 'Horns up, hands faster.', 'You just got iced. 🧊']
+  },
+  {
+    id: 'frankienogood', name: 'Frankie NoGood', handle: '@FrankieNoGood', level: 9,
+    tagline: 'Blonde buzz. Beaded chains. Zero mercy.',
+    difficulty: 4, hp: 220, power: 24, accuracy: 0.8, winPts: 900, minBet: 500, payout: 3.0,
+    look: { skin: '#f6c9a0', shirt: '#2f6fd8', hair: '#e9e9f5', pants: '#1f1f2e', accessory: 'none', accent: '#ff8fab', body: 'classic', hairStyle: 'buzz', eyes: 'round', eyeColor: '#3a6fd8', parody: 'frankie', gloves: 'mma', outfit: 'tee' },
+    taunts: ['Nice chains. Shame about your face.', 'I\'m Frankie. You\'re nogood.', 'That slap had drip. 💧']
+  },
+  {
+    id: 'ansombull', name: 'Ansom Bull', handle: '@AnsomBullSlaps', level: 10,
+    tagline: 'Glowing horns. Dark energy. Final final boss.',
+    difficulty: 5, hp: 300, power: 30, accuracy: 0.9, winPts: 1200, minBet: 1000, payout: 3.5,
+    look: { skin: '#7a4a2e', shirt: '#1a1a1a', hair: '#0f0f0f', pants: '#0f0f0f', accessory: 'none', accent: '#39ff88', body: 'gymbro', hairStyle: 'afro', eyes: 'angry', eyeColor: '#22ff66', parody: 'ansom', gloves: 'spike', outfit: 'hoodie' },
+    taunts: ['The horns see your fear.', 'Darkness slaps back.', 'You were never bullish on this.']
   }
 ];

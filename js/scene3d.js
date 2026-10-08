@@ -271,6 +271,7 @@ SAK.Scene3D = (function () {
       if (B.belly) { const belly = mesh(new T.IcosahedronGeometry(0.42, 1), shirt, 0, 0.3, 0.28); belly.scale.set(1.15, 0.9, 0.85); this.torso.add(belly); }
       this.torso.add(mesh(new T.BoxGeometry(0.86 * Math.max(B.w / Math.max(1, B.taper * 0.85), 0.8), 0.1, 0.42 * B.d), pants, 0, 0.03, 0)); // belt
       this.buildOutfit();
+      this.buildMuscles(shirt, B); // V3: pec/ab definition
       this.torso.add(mesh(new T.CylinderGeometry(0.14, 0.16, 0.18, 6), skin, 0, 0.92 * B.h, 0)); // neck
 
       // head
@@ -311,9 +312,24 @@ SAK.Scene3D = (function () {
         b.rotation.z = r; this.xEyes.add(b);
       }
       // nose + mouth — chunkier to read in close-ups
-      this.head.add(mesh(new T.IcosahedronGeometry(0.1, 0), skin, 0, 0.36, 0.53));
+      // V3: detailed nose with nostrils
+      const nose = mesh(new T.IcosahedronGeometry(0.1, 0), skin, 0, 0.36, 0.53);
+      nose.scale.set(1, 0.85, 0.9); this.head.add(nose);
+      const nostrilMat = mat('#3a2a22');
+      for (const sx of [-1, 1]) {
+        const nostril = mesh(new T.SphereGeometry(0.028, 6, 5), nostrilMat, sx * 0.045, 0.33, 0.58);
+        nostril.scale.set(1, 0.7, 0.5); this.head.add(nostril);
+      }
       this.mouth = mesh(new T.BoxGeometry(0.22, 0.07, 0.05), mat('#6b1d1d'), 0, 0.2, 0.46);
       this.head.add(this.mouth);
+      // V3: upper teeth — visible when mouth opens (grin/grimace/shock)
+      this.teeth = new T.Group(); this.head.add(this.teeth);
+      const teethMat = mat('#ffffff');
+      for (let t = 0; t < 4; t++) {
+        const tooth = mesh(new T.BoxGeometry(0.045, 0.05, 0.02), teethMat, (t - 1.5) * 0.055, 0.2, 0.485);
+        this.teeth.add(tooth);
+      }
+      this.teeth.visible = false;
       // --- Expression system: morphable mouth + eyelids + brow control ---
       // Mouth shapes: neutral (thin line), open (shock "O"), grimace (pain), grin (taunt)
       this.mouthShapes = {
@@ -347,6 +363,7 @@ SAK.Scene3D = (function () {
       const cut2 = new T.Mesh(new T.BoxGeometry(0.05, 0.15, 0.02), this.cutMat);
       cut2.position.set(-0.26, 0.3, 0.44); cut2.rotation.z = -0.5; this.head.add(cut2);
       this.buildAccessory();
+      this.buildParody(); // V3: parody fighter overlays (horns, visor, mustache, etc.)
       // ⛑ Defense Helmet power-up (hidden until used)
       this.helmet = new T.Group(); this.helmet.visible = false; this.head.add(this.helmet);
       const hm = mat('#ffd23f', {}); hm.emissive = new T.Color('#4a3300');
@@ -535,6 +552,29 @@ SAK.Scene3D = (function () {
       }
     }
 
+    /** V3: subtle pec/ab muscle definition layered on the torso. */
+    buildMuscles(shirtMat, B) {
+      // Skip for chonk (belly covers it) — keep it subtle for cartoon style
+      if (B.belly) return;
+      const m = (geo, x, y, z) => {
+        const mm = mesh(geo, shirtMat, x, y, z);
+        mm.userData.muscle = true; this.torso.add(mm); return mm;
+      };
+      const w = B.w;
+      // Pecs — two rounded shapes on upper chest
+      for (const sx of [-1, 1]) {
+        const pec = m(new T.SphereGeometry(0.16 * w, 8, 6), sx * 0.18 * w, 0.62 * B.h, 0.28 * B.d);
+        pec.scale.set(1, 0.75, 0.45);
+      }
+      // Abs — subtle center line definition (only for gymbro/classic)
+      if (B.arm >= 1) {
+        for (let i = 0; i < 2; i++) {
+          const ab = m(new T.SphereGeometry(0.09 * w, 7, 5), 0, (0.42 - i * 0.14) * B.h, 0.3 * B.d);
+          ab.scale.set(1.6, 0.7, 0.4);
+        }
+      }
+    }
+
     /** Hair style (avatar.hairStyle); KOLs without one keep the classic cap. */
     buildHair(hair) {
       const H = this.head, add = (geo, x, y, z, fn) => { const m = mesh(geo, hair, x, y, z); if (fn) fn(m); H.add(m); return m; };
@@ -610,6 +650,16 @@ SAK.Scene3D = (function () {
       const M = this.mouthShapes[expr === 'shock' ? 'open' : expr === 'pain' ? 'grimace' : expr === 'grin' ? 'grin' : 'neutral'] || this.mouthShapes.neutral;
       SAK.Tween.to(this.mouth.scale, { x: M.sx / 0.22, y: M.sy / 0.07 }, d);
       SAK.Tween.to(this.mouth.position, { y: M.y }, d);
+      // V3: teeth show on grin/grimace/shock, hide on neutral
+      if (this.teeth) {
+        const showTeeth = (expr === 'grin' || expr === 'pain' || expr === 'shock');
+        this.teeth.visible = showTeeth;
+        if (showTeeth) {
+          SAK.Tween.to(this.teeth.position, { y: M.y - 0.2 }, d);
+          const ts = M.sx / 0.22;
+          SAK.Tween.to(this.teeth.scale, { x: ts }, d);
+        }
+      }
       // Brows: focused = angled down/in, shock = raised high, pain = pinched up/inner
       const browCfg = {
         neutral: { y: 0, rot: 0 }, focused: { y: -0.04, rot: 0.3 },
@@ -634,6 +684,8 @@ SAK.Scene3D = (function () {
 
     buildAccessory() {
       const L = this.look, a = L.accent || '#111', H = this.head;
+      // V3: Patty Spice builds its own superior visor in buildPatty() — skip the standard one
+      if (L.parody === 'patty' && L.accessory === 'visor') return;
       const add = (geo, color, x, y, z, opts) => { const m = mesh(geo, typeof color === 'string' ? mat(color) : color, x, y, z); if (opts) opts(m); H.add(m); return m; };
       switch (L.accessory) {
         case 'shades':
@@ -692,6 +744,178 @@ SAK.Scene3D = (function () {
         case 'headband':
           add(new T.CylinderGeometry(0.52, 0.52, 0.1, 10), '#ff3b3b', 0, 0.68, 0);
           add(new T.BoxGeometry(0.06, 0.3, 0.06), '#ff3b3b', 0.1, 0.55, -0.52, m => { m.rotation.z = 0.5; }); break;
+      }
+    }
+
+    /* =====================================================================
+     * V3: PARODY FIGHTERS — cartoon parody overlays inspired by reference
+     * images. Triggered by look.parody: 'patty' | 'frankie' | 'ansom'.
+     * All parody meshes get userData.parody=true so rebuild() clears them.
+     * ===================================================================== */
+    buildParody() {
+      const P = this.look.parody;
+      if (!P) return;
+      const H = this.head;
+      const add = (geo, material, x, y, z, fn) => {
+        const m = mesh(geo, material, x, y, z);
+        m.userData.parody = true; if (fn) fn(m); H.add(m); return m;
+      };
+      if (P === 'patty') this.buildPatty(add);
+      else if (P === 'frankie') this.buildFrankie(add);
+      else if (P === 'ansom') this.buildAnsom(add);
+    }
+
+    /** Patty Spice: blue crystal bull — curved horns, spiky black hair, glowing visor. */
+    buildPatty(add) {
+      const L = this.look;
+      // Crystal skin override — swap skull material for icy blue physical material
+      const crystal = new T.MeshPhysicalMaterial({
+        color: '#4fb8ff', metalness: 0.1, roughness: 0.15,
+        transparent: true, opacity: 0.96,
+        emissive: new T.Color('#1a6fd8'), emissiveIntensity: 0.25,
+        clearcoat: 1, clearcoatRoughness: 0.1,
+      });
+      if (this.skull) this.skull.material = crystal;
+      // Tint all skin-colored meshes across the whole body
+      const skinHex = new T.Color(L.skin).getHexString();
+      this.root.traverse(o => {
+        if (o.isMesh && o.material && o.material.color &&
+            o.material.color.getHexString() === skinHex) {
+          o.material = crystal;
+        }
+      });
+      // Bull horns — curved, using stacked cones for the curl
+      const hornMat = new T.MeshStandardMaterial({ color: '#7fd4ff', metalness: 0.3, roughness: 0.25, emissive: new T.Color('#2a9fd8'), emissiveIntensity: 0.3 });
+      for (const sx of [-1, 1]) {
+        // Horn base curves up and out
+        const h1 = add(new T.ConeGeometry(0.13, 0.5, 8), hornMat, sx * 0.42, 0.95, -0.05, m => {
+          m.rotation.z = sx * -0.55; // tilt outward
+        });
+        const h2 = add(new T.ConeGeometry(0.09, 0.4, 8), hornMat, sx * 0.62, 1.22, -0.05, m => {
+          m.rotation.z = sx * -1.0; // curl more
+        });
+        const tip = add(new T.ConeGeometry(0.05, 0.25, 8), hornMat, sx * 0.72, 1.42, -0.05, m => {
+          m.rotation.z = sx * -1.35;
+        });
+      }
+      // Bull ears (wider, on sides)
+      for (const sx of [-1, 1]) {
+        const ear = add(new T.SphereGeometry(0.16, 8, 6), crystal, sx * 0.58, 0.42, -0.05, m => {
+          m.scale.set(1.3, 0.7, 0.5); m.rotation.z = sx * 0.4;
+        });
+      }
+      // Spiky black hair — dense spikes across the top
+      const hairMat = mat('#1a1a1a');
+      for (let i = 0; i < 12; i++) {
+        const a = (i / 12) * Math.PI * 2;
+        const r = 0.28 + Math.random() * 0.08;
+        add(new T.ConeGeometry(0.07, 0.28 + Math.random() * 0.12, 5), hairMat,
+          Math.sin(a) * r, 0.92 + Math.random() * 0.08, Math.cos(a) * r * 0.8 - 0.05, m => {
+            m.rotation.set(Math.cos(a) * 0.6, 0, -Math.sin(a) * 0.6);
+          });
+      }
+      // Glowing visor — wide futuristic sunglasses
+      const visorMat = new T.MeshPhysicalMaterial({
+        color: '#22d3ee', metalness: 0.6, roughness: 0.1,
+        transparent: true, opacity: 0.85,
+        emissive: new T.Color('#0ea5e9'), emissiveIntensity: 0.6,
+      });
+      const visor = add(new T.BoxGeometry(0.72, 0.2, 0.1), visorMat, 0, 0.52, 0.48, m => {
+        m.rotation.x = -0.08;
+      });
+      // Visor glow strip
+      add(new T.BoxGeometry(0.6, 0.03, 0.02),
+        new T.MeshBasicMaterial({ color: '#a5f3fc' }), 0, 0.56, 0.53);
+      // Bull nose ring
+      const ringMat = new T.MeshStandardMaterial({ color: '#ffd23f', metalness: 0.9, roughness: 0.2 });
+      add(new T.TorusGeometry(0.09, 0.02, 6, 16), ringMat, 0, 0.28, 0.55, m => {
+        m.rotation.x = Math.PI / 2.2;
+      });
+    }
+
+    /** Frankie NoGood: blonde buzz, brown mustache, beaded necklaces. */
+    buildFrankie(add) {
+      // Mustache — thick brown, curved
+      const stacheMat = mat('#6b4423');
+      for (const sx of [-1, 1]) {
+        add(new T.CapsuleGeometry(0.045, 0.14, 4, 8), stacheMat, sx * 0.09, 0.26, 0.5, m => {
+          m.rotation.z = Math.PI / 2 + sx * 0.35; // horizontal, tips curl up
+          m.rotation.y = sx * 0.2;
+        });
+      }
+      // Beaded necklaces — two strands (pink + light blue), draped on upper chest
+      const beadCols = ['#ff8fab', '#a5e8fc'];
+      for (let s = 0; s < 2; s++) {
+        const beadMat = new T.MeshStandardMaterial({
+          color: beadCols[s], roughness: 0.3, metalness: 0.1,
+          emissive: new T.Color(beadCols[s]), emissiveIntensity: 0.15,
+        });
+        const nBeads = 16, radius = 0.28 - s * 0.03;
+        const B = this.body || { h: 1 };
+        for (let i = 0; i < nBeads; i++) {
+          const a = (i / nBeads) * Math.PI * 2;
+          // Front drape: beads arc across the chest, lower in front
+          const x = Math.sin(a) * radius;
+          const z = Math.cos(a) * radius * 0.55 + 0.18;
+          if (z < 0.05) continue; // only front half
+          const y = (0.82 - Math.abs(Math.sin(a)) * 0.14 - s * 0.07) * (B.h || 1);
+          const bead = mesh(new T.SphereGeometry(0.035, 6, 5), beadMat, x, y, z);
+          bead.userData.parody = true; this.torso.add(bead);
+        }
+      }
+      // Slight smirk — asymmetric mouth handled by expression system, add a scar
+      add(new T.BoxGeometry(0.02, 0.08, 0.01), mat('#c98b5f'), -0.32, 0.35, 0.42, m => {
+        m.rotation.z = 0.3;
+      });
+    }
+
+    /** Ansom Bull: dark fighter, glowing green horns, curly hair, black jacket. */
+    buildAnsom(add) {
+      // Glowing green horns — curved demonic style
+      const hornMat = new T.MeshStandardMaterial({
+        color: '#39ff88', emissive: new T.Color('#22ff66'), emissiveIntensity: 0.9,
+        roughness: 0.3, metalness: 0.2,
+      });
+      const glowMat = new T.MeshBasicMaterial({
+        color: '#66ff99', transparent: true, opacity: 0.35,
+        blending: T.AdditiveBlending, depthWrite: false,
+      });
+      for (const sx of [-1, 1]) {
+        // Curved horn: base + mid + tip
+        add(new T.ConeGeometry(0.08, 0.3, 7), hornMat, sx * 0.3, 0.98, -0.08, m => {
+          m.rotation.z = sx * -0.4;
+        });
+        const tip = add(new T.ConeGeometry(0.05, 0.28, 7), hornMat, sx * 0.42, 1.18, -0.08, m => {
+          m.rotation.z = sx * -0.85;
+        });
+        // Glow halo around horns
+        const halo = new T.Mesh(new T.ConeGeometry(0.12, 0.5, 7), glowMat);
+        halo.position.set(sx * 0.36, 1.08, -0.08);
+        halo.rotation.z = sx * -0.6; halo.userData.parody = true;
+        this.head.add(halo);
+      }
+      // Dark curly hair — clustered spheres
+      const hairMat = mat('#0f0f0f');
+      for (let i = 0; i < 16; i++) {
+        const a = (i / 16) * Math.PI * 2;
+        const r = 0.3 + Math.random() * 0.1;
+        const curl = add(new T.SphereGeometry(0.09 + Math.random() * 0.04, 7, 6), hairMat,
+          Math.sin(a) * r, 0.85 + Math.random() * 0.15, Math.cos(a) * r * 0.75 - 0.08);
+        curl.scale.y = 0.8;
+      }
+      // Intense glowing eyes (subtle green tint)
+      const eyeGlow = new T.MeshBasicMaterial({ color: '#a7ffcb', transparent: true, opacity: 0.25, blending: T.AdditiveBlending, depthWrite: false });
+      for (const sx of [-1, 1]) {
+        const g = new T.Mesh(new T.SphereGeometry(0.12, 8, 6), eyeGlow);
+        g.position.set(sx * 0.18, 0.5, 0.44); g.userData.parody = true;
+        this.head.add(g);
+      }
+      // Black jacket collar (on torso — use torso group)
+      const collarMat = mat('#1a1a1a');
+      for (const sx of [-1, 1]) {
+        const collar = mesh(new T.BoxGeometry(0.2, 0.25, 0.08), collarMat, sx * 0.2, 0.78, 0.28);
+        collar.rotation.z = sx * -0.3; collar.rotation.x = -0.15;
+        collar.userData.parody = true; this.torso.add(collar);
       }
     }
 
