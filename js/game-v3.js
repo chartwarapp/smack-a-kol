@@ -1252,7 +1252,7 @@
 
     const winnerName = playerWonRound ? 'YOU' : F.kol.name;
     banner(
-      playerWonRound ? 'YOU TAKE IT' : `${winnerName} TAKES IT`,
+      playerWonRound ? pick(SAK.COPY.roundWinBanners) : pick(SAK.COPY.roundLoseBanners).replace('{k}', winnerName),
       playerWonRound ? '#39ff88' : '#ff3b5c',
       900
     );
@@ -1343,7 +1343,7 @@
     renderMeterFaces(null, loser); // KO face on the meter
     const ko = Scene ? Scene.knockout(loser) : wait(1.2);
     if (Scene && loser === 'kol') Scene.coinRain(70);                       // 🪙 coin rain on a win
-    banner(loser === 'kol' ? pick(['K.O.! WAGMI', 'SENT TO ZERO!', 'RUGGED! K.O.']) : pick(['NGMI…', 'LIQUIDATED!', 'REKT!']), loser === 'kol' ? '#39ff88' : '#ff3b5c', 1400);
+    banner(loser === 'kol' ? pick(SAK.COPY.koWinBanners) : pick(SAK.COPY.koLoseBanners), loser === 'kol' ? '#39ff88' : '#ff3b5c', 1400);
     await ko;
     F.wasKoWin = (loser === 'kol');
     endFight(loser === 'kol');
