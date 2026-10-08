@@ -115,6 +115,25 @@ SAK.Scene3D = (function () {
    * Dark limbal ring -> eye color -> bright center. Cached per color.
    * ------------------------------------------------------------------ */
   const irisTexCache = {};
+  /* Max-damage loss faces: dizzy spiral-eye texture (cartoon 🌀). Cached. */
+  let spiralTex = null;
+  function spiralTexture() {
+    if (spiralTex) return spiralTex;
+    const c = document.createElement('canvas'); c.width = c.height = 128;
+    const x = c.getContext('2d');
+    x.fillStyle = '#ffffff'; x.fillRect(0, 0, 128, 128);
+    x.strokeStyle = '#14141c'; x.lineWidth = 9; x.lineCap = 'round';
+    x.beginPath();
+    for (let a = 0; a < Math.PI * 6; a += 0.08) {
+      const r = 6 + (a / (Math.PI * 6)) * 54;
+      const px = 64 + Math.cos(a) * r, py = 64 + Math.sin(a) * r;
+      if (a === 0) x.moveTo(px, py); else x.lineTo(px, py);
+    }
+    x.stroke();
+    spiralTex = new T.CanvasTexture(c);
+    spiralTex.colorSpace = T.SRGBColorSpace;
+    return spiralTex;
+  }
   function irisTexture(color) {
     if (irisTexCache[color]) return irisTexCache[color];
     const c = document.createElement('canvas'); c.width = c.height = 128;
@@ -245,6 +264,43 @@ SAK.Scene3D = (function () {
     torsoTex.wrapS = torsoTex.wrapT = T.RepeatWrapping;
     torsoTex.offset.x = 0.5; // canvas center -> cylinder front (+z at u=0)
     return torsoTex;
+  }
+  // --- Outfit canvas textures (cached, shared) ---
+  let hawaiianTex = null, jerseyTex = null;
+  function hawaiianShirtTexture() {
+    if (hawaiianTex) return hawaiianTex;
+    const c = document.createElement('canvas'); c.width = c.height = 256;
+    const x = c.getContext('2d');
+    x.fillStyle = '#1e8a6e'; x.fillRect(0, 0, 256, 256); // teal base
+    const cols = ['#ff5a7a', '#ffd23f', '#ffffff', '#ff8a3d'];
+    for (let i = 0; i < 14; i++) {
+      const fx = (i * 67) % 256, fy = (i * 97) % 256, r = 12 + (i % 3) * 5;
+      x.fillStyle = cols[i % cols.length];
+      for (let p = 0; p < 5; p++) {
+        const a = p / 5 * Math.PI * 2 + i;
+        x.beginPath(); x.ellipse(fx + Math.cos(a) * r * 0.6, fy + Math.sin(a) * r * 0.6, r * 0.45, r * 0.28, a, 0, Math.PI * 2); x.fill();
+      }
+      x.fillStyle = '#7a2e1e'; x.beginPath(); x.arc(fx, fy, r * 0.3, 0, Math.PI * 2); x.fill();
+    }
+    hawaiianTex = new T.CanvasTexture(c);
+    if ('colorSpace' in hawaiianTex) hawaiianTex.colorSpace = T.SRGBColorSpace;
+    hawaiianTex.wrapS = hawaiianTex.wrapT = T.RepeatWrapping;
+    return hawaiianTex;
+  }
+  function jerseyTexture() {
+    if (jerseyTex) return jerseyTex;
+    const c = document.createElement('canvas'); c.width = c.height = 256;
+    const x = c.getContext('2d');
+    x.fillStyle = '#c8102e'; x.fillRect(0, 0, 256, 256); // red jersey
+    x.fillStyle = '#ffffff'; x.fillRect(0, 20, 256, 10); x.fillRect(0, 226, 256, 10); // trim stripes
+    x.font = 'bold 130px Arial'; x.textAlign = 'center'; x.textBaseline = 'middle';
+    x.fillStyle = '#ffffff'; x.fillText('88', 128, 128);
+    x.lineWidth = 6; x.strokeStyle = '#1a1a1a'; x.strokeText('88', 128, 128);
+    jerseyTex = new T.CanvasTexture(c);
+    if ('colorSpace' in jerseyTex) jerseyTex.colorSpace = T.SRGBColorSpace;
+    jerseyTex.wrapS = jerseyTex.wrapT = T.RepeatWrapping;
+    jerseyTex.offset.x = 0.5;
+    return jerseyTex;
   }
   const wait = s => new Promise(r => setTimeout(r, s * 1000));
 
@@ -552,6 +608,9 @@ SAK.Scene3D = (function () {
       // Progressive battle damage: black-eye ring + cheek scratch, revealed as hits land (cartoon, no gore).
       // Sized to read clearly in face close-ups (hit-cam + loser-face zoom).
       this.bruiseLevel = 0;
+      this.maxDamage = null;      // Group holding the random max-damage loss face
+      this.maxDamageVariant = -1; // 0..4 once applyMaxDamageFace() runs
+      this._boggling = false;     // double-windup head-boggle lock
       this.bruiseMat = new T.MeshBasicMaterial({ color: '#3d1d55', transparent: true, opacity: 0, depthWrite: false });
       const bruise = new T.Mesh(new T.SphereGeometry(0.185, 10, 8), this.bruiseMat);
       bruise.position.set(0.18, 0.5, 0.44); bruise.scale.set(1, 0.9, 0.45); this.head.add(bruise);
@@ -713,6 +772,12 @@ SAK.Scene3D = (function () {
         const m = mesh(geo, material, x, y, z);
         m.userData.outfit = true; this.torso.add(m); return m;
       };
+      const armAdd = (side, geo, material, x, y, z) => {
+        const arm = this.arms && this.arms[side];
+        if (!arm || !arm.shoulder) return null;
+        const m = mesh(geo, material, x, y, z);
+        m.userData.outfit = true; arm.shoulder.add(m); return m;
+      };
       switch (outfit) {
         case 'tank': {
           // Tank top — trim the shoulders (visual: white trim on collar/arms)
@@ -787,6 +852,126 @@ SAK.Scene3D = (function () {
           // waist chain — chunky silver U draped across the belt
           const chain = add(new T.TorusGeometry(0.4, 0.028, 6, 20, Math.PI), om('#c8ccd8'), 0, 0.28, 0.28);
           chain.rotation.z = Math.PI; // bottom half = draped
+          break;
+        }
+        case 'puffer': {
+          // Puffer vest — quilted puffy sections over a long-sleeve base
+          const vCol = om(shade((this.look && this.look.shirt) || '#2a4a8a', -0.12));
+          for (let r = 0; r < 3; r++) {
+            const y = 0.7 - r * 0.22;
+            for (const sx of [-1, 1]) {
+              const puff = add(new T.SphereGeometry(0.16, 10, 8), vCol, sx * 0.18, y, 0.26);
+              puff.scale.set(1.1, 0.75, 0.55); outline(puff, 1.05);
+            }
+            const mid = add(new T.SphereGeometry(0.14, 10, 8), vCol, 0, y, 0.29);
+            mid.scale.set(1.2, 0.75, 0.45);
+          }
+          add(new T.CylinderGeometry(0.2, 0.23, 0.14, 10), vCol, 0, 0.86, 0); // high collar
+          add(new T.BoxGeometry(0.04, 0.6, 0.03), om('#1a1a1c'), 0, 0.48, 0.37); // zipper
+          break;
+        }
+        case 'tracksuit': {
+          // Tracksuit — zip-up jacket with arm stripes
+          const tCol = om(shade((this.look && this.look.shirt) || '#1a6e2e', -0.1));
+          const stripe = om('#ffffff');
+          for (const sx of [-1, 1]) {
+            const panel = add(new T.BoxGeometry(0.3, 0.7, 0.1), tCol, sx * 0.3, 0.5, 0.3);
+            panel.rotation.y = -sx * 0.15; outline(panel, 1.06);
+            const collar = add(new T.BoxGeometry(0.2, 0.14, 0.08), tCol, sx * 0.14, 0.84, 0.22);
+            collar.rotation.x = -0.3;
+            // arm stripe down the outer arm
+            const st = armAdd(sx, new T.BoxGeometry(0.04, 0.5, 0.02), stripe, sx * 0.14, -0.28, 0.02);
+          }
+          add(new T.BoxGeometry(0.035, 0.64, 0.03), om('#1a1a1c'), 0.08, 0.5, 0.36); // zipper
+          add(new T.BoxGeometry(0.5, 0.08, 0.4), tCol, 0, 0.12, 0); // waistband
+          break;
+        }
+        case 'kimono': {
+          // Kimono — overlapping front panels, obi belt, wide sleeves
+          const kCol = om(shade((this.look && this.look.shirt) || '#4a1a6e', -0.08));
+          const left = add(new T.BoxGeometry(0.34, 0.66, 0.06), kCol, -0.1, 0.5, 0.3);
+          left.rotation.z = 0.12; outline(left, 1.06);
+          const right = add(new T.BoxGeometry(0.34, 0.66, 0.06), om(shade((this.look && this.look.shirt) || '#4a1a6e', 0.08)), 0.12, 0.5, 0.32);
+          right.rotation.z = -0.12;
+          add(new T.BoxGeometry(0.85, 0.16, 0.44), om('#c8102e'), 0, 0.18, 0); // obi belt
+          add(new T.BoxGeometry(0.14, 0.14, 0.1), om('#c8102e'), 0, 0.18, 0.26); // obi knot
+          for (const sx of [-1, 1]) {
+            const sleeve = armAdd(sx, new T.BoxGeometry(0.26, 0.4, 0.2), kCol, 0, -0.2, 0);
+            if (sleeve) outline(sleeve, 1.05);
+          }
+          break;
+        }
+        case 'leather': {
+          // Leather jacket — dark, shoulder pads, popped collar, zipper
+          const lCol = om('#2a1e1e');
+          for (const sx of [-1, 1]) {
+            const panel = add(new T.BoxGeometry(0.3, 0.7, 0.1), lCol, sx * 0.3, 0.5, 0.3);
+            panel.rotation.y = -sx * 0.15; outline(panel, 1.06);
+            const pad = add(new T.SphereGeometry(0.13, 10, 8), lCol, sx * 0.32, 0.82, 0.1);
+            pad.scale.set(1.2, 0.7, 1); outline(pad, 1.08);
+            const collar = add(new T.BoxGeometry(0.2, 0.18, 0.07), lCol, sx * 0.15, 0.88, 0.2);
+            collar.rotation.x = -0.55; // popped
+          }
+          add(new T.BoxGeometry(0.04, 0.64, 0.03), om('#c8ccd8'), 0.06, 0.5, 0.36); // silver zipper
+          break;
+        }
+        case 'hawaiian': {
+          // Hawaiian shirt — flower canvas texture overlay
+          const hwMat = new T.MeshToonMaterial({ map: hawaiianShirtTexture() });
+          const overlay = add(new T.CylinderGeometry(0.4, 0.35, 0.68, 12), hwMat, 0, 0.46, 0);
+          overlay.scale.z = 0.72; outline(overlay, 1.04);
+          add(new T.BoxGeometry(0.1, 0.3, 0.04), hwMat, -0.08, 0.68, 0.3).rotation.z = 0.2; // open collar L
+          add(new T.BoxGeometry(0.1, 0.3, 0.04), hwMat, 0.08, 0.68, 0.3).rotation.z = -0.2; // open collar R
+          break;
+        }
+        case 'jersey': {
+          // Basketball jersey — sleeveless with number, trim
+          const jMat = new T.MeshToonMaterial({ map: jerseyTexture() });
+          const overlay = add(new T.CylinderGeometry(0.38, 0.34, 0.66, 12), jMat, 0, 0.47, 0);
+          overlay.scale.z = 0.72; outline(overlay, 1.04);
+          for (const sx of [-1, 1])
+            add(new T.TorusGeometry(0.13, 0.025, 6, 12), om('#ffffff'), sx * 0.34, 0.72, 0).rotation.y = Math.PI / 2; // armhole trim
+          break;
+        }
+        case 'tactical': {
+          // Tactical vest — pouches, straps
+          const vCol = om('#3a4a2e');
+          for (const sx of [-1, 1]) {
+            const panel = add(new T.BoxGeometry(0.28, 0.6, 0.12), vCol, sx * 0.28, 0.52, 0.3);
+            outline(panel, 1.06);
+            // pouches
+            add(new T.BoxGeometry(0.16, 0.14, 0.08), om('#2a3520'), sx * 0.28, 0.58, 0.38);
+            add(new T.BoxGeometry(0.14, 0.12, 0.08), om('#2a3520'), sx * 0.28, 0.36, 0.38);
+          }
+          add(new T.BoxGeometry(0.7, 0.06, 0.4), om('#1a1a1a'), 0, 0.78, 0); // shoulder straps
+          add(new T.BoxGeometry(0.7, 0.06, 0.42), om('#1a1a1a'), 0, 0.2, 0); // waist strap
+          break;
+        }
+        case 'ninja': {
+          // Ninja gi — black, belt, arm wraps
+          const nCol = om('#1a1a1e');
+          add(new T.BoxGeometry(0.5, 0.55, 0.08), nCol, 0, 0.52, 0.28).rotation.z = 0.06; // wrap panel
+          const nBelt = add(new T.BoxGeometry(0.9, 0.1, 0.44), om('#8a1a1a'), 0, 0.14, 0); // red belt
+          outline(nBelt, 1.05);
+          add(new T.BoxGeometry(0.1, 0.16, 0.06), om('#8a1a1a'), 0.12, 0.06, 0.24); // belt tails
+          for (const sx of [-1, 1]) {
+            const wrap = armAdd(sx, new T.CylinderGeometry(0.12, 0.11, 0.3, 8), nCol, 0, -0.3, 0);
+            if (wrap) outline(wrap, 1.05);
+          }
+          break;
+        }
+        case 'denim': {
+          // Denim jacket — blue jean, buttons, collar
+          const dCol = om('#3a5a8a');
+          for (const sx of [-1, 1]) {
+            const panel = add(new T.BoxGeometry(0.3, 0.68, 0.1), dCol, sx * 0.3, 0.5, 0.3);
+            panel.rotation.y = -sx * 0.15; outline(panel, 1.06);
+            const collar = add(new T.BoxGeometry(0.2, 0.12, 0.07), dCol, sx * 0.15, 0.84, 0.22);
+            collar.rotation.x = -0.25;
+          }
+          for (let b = 0; b < 3; b++)
+            add(new T.SphereGeometry(0.025, 6, 5), om('#c8ccd8'), 0.12, 0.68 - b * 0.18, 0.36); // buttons
+          add(new T.BoxGeometry(0.5, 0.1, 0.4), dCol, 0, 0.14, 0); // hem
           break;
         }
       }
@@ -1614,6 +1799,88 @@ SAK.Scene3D = (function () {
       this.cutMat.opacity = frac > 0.45 ? Math.min(0.9, (frac - 0.45) * 1.6) : 0;
     }
 
+    /** Remove the random max-damage loss face (fresh pick every KO). */
+    clearMaxDamageFace() {
+      if (!this.maxDamage) return;
+      this.maxDamage.traverse(o => { if (o.geometry) o.geometry.dispose(); if (o.material) o.material.dispose(); });
+      this.head.remove(this.maxDamage);
+      this.maxDamage = null;
+      this.maxDamageVariant = -1;
+    }
+
+    /* ------------------------------------------------------------------
+     * MAX-DAMAGE loss faces — 5 random "wrecked" variants picked fresh on
+     * every KO so losses never look the same twice. They STACK on top of
+     * the progressive bruise system (bruises/black eye stay) instead of
+     * replacing it. Call once at KO time; cleared by resetPose().
+     * ------------------------------------------------------------------ */
+    applyMaxDamageFace() {
+      this.clearMaxDamageFace();
+      const g = new T.Group();
+      this.head.add(g);
+      this.maxDamage = g;
+      const skinTone = this.look.skin || '#ffe0c4';
+      const skinM = new T.MeshToonMaterial({ color: skinTone, gradientMap: toonGrad });
+      const ink = new T.MeshBasicMaterial({ color: '#14141c' });
+      const v = (Math.random() * 5) | 0;
+      this.maxDamageVariant = v;
+      const eyeY = 0.5;
+      if (v === 0) {
+        // 0 — Swollen shut: puffy bruised lump swallows the left eye; single X over the right.
+        const lump = new T.Mesh(new T.SphereGeometry(0.16, 12, 10), skinM);
+        lump.position.set(-0.18, eyeY + 0.02, 0.48); lump.scale.set(1.15, 0.6, 0.75); g.add(lump);
+        const puff = new T.Mesh(new T.SphereGeometry(0.165, 12, 10),
+          new T.MeshBasicMaterial({ color: '#3d1d55', transparent: true, opacity: 0.55, depthWrite: false }));
+        puff.position.copy(lump.position); puff.scale.copy(lump.scale).multiplyScalar(1.03); g.add(puff);
+        for (const r of [0.785, -0.785]) {
+          const b = new T.Mesh(new T.BoxGeometry(0.2, 0.045, 0.04), ink);
+          b.position.set(0.18, eyeY, 0.52); b.rotation.z = r; g.add(b);
+        }
+        this.xEyes.visible = false;
+      } else if (v === 1) {
+        // 1 — Toothless grin: big gummy grin, teeth hidden, both eyes X'd (standard xEyes).
+        if (this.teeth) this.teeth.visible = false;
+        this.mouth.scale.set(1.7, 1.1, 1);
+        this.mouth.position.y = 0.2;
+        const gum = new T.Mesh(new T.SphereGeometry(0.09, 10, 8),
+          new T.MeshBasicMaterial({ color: '#8a4a5a' }));
+        gum.position.set(0, 0.17, 0.47); gum.scale.set(1.8, 0.6, 0.5); g.add(gum);
+      } else if (v === 2) {
+        // 2 — Spiral eyes: dizzy 🌀 spirals instead of X eyes.
+        const tex = spiralTexture();
+        for (const sx of [-1, 1]) {
+          const d = new T.Mesh(new T.SphereGeometry(0.115, 16, 12),
+            new T.MeshBasicMaterial({ map: tex }));
+          d.position.set(sx * 0.18, eyeY, 0.5); d.scale.z = 0.4; g.add(d);
+        }
+        this.xEyes.visible = false;
+      } else if (v === 3) {
+        // 3 — Lump city: head bumps everywhere + cross-eyed.
+        const lumpPos = [[0, 0.8, 0.28], [-0.32, 0.68, 0.26], [0.32, 0.66, 0.26], [0.14, 0.88, 0.08]];
+        lumpPos.forEach(p => {
+          const l = new T.Mesh(new T.SphereGeometry(0.09, 10, 8), skinM);
+          l.position.set(p[0], p[1], p[2]); g.add(l);
+        });
+        const irisT = irisTexture(this.look.eyeColor || '#1a1a1a');
+        for (const sx of [-1, 1]) {
+          const s = new T.Mesh(new T.SphereGeometry(0.075, 14, 10),
+            new T.MeshBasicMaterial({ map: irisT }));
+          s.position.set(sx * 0.08, eyeY, 0.52); s.scale.z = 0.45; g.add(s); // shifted nose-ward = cross-eyed
+        }
+        this.xEyes.visible = false;
+      } else {
+        // 4 — Bandaged: white strips across the face + one black eye. Eyes stay visible.
+        const band = new T.MeshBasicMaterial({ color: '#f2f2f2' });
+        const b1 = new T.Mesh(new T.BoxGeometry(0.52, 0.09, 0.06), band);
+        b1.position.set(0, 0.74, 0.42); b1.rotation.z = 0.35; g.add(b1);
+        const b2 = new T.Mesh(new T.BoxGeometry(0.42, 0.09, 0.06), band);
+        b2.position.set(-0.08, 0.3, 0.44); b2.rotation.z = -0.2; g.add(b2);
+        const black = new T.Mesh(new T.SphereGeometry(0.13, 12, 10),
+          new T.MeshBasicMaterial({ color: '#2a1a2e', transparent: true, opacity: 0.85, depthWrite: false }));
+        black.position.set(0.18, eyeY, 0.5); black.scale.set(1, 1, 0.5); g.add(black);
+      }
+    }
+
     setFire(on) {
       this.fire = on;
       const m = this.arms[this.armSide].handMat;
@@ -1633,8 +1900,13 @@ SAK.Scene3D = (function () {
       this.head.rotation.set(P.hx || 0, P.hy || 0, P.hz || 0);
       this.applyArm(this.arms[-1], ...(P.armL || [1.2, 0.5, 0.4]));
       this.applyArm(this.arms[1], ...(P.armR || [1.2, -0.5, 0.4]));
-      this.xEyes.visible = true; this.eyes.visible = false;
+      // Max-damage loss face (if one was picked this KO): variants 0/2/3 use
+      // custom eyes, so keep the standard X eyes hidden for those.
+      const mdv = this.maxDamageVariant;
+      this.xEyes.visible = !(mdv === 0 || mdv === 2 || mdv === 3);
+      this.eyes.visible = false;
       this.mouth.scale.set(1, 3, 1);
+      if (mdv === 1) { this.mouth.scale.set(1.7, 1.1, 1); if (this.teeth) this.teeth.visible = false; }
     }
 
     /** Freeze into the KO landing pose ONCE (no per-frame snap) + start settle. */
@@ -1658,7 +1930,8 @@ SAK.Scene3D = (function () {
       Object.assign(this.pose, { lift: 0.12, swing: 0, elbow: 0.15, twist: 0, lean: 0, lunge: 0, guard: 0 });
       this.yaw.x = this.yaw.v = this.roll.x = this.roll.v = 0;
       this.ko = null; this.xEyes.visible = false; this.eyes.visible = true;
-      this._wobbling = this._spinning = this._bobbling = false; // clear bonus-reaction locks
+      this._wobbling = this._spinning = this._bobbling = this._boggling = false; // clear bonus-reaction locks
+      this.clearMaxDamageFace();
       this.mouth.scale.set(1, 1, 1);
       if (this.eyes) this.eyes.scale.set(1, 1, 1);
       this.clearHitFX();
@@ -2956,6 +3229,42 @@ SAK.Scene3D = (function () {
     });
   }
 
+  /** Head boggle — rapid cartoon head shake after a double-windup slam.
+   *  Kicks the roll spring (which drives head.rotation.z via the per-frame
+   *  pose driver) with alternating impulses so it oscillates ±0.3 and
+   *  decays naturally over ~0.6s. KO-safe. */
+  function boggleHead(D) {
+    if (!D || D.ko || D._boggling) return;
+    D._boggling = true;
+    const kicks = [4.2, -5.2, 4.6, -3.6];
+    let i = 0;
+    const step = () => {
+      if (D.ko || i >= kicks.length) { D._boggling = false; return; }
+      D.roll.v += kicks[i++] * (Math.random() > 0.5 ? 1 : -1);
+      setTimeout(step, 130);
+    };
+    step();
+    setTimeout(() => { D._boggling = false; }, 1000);
+  }
+
+  /** White face flash — bright additive glow pop right on the defender's
+   *  face for the double-windup payoff. Brief (~0.2s), self-disposing. */
+  function faceFlash(D) {
+    if (!D || !D.head) return;
+    const hp = D.headWorld();
+    const sp = new T.Sprite(new T.SpriteMaterial({
+      map: getGlowTex(), transparent: true, blending: T.AdditiveBlending,
+      depthWrite: false, color: '#ffffff'
+    }));
+    sp.position.copy(hp);
+    sp.scale.setScalar(2.4);
+    scene.add(sp);
+    SAK.Tween.to(sp.scale, { x: 3.4, y: 3.4 }, 0.2, SAK.Ease.outCubic);
+    SAK.Tween.to(sp.material, { opacity: 0 }, 0.2, SAK.Ease.inCubic).then(() => {
+      scene.remove(sp); sp.material.dispose();
+    });
+  }
+
   function applyHitReact(D, tier, fire) {
     const R = HIT_REACT[tier] || HIT_REACT.light;
     const fireMul = fire ? 1.35 : 1;
@@ -3229,6 +3538,7 @@ SAK.Scene3D = (function () {
     crowdExcite(3); // crowd goes wild
     F.xEyes.visible = true; F.eyes.visible = false;
     F.mouth.scale.set(1, 3, 1);
+    F.applyMaxDamageFace(); // random wrecked loss face, fresh every KO (stacks on bruises)
 
     // KO variety: fly-outs are rare treats now, even on big hits. Most KOs end
     // with the loser dropping in place — usually a dead-weight crumple, sometimes
