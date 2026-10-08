@@ -270,6 +270,7 @@ SAK.Scene3D = (function () {
       body.scale.z = 0.68 * B.d; this.torso.add(body);
       if (B.belly) { const belly = mesh(new T.IcosahedronGeometry(0.42, 1), shirt, 0, 0.3, 0.28); belly.scale.set(1.15, 0.9, 0.85); this.torso.add(belly); }
       this.torso.add(mesh(new T.BoxGeometry(0.86 * Math.max(B.w / Math.max(1, B.taper * 0.85), 0.8), 0.1, 0.42 * B.d), pants, 0, 0.03, 0)); // belt
+      this.buildOutfit();
       this.torso.add(mesh(new T.CylinderGeometry(0.14, 0.16, 0.18, 6), skin, 0, 0.92 * B.h, 0)); // neck
 
       // head
@@ -392,7 +393,146 @@ SAK.Scene3D = (function () {
         th.add(mesh(new T.SphereGeometry(0.023, 5, 4), handMat, 0, -0.11, 0));
         this.arms[side] = { shoulder, elbow, hand, handMat, side };
       }
+      this.buildGloves();
       this.root.traverse(o => { o.userData.fighter = this; });
+    }
+
+    /** NFT trait: glove variants. Each wraps the hand with distinct geometry. */
+    buildGloves() {
+      const gloveType = (this.look && this.look.gloves) || 'wrap';
+      const gm = (c, opts) => mat(c, opts);
+      for (const side of [-1, 1]) {
+        const arm = this.arms[side];
+        if (!arm || !arm.hand) continue;
+        const hand = arm.hand;
+        // Remove old glove meshes
+        const toRemove = [];
+        hand.children.forEach(ch => { if (ch.userData.glove) toRemove.push(ch); });
+        toRemove.forEach(ch => hand.remove(ch));
+        const add = (geo, material, x, y, z) => {
+          const m = mesh(geo, material, x, y, z);
+          m.userData.glove = true; hand.add(m); return m;
+        };
+        switch (gloveType) {
+          case 'wrap': {
+            // Cloth hand wraps — bands around palm and wrist
+            const wrapMat = gm('#e8e0d0');
+            add(new T.BoxGeometry(0.22, 0.06, 0.11), wrapMat, 0, -0.02, 0);
+            add(new T.BoxGeometry(0.22, 0.05, 0.11), wrapMat, 0, -0.08, 0);
+            add(new T.CylinderGeometry(0.07, 0.075, 0.12, 8), wrapMat, 0, 0.06, 0); // wrist wrap
+            break;
+          }
+          case 'mma': {
+            // MMA gloves — padded knuckles, open fingers
+            const mmaMat = gm('#2a2a35');
+            add(new T.BoxGeometry(0.23, 0.1, 0.12), mmaMat, 0, -0.04, 0); // knuckle pad
+            add(new T.CylinderGeometry(0.07, 0.075, 0.14, 8), mmaMat, 0, 0.05, 0); // wrist strap
+            break;
+          }
+          case 'boxing': {
+            // Big puffy boxing gloves — cover the whole hand
+            const boxMat = gm('#d42a2a');
+            const glove = add(new T.SphereGeometry(0.19, 12, 10), boxMat, 0, -0.08, 0);
+            glove.scale.set(1, 1.25, 0.9);
+            add(new T.CylinderGeometry(0.08, 0.09, 0.14, 8), gm('#ffffff'), 0, 0.08, 0); // cuff
+            // Hide fingers inside the big glove
+            arm.hand.children.forEach(ch => { if (!ch.userData.glove && ch.type === 'Group') ch.visible = false; });
+            break;
+          }
+          case 'gold': {
+            // Golden fists — metallic gold material on knuckles
+            const goldMat = new T.MeshStandardMaterial({ color: '#ffd23f', metalness: 0.85, roughness: 0.25 });
+            add(new T.BoxGeometry(0.22, 0.09, 0.11), goldMat, 0, -0.03, 0);
+            const g = gm('#ffd23f'); g.metalness = 0.7; g.roughness = 0.3;
+            break;
+          }
+          case 'spike': {
+            // Spiked knuckles — metal band with spikes
+            const spikeMat = gm('#3a3a45');
+            add(new T.BoxGeometry(0.23, 0.07, 0.11), spikeMat, 0, -0.04, 0);
+            for (let s = 0; s < 4; s++) {
+              const spike = add(new T.ConeGeometry(0.025, 0.07, 6), gm('#c0c0d0'), (s - 1.5) * 0.055, -0.1, 0.02);
+              spike.rotation.x = Math.PI; // point outward
+            }
+            break;
+          }
+          case 'diamond': {
+            // Diamond fists — sparkling crystalline material
+            const diaMat = new T.MeshStandardMaterial({
+              color: '#b8f0ff', metalness: 0.1, roughness: 0.05,
+              transparent: true, opacity: 0.92,
+              emissive: new T.Color('#4fa8ff'), emissiveIntensity: 0.35,
+            });
+            const d = add(new T.OctahedronGeometry(0.13), diaMat, 0, -0.04, 0);
+            d.scale.set(1.1, 0.7, 0.8);
+            // Sparkle points
+            for (let s = 0; s < 3; s++) {
+              const sp = add(new T.OctahedronGeometry(0.03),
+                new T.MeshBasicMaterial({ color: '#ffffff' }),
+                (Math.random() - 0.5) * 0.15, -0.04 + (Math.random() - 0.5) * 0.08, 0.06);
+            }
+            break;
+          }
+        }
+      }
+    }
+
+    /** NFT trait: outfit variants layered over the base torso. */
+    buildOutfit() {
+      const outfit = (this.look && this.look.outfit) || 'tee';
+      if (outfit === 'tee') return; // default shirt is the tee
+      const om = (c, opts) => mat(c, opts);
+      const add = (geo, material, x, y, z) => {
+        const m = mesh(geo, material, x, y, z);
+        m.userData.outfit = true; this.torso.add(m); return m;
+      };
+      switch (outfit) {
+        case 'tank': {
+          // Tank top — trim the shoulders (visual: white trim on collar/arms)
+          add(new T.TorusGeometry(0.16, 0.025, 6, 16), om('#ffffff'), 0, 0.82, 0).rotation.x = Math.PI / 2;
+          break;
+        }
+        case 'hoodie': {
+          // Hoodie — hood resting on back + pocket + drawstrings
+          const hood = add(new T.SphereGeometry(0.24, 10, 8, 0, Math.PI * 2, 0, Math.PI * 0.6), om('#3a3a4a'), 0, 0.78, -0.3);
+          hood.rotation.x = 0.5;
+          add(new T.BoxGeometry(0.3, 0.18, 0.06), om('#2a2a35'), 0, 0.25, 0.32); // kangaroo pocket
+          for (const sx of [-0.08, 0.08])
+            add(new T.CylinderGeometry(0.012, 0.012, 0.18, 5), om('#ffffff'), sx, 0.68, 0.33); // drawstrings
+          break;
+        }
+        case 'gi': {
+          // Fight gi — white with black belt
+          add(new T.BoxGeometry(0.5, 0.5, 0.06), om('#f5f5f5'), 0, 0.55, 0.28); // gi lapel
+          add(new T.BoxGeometry(0.9, 0.12, 0.45), om('#1a1a1a'), 0, 0.05, 0); // black belt
+          const knot = add(new T.BoxGeometry(0.12, 0.12, 0.08), om('#1a1a1a'), 0, 0.05, 0.24);
+          break;
+        }
+        case 'suit': {
+          // Suit — lapels + tie
+          for (const sx of [-1, 1]) {
+            const lapel = add(new T.BoxGeometry(0.14, 0.4, 0.04), om('#1f1f2e'), sx * 0.12, 0.6, 0.3);
+            lapel.rotation.z = sx * 0.25;
+          }
+          add(new T.BoxGeometry(0.09, 0.35, 0.03), om('#ff3b5c'), 0, 0.58, 0.32); // tie
+          break;
+        }
+        case 'gold': {
+          // Gold lamé — shiny metallic gold overlay
+          const goldMat = new T.MeshStandardMaterial({ color: '#ffd23f', metalness: 0.9, roughness: 0.2 });
+          const overlay = add(new T.CylinderGeometry(0.42, 0.36, 0.7, 8), goldMat, 0, 0.44, 0);
+          overlay.scale.z = 0.7;
+          break;
+        }
+        case 'royal': {
+          // Royal robe — flowing cape + fur trim + gold chain
+          const cape = add(new T.PlaneGeometry(0.9, 1.1), new T.MeshStandardMaterial({ color: '#6b1d5e', roughness: 0.8, side: T.DoubleSide }), 0, 0.3, -0.35);
+          cape.rotation.x = 0.15;
+          add(new T.TorusGeometry(0.2, 0.05, 6, 14), om('#ffffff'), 0, 0.82, 0).rotation.x = Math.PI / 2; // fur collar
+          add(new T.TorusGeometry(0.18, 0.02, 6, 16), om('#ffd23f'), 0, 0.65, 0.15).rotation.x = Math.PI / 2.3; // gold chain
+          break;
+        }
+      }
     }
 
     /** Hair style (avatar.hairStyle); KOLs without one keep the classic cap. */
@@ -412,10 +552,27 @@ SAK.Scene3D = (function () {
             add(new T.ConeGeometry(0.11, 0.32, 4), Math.sin(a) * 0.26, 0.93 + (i % 2) * 0.04, Math.cos(a) * 0.26 - 0.06, m => { m.rotation.set(Math.cos(a) * 0.55, 0, -Math.sin(a) * 0.55); });
           }
           add(new T.ConeGeometry(0.12, 0.36, 4), 0, 1.02, -0.02); break;
-        case 'mohawk':
+        case 'mohawk': {
           cap(0.508, 0.3);
-          for (let i = 0; i < 6; i++) { const t = -0.75 + i * 0.3; add(new T.BoxGeometry(0.1, 0.28 - Math.abs(t) * 0.08, 0.16), 0, 0.42 + Math.cos(t) * 0.55, Math.sin(t) * 0.52, m => { m.rotation.x = t; }); }
+          // Tall dramatic mohawk with color tips
+          for (let i = 0; i < 7; i++) {
+            const t = -0.9 + i * 0.3;
+            const h = 0.42 - Math.abs(t) * 0.12;
+            add(new T.BoxGeometry(0.09, h, 0.14), 0, 0.45 + Math.cos(t) * 0.55, Math.sin(t) * 0.52, m => { m.rotation.x = t * 0.8; });
+            // Colored tip
+            add(new T.BoxGeometry(0.095, 0.08, 0.145), 0, 0.45 + h / 2 + Math.cos(t) * 0.55, Math.sin(t) * 0.52, m => {
+              m.rotation.x = t * 0.8;
+              m.material = mat('#ff3b5c');
+            });
+          }
+          // Shaved sides (skin-colored caps)
+          for (const sx of [-1, 1])
+            add(new T.SphereGeometry(0.3, 10, 8, 0, Math.PI * 2, 0, Math.PI * 0.45), sx * 0.32, 0.55, 0, m => {
+              m.material = mat(this.look.skin || '#f6c9a0');
+              m.rotation.z = sx * 0.4;
+            });
           break;
+        }
         case 'long':
           cap(0.545, 0.52);
           add(new T.BoxGeometry(0.92, 0.85, 0.2), 0, 0.12, -0.38, m => { m.rotation.x = 0.08; });
@@ -486,9 +643,24 @@ SAK.Scene3D = (function () {
           add(new T.SphereGeometry(0.55, 9, 5, 0, Math.PI * 2, 0, Math.PI * 0.45), L.shirt, 0, 0.55, 0);
           add(new T.BoxGeometry(0.62, 0.05, 0.4), L.shirt, 0, 0.7, 0.45, m => { m.rotation.x = 0.15; }); break;
         case 'crown': {
-          add(new T.CylinderGeometry(0.34, 0.36, 0.18, 8, 1, true), mat(a, { side: T.DoubleSide }), 0, 0.97, 0);
-          for (let i = 0; i < 6; i++) { const ang = i / 6 * Math.PI * 2; add(new T.ConeGeometry(0.07, 0.18, 4), a, Math.sin(ang) * 0.34, 1.14, Math.cos(ang) * 0.34); }
-          add(new T.IcosahedronGeometry(0.06, 0), '#ff2d55', 0, 0.98, 0.36); break; }
+          const goldMat = new T.MeshStandardMaterial({ color: '#ffd23f', metalness: 0.9, roughness: 0.25 });
+          add(new T.CylinderGeometry(0.34, 0.37, 0.2, 10, 1, true), goldMat, 0, 0.98, 0);
+          add(new T.TorusGeometry(0.35, 0.03, 6, 20), goldMat, 0, 0.88, 0).rotation.x = Math.PI / 2;
+          for (let i = 0; i < 8; i++) {
+            const ang = i / 8 * Math.PI * 2;
+            const spike = add(new T.ConeGeometry(0.06, 0.22, 5), goldMat, Math.sin(ang) * 0.34, 1.18, Math.cos(ang) * 0.34);
+            // Jewel on every other spike
+            if (i % 2 === 0) {
+              const jewel = add(new T.OctahedronGeometry(0.045),
+                new T.MeshStandardMaterial({ color: i % 4 === 0 ? '#ff2d55' : '#4fa8ff', metalness: 0.3, roughness: 0.1, emissive: new T.Color(i % 4 === 0 ? '#ff2d55' : '#4fa8ff'), emissiveIntensity: 0.4 }),
+                Math.sin(ang) * 0.34, 1.28, Math.cos(ang) * 0.34);
+            }
+          }
+          // Front centerpiece gem
+          add(new T.OctahedronGeometry(0.07),
+            new T.MeshStandardMaterial({ color: '#ff2d55', metalness: 0.2, roughness: 0.05, emissive: new T.Color('#ff2d55'), emissiveIntensity: 0.5 }),
+            0, 1.0, 0.37);
+          break; }
         case 'laser': {
           // Red glowing eyes (the meme look) — beams removed, glow stays.
           const gm = new T.MeshBasicMaterial({ color: '#ff2222' });
