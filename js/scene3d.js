@@ -539,15 +539,15 @@ SAK.Scene3D = (function () {
         const shoulder = new T.Group(); shoulder.position.set(side * B.sh, 0.78 * B.h, 0); this.torso.add(shoulder);
         const delt = mesh(new T.SphereGeometry(0.17 * B.arm, 14, 10), shirt, 0, 0, 0);
         shoulder.add(delt); outline(delt, 1.075);
-        const upper = mesh(new T.CylinderGeometry(0.13 * B.arm, 0.11 * B.arm, 0.55, 12), shirt, 0, -0.27, 0);
+        const upper = mesh(new T.CylinderGeometry(0.13 * B.arm, 0.11 * B.arm, 0.48, 12), shirt, 0, -0.24, 0);
         shoulder.add(upper); outline(upper, 1.075);
-        const elbow = new T.Group(); elbow.position.y = -0.55; shoulder.add(elbow);
-        const fore = mesh(new T.CylinderGeometry(0.105 * B.arm, 0.09 * B.arm, 0.45, 12), skin, 0, -0.22, 0);
+        const elbow = new T.Group(); elbow.position.y = -0.48; shoulder.add(elbow);
+        const fore = mesh(new T.CylinderGeometry(0.105 * B.arm, 0.09 * B.arm, 0.4, 12), skin, 0, -0.2, 0);
         elbow.add(fore); outline(fore, 1.075);
         const handMat = mat(L.skin, {}); // own material so it can turn golden
         // Open palm with individual fingers (Slap Kings-style readability) —
         // a Group so the slap squash-scale still flattens the whole hand.
-        const hand = new T.Group(); hand.position.set(0, -0.52, 0); hand.scale.setScalar(1.5); elbow.add(hand); // +25% hand size — it's a slap game, big cartoon hands read better
+        const hand = new T.Group(); hand.position.set(0, -0.46, 0); hand.scale.setScalar(1.5); elbow.add(hand); // +25% hand size — it's a slap game, big cartoon hands read better
         const palm = mesh(new T.SphereGeometry(0.11, 14, 10), handMat, 0, -0.02, 0);
         palm.scale.set(0.95, 0.75, 0.45); hand.add(palm); // rounded palm
         outline(palm, 1.14); // V5: bold comic outline on the slap hand
