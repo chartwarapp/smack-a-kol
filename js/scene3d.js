@@ -3487,11 +3487,21 @@ SAK.Scene3D = (function () {
     await wait(0.1);
     if (opts.grade !== 'miss' && tier) {
       const R = applyHitReact(D, tier, !!opts.fire);
-      // Faces: defender shock on impact, then pain. Heavy hits leave them dizzy.
+      // Faces: light slap = dismissive head shake, no pain. Heavier = shock then pain/dizzy.
       try {
-        D.setExpression('shock', 0.1);
-        setTimeout(() => { try { D.setExpression(tier === 'heavy' || tier === 'perfect' ? 'dizzy' : 'pain', 0.25); } catch (e) {} }, 180);
-        setTimeout(() => { try { D.setExpression('neutral', 0.4); } catch (e) {} }, 1200);
+        if (tier === 'light') {
+          // Soft slap: shake head side-to-side ("nah"), stay neutral — no pain face
+          D.setExpression('neutral', 0.15);
+          const hy0 = D.head.rotation.y;
+          SAK.Tween.to(D.head.rotation, { y: hy0 - 0.35 }, 0.12, SAK.Ease.outCubic)
+            .then(() => SAK.Tween.to(D.head.rotation, { y: hy0 + 0.35 }, 0.18, SAK.Ease.inOutQuad))
+            .then(() => SAK.Tween.to(D.head.rotation, { y: hy0 - 0.2 }, 0.15, SAK.Ease.inOutQuad))
+            .then(() => { if (!D.ko) SAK.Tween.to(D.head.rotation, { y: hy0 }, 0.2, SAK.Ease.outCubic); });
+        } else {
+          D.setExpression('shock', 0.1);
+          setTimeout(() => { try { D.setExpression(tier === 'heavy' || tier === 'perfect' ? 'dizzy' : 'pain', 0.25); } catch (e) {} }, 180);
+          setTimeout(() => { try { D.setExpression('neutral', 0.4); } catch (e) {} }, 1200);
+        }
       } catch (e) {}
       const hp = D.headWorld();
       if (opts.dmg > 0) damageNumber(hp, '-' + opts.dmg, tier === 'perfect' ? '#39ff88' : tier === 'heavy' ? '#ffd23f' : '#ffffff'); // V2
