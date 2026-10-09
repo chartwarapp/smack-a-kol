@@ -10,7 +10,7 @@
   .card { background: #1a0b3a; border: 2px solid #ffd23f; border-radius: 12px; padding: 20px; margin: 16px 0; }
   .btn { background: #ffd23f; color: #000; border: none; padding: 14px 28px; font-size: 16px; font-weight: bold; border-radius: 10px; cursor: pointer; width: 100%; margin: 8px 0; }
   .btn:disabled { opacity: 0.5; cursor: not-allowed; }
-  .status { font-family: monospace; font-size: 13px; background: #000; padding: 12px; border-radius: 8px; margin: 12px 0; white-space: pre-wrap; word-break: break-all; }
+  .status { font-family: monospace; font-size: 13px; background: #000; padding: 12px; border-radius: 8px; margin: 12px 0; white-space: pre-wrap; word-break: break-all; min-height: 60px; }
   code { background: #000; padding: 2px 6px; border-radius: 4px; font-size: 12px; word-break: break-all; }
   .warn { background: #3a1a0b; border: 2px solid #ff6b3b; border-radius: 8px; padding: 12px; margin: 12px 0; }
 </style>
@@ -48,67 +48,86 @@
 <div class="status" id="status">Not connected.</div>
 
 <script src="https://unpkg.com/@solana/web3.js@1.95.3/lib/index.iife.min.js"></script>
-<script src="https://unpkg.com/buffer@6.0.3/index.js"></script>
 <script>
-// Buffer polyfill fallback for mobile browsers
-if (typeof Buffer === 'undefined' && window.buffer) {
-  window.Buffer = window.buffer.Buffer;
-}
-<script>
+(function() {
+'use strict';
+
 const ESCROW_PROGRAM = 'F4kqMuoAP4kzDT6x41ha15UPicBpQpQay5Txsg85cSWr';
 const HOUSE_PROGRAM = 'SpYmnT53X3KyYYawSLLzD8hVqWFTkNUQf3a8L3rCzjN';
 const NATIVE_MINT = 'So11111111111111111111111111111111111111112';
 const RPC_URL = 'https://api.devnet.solana.com';
-const INIT_DISC = [175, 175, 109, 31, 13, 152, 155, 237];
+const INIT_DISC = new Uint8Array([175, 175, 109, 31, 13, 152, 155, 237]);
 
 let wallet = null;
 let walletPubkey = null;
 
 const $ = id => document.getElementById(id);
 const log = msg => { $('status').textContent += '\n' + msg; };
+const te = new TextEncoder();
+
+function u16(n) {
+  const b = new Uint8Array(2);
+  new DataView(b.buffer).setUint16(0, n, true);
+  return b;
+}
+function u64(n) {
+  const b = new Uint8Array(8);
+  new DataView(b.buffer).setBigUint64(0, BigInt(n), true);
+  return b;
+}
+function concat(...arrs) {
+  const total = arrs.reduce((s, a) => s + a.length, 0);
+  const out = new Uint8Array(total);
+  let o = 0;
+  for (const a of arrs) { out.set(a, o); o += a.length; }
+  return out;
+}
 
 function getProvider() {
-  if (window.phantom?.solana?.isPhantom) return window.phantom.solana;
-  if (window.solflare?.isSolflare) return window.solflare;
-  if (window.solana?.isPhantom) return window.solana;
+  if (window.phantom && window.phantom.solana && window.phantom.solana.isPhantom) return window.phantom.solana;
+  if (window.solflare && window.solflare.isSolflare) return window.solflare;
+  if (window.solana && window.solana.isPhantom) return window.solana;
+  if (window.solana) return window.solana;
   return null;
 }
 
-$('btn-connect').onclick = async () => {
-  const provider = getProvider();
-  if (!provider) { log('❌ No wallet found. Install Phantom or Solflare.'); return; }
+$('btn-connect').addEventListener('click', async () => {
   try {
+    if (typeof window.solanaWeb3 === 'undefined') {
+      log('❌ web3.js still loading, wait a moment and try again.');
+      return;
+    }
+    const provider = getProvider();
+    if (!provider) { log('❌ No wallet found. Install Phantom or Solflare.'); return; }
+    log('Connecting...');
     const resp = await provider.connect();
     wallet = provider;
     walletPubkey = resp.publicKey.toString();
-    log('✅ Connected: ' + walletPubkey);
+    $('status').textContent = '✅ Connected: ' + walletPubkey;
     $('btn-init').disabled = false;
     $('btn-connect').textContent = '✅ CONNECTED';
     $('btn-connect').disabled = true;
   } catch (e) {
-    log('❌ Connect failed: ' + e.message);
+    log('❌ Connect failed: ' + (e.message || e));
   }
-};
+});
 
-function u16(n) { const b = Buffer.alloc(2); b.writeUInt16LE(n, 0); return b; }
-function u64(n) { const b = Buffer.alloc(8); b.writeBigUInt64LE(BigInt(n), 0); return b; }
-
-$('btn-init').onclick = async () => {
+$('btn-init').addEventListener('click', async () => {
   const btn = $('btn-init');
   btn.disabled = true;
   btn.textContent = 'INITIALIZING...';
-  
+
   try {
     const web3 = window.solanaWeb3;
     const connection = new web3.Connection(RPC_URL, 'confirmed');
     const admin = new web3.PublicKey(walletPubkey);
-    
+
     // 1. Initialize Escrow
-    log('\n📝 Initializing Escrow...');
+    log('📝 Initializing Escrow...');
     const escrowProgram = new web3.PublicKey(ESCROW_PROGRAM);
-    const [configPDA] = await web3.PublicKey.findProgramAddress([Buffer.from('config')], escrowProgram);
-    
-    const escrowData = Buffer.concat([Buffer.from(INIT_DISC), u16(500)]);
+    const [configPDA] = await web3.PublicKey.findProgramAddress([te.encode('config')], escrowProgram);
+
+    const escrowData = concat(INIT_DISC, u16(500));
     const escrowIx = new web3.TransactionInstruction({
       programId: escrowProgram,
       keys: [
@@ -120,26 +139,24 @@ $('btn-init').onclick = async () => {
       ],
       data: escrowData
     });
-    
+
     let tx = new web3.Transaction().add(escrowIx);
     tx.feePayer = admin;
     tx.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
+    log('Approve in wallet...');
     let signed = await wallet.signTransaction(tx);
     let sig = await connection.sendRawTransaction(signed.serialize());
     await connection.confirmTransaction(sig, 'confirmed');
     log('✅ Escrow initialized: ' + sig);
-    
+
     // 2. Initialize House
-    log('\n📝 Initializing House...');
+    log('📝 Initializing House...');
     const houseProgram = new web3.PublicKey(HOUSE_PROGRAM);
-    const [housePDA] = await web3.PublicKey.findProgramAddress([Buffer.from('house')], houseProgram);
-    const [vaultPDA] = await web3.PublicKey.findProgramAddress([Buffer.from('vault')], houseProgram);
+    const [housePDA] = await web3.PublicKey.findProgramAddress([te.encode('house')], houseProgram);
+    const [vaultPDA] = await web3.PublicKey.findProgramAddress([te.encode('vault')], houseProgram);
     const mint = new web3.PublicKey(NATIVE_MINT);
-    
-    const houseData = Buffer.concat([
-      Buffer.from(INIT_DISC),
-      u16(4500), u64(19000), u16(500), u16(100)
-    ]);
+
+    const houseData = concat(INIT_DISC, u16(4500), u64(19000), u16(500), u16(100));
     const houseIx = new web3.TransactionInstruction({
       programId: houseProgram,
       keys: [
@@ -153,24 +170,27 @@ $('btn-init').onclick = async () => {
       ],
       data: houseData
     });
-    
+
     tx = new web3.Transaction().add(houseIx);
     tx.feePayer = admin;
     tx.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
+    log('Approve in wallet...');
     signed = await wallet.signTransaction(tx);
     sig = await connection.sendRawTransaction(signed.serialize());
     await connection.confirmTransaction(sig, 'confirmed');
     log('✅ House initialized: ' + sig);
-    
-    log('\n🎉 Both contracts initialized! You can close this page.');
+
+    log('🎉 Both contracts initialized! You can close this page.');
     btn.textContent = '✅ DONE';
-    
+
   } catch (e) {
-    log('❌ Failed: ' + e.message);
+    log('❌ Failed: ' + (e.message || e));
     btn.disabled = false;
     btn.textContent = '🚀 INITIALIZE BOTH CONTRACTS';
   }
-};
+});
+
+})();
 </script>
 </body>
 </html>
