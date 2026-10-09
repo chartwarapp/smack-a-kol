@@ -350,7 +350,7 @@ SAK.Audio = (function () {
         const t0 = ctx.currentTime + when;
         // Inharmonic metallic partials of a real ringside bell
         const base = 740;
-        [[1, 0.196], [2.76, 0.087], [5.4, 0.048], [8.9, 0.024]].forEach(([ratio, g]) => {
+        [[1, 0.147], [2.76, 0.065], [5.4, 0.036], [8.9, 0.018]].forEach(([ratio, g]) => {
           const o = ctx.createOscillator(); const gn = ctx.createGain();
           o.type = 'sine'; o.frequency.value = base * ratio;
           gn.gain.setValueAtTime(0.0001, t0);
