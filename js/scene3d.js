@@ -3550,15 +3550,161 @@ SAK.Scene3D = (function () {
     await SAK.Tween.to(p, { lift: 0.12, swing: 0, elbow: 0.15, twist: 0, lean: 0, lunge: 0 }, 0.38, E.inOutQuad);
   }
 
-  /** V2: winner's raised-arm victory pose — hop + crowd goes wild. */
-  function victory(who) {
+  /** Victory dances — 10 random cartoon celebrations after KO.
+   *  Camera swoops to the winner, who grins and dances for ~2.5s.
+   *  Returns a promise that resolves when the dance completes. */
+  async function victory(who) {
     const F = who === 'player' ? player : kol;
     if (!F || F.ko) return;
     const p = F.pose, sd = F.armSide;
-    SAK.Tween.to(p, { lift: 2.9, swing: -0.35, elbow: 0.12, twist: -sd * 0.35, lean: -0.2, lunge: 0 }, 0.55, SAK.Ease.outBack);
-    SAK.Tween.to(F.root.position, { y: 0.28 }, 0.3, SAK.Ease.outCubic)
-      .then(() => { if (!F.ko) return SAK.Tween.to(F.root.position, { y: 0 }, 0.45, SAK.Ease.inCubic); });
+    const E = SAK.Ease;
+
+    // Camera: swoop toward the winner (~0.5s), frame them centered
+    const wx = F.root.position.x, wz = F.root.position.z;
+    const camDir = new T.Vector3(0.55, 0.35, F.facing > 0 ? 1 : -1).normalize();
+    SAK.Tween.to(camBase.look, { x: wx, y: 1.7, z: wz }, 0.5, E.inOutQuad);
+    SAK.Tween.to(camBase.pos, {
+      x: wx + camDir.x * 4.2, y: 1.7 + camDir.y * 4.2, z: wz + camDir.z * 4.2
+    }, 0.5, E.inOutQuad);
+
+    // Winner grins through the whole dance
+    try { F.setExpression('grin', 0.3); } catch (e) {}
     crowdExcite(4);
+
+    const dances = [
+      // 1. Champ pose (original) — raised arm + hop
+      async () => {
+        SAK.Tween.to(p, { lift: 2.9, swing: -0.35, elbow: 0.12, twist: -sd * 0.35, lean: -0.2, lunge: 0 }, 0.55, E.outBack);
+        SAK.Tween.to(F.root.position, { y: 0.28 }, 0.3, E.outCubic)
+          .then(() => { if (!F.ko) return SAK.Tween.to(F.root.position, { y: 0 }, 0.45, E.inCubic); });
+        await wait(1.2);
+      },
+      // 2. Moonwalk — slides backward, lean back, shuffle
+      async () => {
+        SAK.Tween.to(p, { lean: -0.3, lift: 0.4, swing: 0.2, elbow: 0.4, twist: 0, lunge: 0 }, 0.3, E.outCubic);
+        for (let i = 0; i < 3; i++) {
+          SAK.Tween.to(p, { lunge: -0.35, twist: 0.2 }, 0.35, E.inOutQuad);
+          SAK.Tween.to(F.root.position, { y: 0.08 }, 0.18, E.outCubic);
+          await wait(0.35);
+          SAK.Tween.to(p, { lunge: -0.55, twist: -0.2 }, 0.35, E.inOutQuad);
+          SAK.Tween.to(F.root.position, { y: 0 }, 0.18, E.inCubic);
+          await wait(0.35);
+        }
+        SAK.Tween.to(p, { lunge: 0, lean: 0, twist: 0 }, 0.4, E.outCubic);
+      },
+      // 3. Flex — bicep curl, chest out, bounce
+      async () => {
+        SAK.Tween.to(p, { lift: 2.2, elbow: 2.0, swing: 0, lean: -0.28, twist: 0, lunge: 0 }, 0.4, E.outBack);
+        for (let i = 0; i < 3; i++) {
+          SAK.Tween.to(F.root.position, { y: 0.15 }, 0.2, E.outCubic);
+          await wait(0.2);
+          SAK.Tween.to(F.root.position, { y: 0 }, 0.2, E.inCubic);
+          await wait(0.2);
+        }
+        SAK.Tween.to(p, { lift: 0.12, elbow: 0.15, lean: 0 }, 0.4, E.outCubic);
+      },
+      // 4. Spin taunt — 360 with arms out, ends pointing at camera
+      async () => {
+        SAK.Tween.to(p, { lift: 1.6, swing: 0.6, elbow: 0.1, twist: 0, lean: -0.1, lunge: 0 }, 0.3, E.outCubic);
+        const y0 = F.root.rotation.y;
+        await SAK.Tween.to(F.root.rotation, { y: y0 + Math.PI * 2 * sd }, 0.7, E.outCubic);
+        // point at the camera
+        SAK.Tween.to(p, { lift: 1.4, swing: 1.1, elbow: 0.05 }, 0.3, E.outBack);
+        await wait(0.8);
+        SAK.Tween.to(p, { lift: 0.12, swing: 0, elbow: 0.15 }, 0.4, E.outCubic);
+      },
+      // 5. Jumping jacks — 3 fast reps
+      async () => {
+        for (let i = 0; i < 3; i++) {
+          SAK.Tween.to(p, { lift: 2.6, swing: 0, elbow: 0.1, lean: -0.1 }, 0.22, E.outCubic);
+          SAK.Tween.to(F.root.position, { y: 0.35 }, 0.22, E.outCubic);
+          await wait(0.24);
+          SAK.Tween.to(p, { lift: 0.1, lean: 0 }, 0.22, E.inCubic);
+          SAK.Tween.to(F.root.position, { y: 0 }, 0.22, E.inCubic);
+          await wait(0.24);
+        }
+      },
+      // 6. The worm — crouch, body wave, pop up
+      async () => {
+        SAK.Tween.to(F.root.position, { y: -0.35 }, 0.3, E.inCubic);
+        SAK.Tween.to(p, { lean: 0.7, lift: 0.8, swing: 0.3, elbow: 0.5 }, 0.3, E.inCubic);
+        await wait(0.35);
+        for (let i = 0; i < 3; i++) {
+          SAK.Tween.to(p, { lean: 0.4, twist: 0.3 }, 0.25, E.inOutQuad);
+          await wait(0.25);
+          SAK.Tween.to(p, { lean: 0.8, twist: -0.3 }, 0.25, E.inOutQuad);
+          await wait(0.25);
+        }
+        SAK.Tween.to(F.root.position, { y: 0.3 }, 0.25, E.outCubic);
+        SAK.Tween.to(p, { lean: -0.2, lift: 2.5, twist: 0 }, 0.3, E.outBack);
+        await wait(0.3);
+        SAK.Tween.to(F.root.position, { y: 0 }, 0.3, E.inCubic);
+        SAK.Tween.to(p, { lift: 0.12, lean: 0 }, 0.4, E.outCubic);
+      },
+      // 7. Shadow boxing — rapid alternating punches, bouncing
+      async () => {
+        for (let i = 0; i < 4; i++) {
+          SAK.Tween.to(p, { lift: 1.5, swing: 0.9, elbow: 0.3, lean: 0.15 }, 0.16, E.outCubic);
+          SAK.Tween.to(F.root.position, { y: 0.1 }, 0.12, E.outCubic);
+          await wait(0.16);
+          SAK.Tween.to(p, { lift: 1.5, swing: -0.7, elbow: 0.3, lean: 0.1 }, 0.16, E.outCubic);
+          SAK.Tween.to(F.root.position, { y: 0 }, 0.12, E.inCubic);
+          await wait(0.16);
+        }
+        SAK.Tween.to(p, { lift: 2.4, swing: 0, elbow: 0.2, lean: -0.15 }, 0.35, E.outBack);
+        await wait(0.5);
+        SAK.Tween.to(p, { lift: 0.12, lean: 0 }, 0.4, E.outCubic);
+      },
+      // 8. Bow — deep respectful bow, pop up with arms spread
+      async () => {
+        SAK.Tween.to(p, { lean: 1.0, lift: 0.3, swing: 0, elbow: 0.3, twist: 0, lunge: 0 }, 0.6, E.inOutQuad);
+        await wait(0.7);
+        SAK.Tween.to(p, { lean: -0.25, lift: 2.2, swing: 0.4, elbow: 0.1 }, 0.4, E.outBack);
+        SAK.Tween.to(F.root.position, { y: 0.2 }, 0.3, E.outCubic);
+        await wait(0.6);
+        SAK.Tween.to(F.root.position, { y: 0 }, 0.3, E.inCubic);
+        SAK.Tween.to(p, { lift: 0.12, lean: 0, swing: 0 }, 0.4, E.outCubic);
+      },
+      // 9. Money rain — hands up, coins fall
+      async () => {
+        SAK.Tween.to(p, { lift: 2.9, swing: -0.2, elbow: 0.6, lean: -0.2, twist: 0, lunge: 0 }, 0.5, E.outBack);
+        await wait(0.3);
+        coinRain(40);
+        for (let i = 0; i < 3; i++) {
+          SAK.Tween.to(p, { twist: 0.25 }, 0.25, E.inOutQuad);
+          await wait(0.25);
+          SAK.Tween.to(p, { twist: -0.25 }, 0.25, E.inOutQuad);
+          await wait(0.25);
+        }
+        SAK.Tween.to(p, { lift: 0.12, elbow: 0.15, lean: 0, twist: 0 }, 0.5, E.outCubic);
+      },
+      // 10. Twerk (tasteful/cartoonish) — bent over, hip shake
+      async () => {
+        SAK.Tween.to(p, { lean: 0.55, lift: 0.6, swing: 0.3, elbow: 0.4, twist: 0, lunge: 0 }, 0.4, E.outCubic);
+        await wait(0.3);
+        const z0 = F.root.rotation.z;
+        for (let i = 0; i < 6; i++) {
+          SAK.Tween.to(F.root.rotation, { z: z0 + 0.14 }, 0.14, E.inOutQuad);
+          SAK.Tween.to(F.root.position, { y: 0.08 }, 0.14, E.outCubic);
+          await wait(0.14);
+          SAK.Tween.to(F.root.rotation, { z: z0 - 0.14 }, 0.14, E.inOutQuad);
+          SAK.Tween.to(F.root.position, { y: 0 }, 0.14, E.inCubic);
+          await wait(0.14);
+        }
+        SAK.Tween.to(F.root.rotation, { z: z0 }, 0.3, E.outCubic);
+        SAK.Tween.to(p, { lean: -0.15, lift: 2.0 }, 0.4, E.outBack);
+        await wait(0.4);
+        SAK.Tween.to(p, { lift: 0.12, lean: 0 }, 0.4, E.outCubic);
+      }
+    ];
+
+    // Pick one at random and play it
+    const dance = dances[(Math.random() * dances.length) | 0];
+    await dance();
+
+    // Reset to neutral stance
+    SAK.Tween.to(p, { lift: 0.12, swing: 0, elbow: 0.15, twist: 0, lean: 0, lunge: 0, guard: 0 }, 0.4, E.outCubic);
+    SAK.Tween.to(F.root.position, { y: 0 }, 0.3, E.outCubic);
   }
 
   /** KO variations — resolves when done.
@@ -3756,7 +3902,7 @@ SAK.Scene3D = (function () {
     }
     if (stars.parent) F.head.remove(stars);
     stars.traverse(o => { if (o.geometry) o.geometry.dispose(); if (o.material) o.material.dispose(); });
-    victory(who === 'player' ? 'kol' : 'player'); // V2: winner celebrates
+    await victory(who === 'player' ? 'kol' : 'player'); // winner celebrates with a random dance
 
     koCam = null;
     roleCam = { role: 'attack', w: 0 }; // result screen uses the default view
