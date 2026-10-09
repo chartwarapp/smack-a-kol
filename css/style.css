@@ -374,13 +374,13 @@ h2, h3, .prompt, .vs, .level, .fc-name, .banner, .float-text, .result-title {
 
 /* ---------------------------------------------------------------- fx */
 #fx-layer { position: absolute; inset: 0; z-index: 35; pointer-events: none; overflow: hidden; }
-.float-text { position: absolute; transform: translate(-50%, -50%); font-size: 30px; white-space: nowrap; animation: floatUp 1s ease-out forwards; text-align: center; line-height: 1; }
-.float-text small { display: block; font-size: 18px; }
-.float-text.perfect { color: var(--green); font-size: 38px; }
+.float-text { position: absolute; transform: translate(-50%, -50%); font-size: 26px; white-space: nowrap; animation: floatUp 1s ease-out forwards; text-align: center; line-height: 1; }
+.float-text small { display: block; font-size: 15px; }
+.float-text.perfect { color: var(--green); font-size: 32px; }
 .float-text.good { color: var(--yellow); }
 .float-text.weak { color: #ff9a1f; }
 .float-text.miss { color: #fff; }
-.float-text.fire { color: #ffb000; font-size: 44px; }
+.float-text.fire { color: #ffb000; font-size: 37px; }
 .float-text.dmg-in { color: var(--red); }
 .float-text.coin-gain { color: var(--yellow); }
 @keyframes floatUp { 0% { transform: translate(-50%, -20%) scale(.4); opacity: 0; } 15% { transform: translate(-50%, -60%) scale(1.25); opacity: 1; } 100% { transform: translate(-50%, -190%) scale(1); opacity: 0; } }
