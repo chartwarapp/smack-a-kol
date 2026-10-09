@@ -182,6 +182,7 @@
   }
   /* 🥊 Ring cards: VS names card, then ROUND N card (same look all rounds) */
   async function vsCardIntro(pName, kName) {
+    if (typeof A !== 'undefined' && A.crowdCheer) A.crowdCheer(); // crowd erupts as fighters are announced
     const card = $('#round-card');
     const rcLabel = card.querySelector('.rc-label');
     const rcNumber = $('#rc-number');
