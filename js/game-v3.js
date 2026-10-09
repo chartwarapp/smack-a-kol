@@ -397,6 +397,17 @@
     initPicker();
     if (!crPreview && Scene && Scene.createPreview) {
       try { crPreview = Scene.createPreview($('#cr-canvas')); } catch (err) { console.warn('[SAK] preview unavailable', err); crPreview = null; }
+      // Retry once after layout settles (canvas may have 0 size on first pass)
+      if (!crPreview) setTimeout(() => {
+        if (!crPreview && Scene && Scene.createPreview && !$('#cr-step-look').classList.contains('hidden')) {
+          try {
+            crPreview = Scene.createPreview($('#cr-canvas'));
+            $('#cr-canvas').classList.toggle('hidden', !crPreview);
+            $('#cr-fallback').classList.toggle('hidden', !!crPreview);
+            renderCreatorPreview();
+          } catch (e) { console.warn('[SAK] preview retry failed', e); }
+        }
+      }, 300);
     }
     $('#cr-canvas').classList.toggle('hidden', !crPreview);
     $('#cr-fallback').classList.toggle('hidden', !!crPreview);
