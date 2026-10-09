@@ -104,7 +104,7 @@ SAK.FighterLock = (() => {
     return { signature };
   }
 
-  return { payLockFee, lockFighter, lockFighterFree, loadWeb3 };
+  return { payLockFee, lockFighter, loadWeb3 };
 })();
 
 /**

@@ -426,7 +426,6 @@
     pkCustomLook = null;
     // Reset lock button (admin-aware)
     updateLockButton();
-    $('#pk-lock-err').textContent = '';
     // Refresh lock button when wallet connects/disconnects while picker is open
     if (SAK.Wallet && SAK.Wallet.onChange) {
       SAK.Wallet.onChange(() => { if (!$('#cr-step-look').classList.contains('hidden')) updateLockButton(); });
@@ -518,11 +517,9 @@
     A.coin();
   });
   $('#pk-lock').addEventListener('click', async () => {
-    const errEl = $('#pk-lock-err');
-    errEl.textContent = '';
     const btn = $('#pk-lock');
     // TEMPORARY: free lock for everyone during testing — remove before mainnet
-    if (!pkCustomLook) { errEl.textContent = 'Randomize a fighter first.'; return; }
+    if (!pkCustomLook) { toast('🎲 Randomize a fighter first', 2000); return; }
     btn.disabled = true;
     btn.textContent = '⏳ Locking…';
     try {
@@ -535,11 +532,11 @@
       await saveFighterProfile(nm || undefined, q || undefined, { starter_id: null, custom: true });
       btn.textContent = '✅ LOCKED!';
       A.perfect();
-      toast('🔒 Fighter locked to your wallet!', 2400);
+      toast('🔒 Fighter locked!', 2400);
       showFighterCardButton();
     } catch (e) {
       console.warn('[SAK] lock failed', e);
-      errEl.textContent = e.message || 'Payment failed. Try again.';
+      toast('⚠️ Lock failed, try again', 2000);
       updateLockButton();
     }
   });
