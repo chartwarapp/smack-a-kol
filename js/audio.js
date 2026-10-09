@@ -11,6 +11,7 @@ SAK.Audio = (function () {
     { id: 'cheer1', file: 'assets/sfx/crowd_crowd1.mp3' },
     { id: 'cheer2', file: 'assets/sfx/crowd_crowd2.mp3' },
     { id: 'victory', file: 'assets/sfx/crowd_victory.mp3' },
+    { id: 'bell', file: 'assets/sfx/bell_boxing.mp3' },
   ];
   const crowdBufs = {};
   function loadCrowdBank() {
@@ -345,28 +346,30 @@ SAK.Audio = (function () {
       }
     },
     /** Boxing ring bell — three classic dings with metallic partials. */
-    bell() {      if (!ready()) return;
-      const strike = (when) => {
-        const t0 = ctx.currentTime + when;
-        // Inharmonic metallic partials of a real ringside bell
-        const base = 740;
-        [[1, 0.147], [2.76, 0.065], [5.4, 0.036], [8.9, 0.018]].forEach(([ratio, g]) => {
-          const o = ctx.createOscillator(); const gn = ctx.createGain();
-          o.type = 'sine'; o.frequency.value = base * ratio;
-          gn.gain.setValueAtTime(0.0001, t0);
-          gn.gain.exponentialRampToValueAtTime(g, t0 + 0.008);
-          gn.gain.exponentialRampToValueAtTime(0.0001, t0 + 1.4);
-          o.connect(gn); gn.connect(master); o.start(t0); o.stop(t0 + 1.5);
-        });
-        // mallet click, delayed with the strike
-        const src = ctx.createBufferSource(); src.buffer = noiseBuf;
-        const f = ctx.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = 4000; f.Q.value = 1.0;
-        const cg = ctx.createGain();
-        cg.gain.setValueAtTime(0.15, t0); cg.gain.exponentialRampToValueAtTime(0.001, t0 + 0.03);
-        src.connect(f); f.connect(cg); cg.connect(master);
-        src.start(t0); src.stop(t0 + 0.08);
-      };
-      strike(0); strike(0.55); strike(1.1);
+    bell() {
+      if (!ready()) return;
+      // Real boxing bell recording
+      const buf = crowdBufs['bell'];
+      if (buf && ctx) {
+        const t = ctx.currentTime;
+        const src = ctx.createBufferSource(); src.buffer = buf;
+        const g = ctx.createGain(); g.gain.value = 0.5;
+        src.connect(g); g.connect(master);
+        src.start(t);
+      } else {
+        // Fallback: load on demand
+        fetch('assets/sfx/bell_boxing.mp3')
+          .then(r => r.arrayBuffer())
+          .then(ab => ctx.decodeAudioData(ab))
+          .then(b => {
+            crowdBufs['bell'] = b;
+            const src = ctx.createBufferSource(); src.buffer = b;
+            const g = ctx.createGain(); g.gain.value = 0.5;
+            src.connect(g); g.connect(master);
+            src.start();
+          })
+          .catch(() => {});
+      }
     },
     /** Cartoon pain yelp — louder / lower for bigger hit tiers. */
     yelp(tier) {
