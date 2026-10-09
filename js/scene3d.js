@@ -3794,13 +3794,13 @@ SAK.Scene3D = (function () {
     const p = F.pose, sd = F.armSide;
     const E = SAK.Ease;
 
-    // Camera: swoop toward the winner (~0.5s), frame them centered
+    // Camera: pull back wide to show the ring, crowd, and celebrating winner
     const wx = F.root.position.x, wz = F.root.position.z;
-    const camDir = new T.Vector3(0.55, 0.35, F.facing > 0 ? 1 : -1).normalize();
-    SAK.Tween.to(camBase.look, { x: wx, y: 1.7, z: wz }, 0.5, E.inOutQuad);
+    const camDir = new T.Vector3(0.4, 0.55, F.facing > 0 ? 1 : -1).normalize();
+    SAK.Tween.to(camBase.look, { x: wx * 0.5, y: 1.4, z: wz * 0.5 }, 0.6, E.inOutQuad);
     SAK.Tween.to(camBase.pos, {
-      x: wx + camDir.x * 4.2, y: 1.7 + camDir.y * 4.2, z: wz + camDir.z * 4.2
-    }, 0.5, E.inOutQuad);
+      x: wx * 0.5 + camDir.x * 7.5, y: 1.4 + camDir.y * 7.5, z: wz * 0.5 + camDir.z * 7.5
+    }, 0.6, E.inOutQuad);
 
     // Winner grins through the whole dance
     try { F.setExpression('grin', 0.3); } catch (e) {}
