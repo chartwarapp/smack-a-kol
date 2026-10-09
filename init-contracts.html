@@ -171,7 +171,7 @@ $('btn-init').addEventListener('click', async () => {
     // 2. Initialize House (skip if done)
     if (!houseDone) {
       log('📝 Initializing House...');
-      const [vaultPDA] = await web3.PublicKey.findProgramAddress([te.encode('vault')], houseProgram);
+      const [vaultPDA] = await web3.PublicKey.findProgramAddress([te.encode('house_vault')], houseProgram);
     const mint = new web3.PublicKey(NATIVE_MINT);
 
     const houseData = concat(INIT_DISC, u16(4500), u64(19000), u16(500), u16(100));
