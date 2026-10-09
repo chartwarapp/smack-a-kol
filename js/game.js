@@ -187,7 +187,7 @@
     const rcNumber = $('#rc-number');
     rcLabel.textContent = '';
     rcLabel.style.cssText = '';
-    rcNumber.innerHTML = `<div style="font-size:28px;line-height:1.3">${pName}</div><div style="font-size:16px;color:var(--yellow);margin:4px 0">vs</div><div style="font-size:28px;line-height:1.3">${kName}</div>`;
+    rcNumber.innerHTML = `<div style="font-size:28px;line-height:1.3;font-weight:900;color:#fff;text-shadow:0 0 20px var(--yellow)">${pName}</div><div style="font-size:16px;color:var(--yellow);margin:4px 0">vs</div><div style="font-size:28px;line-height:1.3;font-weight:900;color:#fff;text-shadow:0 0 20px var(--yellow)">${kName}</div>`;
     card.classList.remove('hidden');
     const inner = card.querySelector('.rc-inner');
     inner.style.animation = 'none'; void inner.offsetWidth; inner.style.animation = '';
