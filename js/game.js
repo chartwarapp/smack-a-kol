@@ -186,9 +186,9 @@
     const rcLabel = card.querySelector('.rc-label');
     const rcNumber = $('#rc-number');
     if (sublabel) {
-      // VS card: "NAME vs NAME"
-      rcLabel.textContent = 'VS';
-      rcNumber.innerHTML = `<div style="font-size:32px;line-height:1.2">${label}</div><div style="font-size:20px;color:var(--yellow);margin:6px 0">VS</div><div style="font-size:32px;line-height:1.2">${sublabel}</div>`;
+      // Fight card: "Name vs Name" + "ROUND 1"
+      rcLabel.textContent = sublabel;
+      rcNumber.innerHTML = `<div style="font-size:30px;line-height:1.3">${label}</div>`;
       rcNumber.style.fontSize = '';
     } else {
       // Round card: "ROUND N"
@@ -1128,10 +1128,10 @@
     show('fight');
     sayPlayer(playerPhrase());
     setTimeout(() => F && F.token === token && say(pick(kol.taunts)), 900);
-    // Fight start: VS card → READY → SLAP (~3.5s grace before round 1)
+    // Fight start: "Name vs Name / ROUND 1" card → READY → SLAP (~3.5s grace)
     (async () => {
       const pName = profile().name || 'YOU';
-      await roundCardIntro(pName, kol.name);
+      await roundCardIntro(`${pName} vs ${kol.name}`, 'ROUND 1');
       await banner('READY...', '#fff', 700);
       await banner('SLAP! 👋', 'var(--yellow)', 600);
       if (F && F.token === token) startChallengeRound();
