@@ -48,6 +48,12 @@
 <div class="status" id="status">Not connected.</div>
 
 <script src="https://unpkg.com/@solana/web3.js@1.95.3/lib/index.iife.min.js"></script>
+<script src="https://unpkg.com/buffer@6.0.3/index.js"></script>
+<script>
+// Buffer polyfill fallback for mobile browsers
+if (typeof Buffer === 'undefined' && window.buffer) {
+  window.Buffer = window.buffer.Buffer;
+}
 <script>
 const ESCROW_PROGRAM = 'F4kqMuoAP4kzDT6x41ha15UPicBpQpQay5Txsg85cSWr';
 const HOUSE_PROGRAM = 'SpYmnT53X3KyYYawSLLzD8hVqWFTkNUQf3a8L3rCzjN';
