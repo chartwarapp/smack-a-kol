@@ -313,7 +313,20 @@ SAK.Audio = (function () {
       noise(0.05, 5000, 1.2, 0.5);
       noise(0.15, 180, 0.6, 0.5 * s, 'lowpass');
     },
-    whoosh() { if (!ready()) return; const f = noise(0.22, 600, 1.5, 0.25); f.frequency.exponentialRampToValueAtTime(2400, ctx.currentTime + 0.2); },
+    whoosh() {
+      if (!ready()) return;
+      // Sword-swing: aggressive air rip — layered noise sweeps, no tones
+      const t = ctx.currentTime;
+      // Low body whoosh
+      const f1 = noise(0.3, 300, 1.0, 0.5, 'lowpass');
+      if (f1) f1.frequency.exponentialRampToValueAtTime(1200, t + 0.25);
+      // Mid crack of displaced air
+      const f2 = noise(0.25, 800, 1.2, 0.45);
+      if (f2) f2.frequency.exponentialRampToValueAtTime(4000, t + 0.22);
+      // High whistle edge
+      const f3 = noise(0.18, 2500, 2.0, 0.35);
+      if (f3) f3.frequency.exponentialRampToValueAtTime(6000, t + 0.2);
+    },
     miss() { if (!ready()) return; tone(400, 0.25, 'triangle', 0.15, 0, 180); },
     perfect() { if (!ready()) return; [880, 1108, 1318].forEach((f, i) => tone(f, 0.3, 'triangle', 0.18, i * 0.05)); },
     coin() { if (!ready()) return; tone(988, 0.08, 'square', 0.12); tone(1318, 0.25, 'square', 0.12, 0.08); },
