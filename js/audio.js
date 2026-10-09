@@ -59,25 +59,29 @@ SAK.Audio = (function () {
     }
   }
 
-  // 💥 Thunder Clap — deep boom under a rolling crack
+  // 💥 Thunder Clap — deep flesh impact, no chime
   function synthThunder(strength) {
-    synthLayer('boom', { from: 130, to: 32, dur: 0.55, gain: 0.75, strength });
+    // Low thump: filtered noise burst, not sine — punchy, not ringy
+    synthLayer('noise', { freq: 150, q: 0.5, dur: 0.25, gain: 0.8, ftype: 'lowpass', strength });
     synthLayer('noise', { freq: 2600, q: 0.7, dur: 0.09, gain: 0.6, ftype: 'bandpass', strength });
-    synthLayer('noise', { freq: 750, q: 0.8, dur: 0.22, gain: 0.42, ftype: 'lowpass', strength });
+    synthLayer('noise', { freq: 750, q: 0.8, dur: 0.18, gain: 0.45, ftype: 'lowpass', strength });
     synthLayer('noise', { freq: 4200, q: 1.2, dur: 0.05, gain: 0.35, ftype: 'highpass', when: 0.01, strength });
+    // Flesh smack: mid-range body
+    synthLayer('noise', { freq: 1800, q: 1.5, dur: 0.07, gain: 0.5, ftype: 'bandpass', when: 0.005, strength });
   }
-  // ⚡ Whip Crack — razor snap with a chest thump underneath
+  // ⚡ Whip Crack — razor snap, organic
   function synthWhip(strength) {
     synthLayer('noise', { freq: 5200, q: 1.0, dur: 0.045, gain: 0.7, ftype: 'highpass', strength });
-    synthLayer('boom', { from: 210, to: 60, dur: 0.16, gain: 0.55, strength });
+    synthLayer('noise', { freq: 180, q: 0.6, dur: 0.12, gain: 0.5, ftype: 'lowpass', strength });
     synthLayer('noise', { freq: 1300, q: 0.9, dur: 0.11, gain: 0.38, ftype: 'bandpass', strength });
+    synthLayer('noise', { freq: 2800, q: 2.0, dur: 0.04, gain: 0.45, ftype: 'bandpass', when: 0.003, strength });
   }
-  // 🔨 Sledge — massive sub slam with impact crunch
+  // 🔨 Sledge — massive impact, all flesh
   function synthSledge(strength) {
-    synthLayer('boom', { from: 95, to: 24, dur: 0.65, gain: 0.85, strength });
-    synthLayer('noise', { freq: 480, q: 0.7, dur: 0.28, gain: 0.5, ftype: 'lowpass', strength });
+    synthLayer('noise', { freq: 120, q: 0.5, dur: 0.3, gain: 0.85, ftype: 'lowpass', strength });
+    synthLayer('noise', { freq: 480, q: 0.7, dur: 0.22, gain: 0.5, ftype: 'lowpass', strength });
     synthLayer('noise', { freq: 3100, q: 0.8, dur: 0.06, gain: 0.42, ftype: 'bandpass', strength });
-    synthLayer('boom', { from: 70, to: 30, dur: 0.4, gain: 0.4, when: 0.05, strength });
+    synthLayer('noise', { freq: 900, q: 1.2, dur: 0.1, gain: 0.4, ftype: 'bandpass', when: 0.01, strength });
   }
 
   const SYNTH_SLAPS = { thunder: synthThunder, whip: synthWhip, sledge: synthSledge };
@@ -99,8 +103,9 @@ SAK.Audio = (function () {
     g.gain.value = 0.9 * Math.max(0.35, s);
     src.connect(g); g.connect(master);
     src.start();
-    // Layer a sub thump under every recorded slap so nothing sounds empty
-    synthLayer('boom', { from: 110, to: 40, dur: 0.3, gain: 0.4, strength: s });
+    // Layer a flesh thump under every recorded slap so nothing sounds empty
+    // (noise-based lowpass, not sine — keeps it organic)
+    synthLayer('noise', { freq: 140, q: 0.5, dur: 0.22, gain: 0.45, ftype: 'lowpass', strength: s });
     return true;
   }
 
