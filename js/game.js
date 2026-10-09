@@ -180,6 +180,18 @@
     b.classList.remove('hidden'); b.style.animation = 'none'; void b.offsetWidth; b.style.animation = '';
     await wait((ms || 1000) / 1000); b.classList.add('hidden');
   }
+  /* 🥊 Ring-card intro: "ROUND 1" card swings in, then READY... SLAP! — ~2.5s grace before round 1 */
+  async function roundCardIntro(roundNum) {
+    const card = $('#round-card');
+    $('#rc-number').textContent = roundNum;
+    card.classList.remove('hidden');
+    const inner = card.querySelector('.rc-inner');
+    inner.style.animation = 'none'; void inner.offsetWidth; inner.style.animation = '';
+    await wait(2.2);
+    card.classList.add('hidden');
+    await banner('READY...', '#fff', 700);
+    await banner('SLAP! 👋', 'var(--yellow)', 600);
+  }
   /* Slap haptics mirror scene3d reactTier (light/medium/heavy/perfect).
    * Golden Fist (fire) bumps weak→medium and good→heavy; perfect stays max.
    * Vibration API: Android Chrome yes; iPhone Safari no. */
@@ -1105,7 +1117,11 @@
     show('fight');
     sayPlayer(playerPhrase());
     setTimeout(() => F && F.token === token && say(pick(kol.taunts)), 900);
-    setTimeout(() => F && F.token === token && startChallengeRound(), 700);
+    // Round 1 gets the ring-card intro (~3.5s grace before the first slap window)
+    (async () => {
+      await roundCardIntro(1);
+      if (F && F.token === token) startChallengeRound();
+    })();
   }
 
   function renderRoundScore() {
