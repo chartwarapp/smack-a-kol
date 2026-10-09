@@ -473,6 +473,14 @@
     // Set initial draft to selected starter
     const s = SAK.STARTERS.find(x => x.id === pkStarterId);
     if (s) crDraft = Object.assign({}, s.look);
+    // Fallback: if grid is empty after render, retry once after a tick
+    setTimeout(() => {
+      const g = document.getElementById('pk-starter-grid');
+      if (g && !g.children.length && SAK.STARTERS && SAK.STARTERS.length) {
+        console.warn('[SAK] starter grid empty, retrying render');
+        renderStarterGrid();
+      }
+    }, 500);
   }
   function renderCustomTraits() {
     const box = $('#pk-traits');
