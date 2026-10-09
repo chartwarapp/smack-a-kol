@@ -257,7 +257,7 @@ SAK.FIGHTER_LOCK = {
   // Treasury wallet receiving lock fees. Defaults to the admin wallet;
   // override via SAK.FIGHTER_LOCK.treasury before payment.
   treasury: '6nocUciCs3o8Usa86NKJxm82p5b2Wzya23DJrFNi4brx',
-  rpcUrl: 'https://api.mainnet-beta.solana.com',
+  rpcUrl: 'https://api.devnet.solana.com',
 };
 
 /* ---- User-submitted KOLs ----------------------------------------------
