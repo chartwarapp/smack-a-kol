@@ -25,7 +25,7 @@ SAK.Storage = (function () {
       beaten: {},                      // kolId -> true
       customKols: [],
       profile: null,                   // player fighter { name, colour, phrase } (null = not created yet)                  // user-submitted parody KOLs (see SAK.UGC)
-      settings: { sound: true, haptics: true, battleMusic: false }
+      settings: { sound: true, haptics: true, battleMusic: true }
     };
   }
 
