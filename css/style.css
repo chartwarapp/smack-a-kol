@@ -385,7 +385,7 @@ h2, h3, .prompt, .vs, .level, .fc-name, .banner, .float-text, .result-title {
 .float-text.coin-gain { color: var(--yellow); }
 @keyframes floatUp { 0% { transform: translate(-50%, -20%) scale(.4); opacity: 0; } 15% { transform: translate(-50%, -60%) scale(1.25); opacity: 1; } 100% { transform: translate(-50%, -190%) scale(1); opacity: 0; } }
 .banner {
-  position: absolute; left: 0; right: 0; top: 36%; z-index: 38; text-align: center; font-size: 64px; color: var(--yellow); pointer-events: none;
+  position: absolute; left: 0; right: 0; top: 43%; z-index: 38; text-align: center; font-size: 54px; color: var(--yellow); pointer-events: none;
   animation: bannerIn .5s cubic-bezier(.2, 1.6, .4, 1);
 }
 @keyframes bannerIn { from { transform: scale(3) rotate(-10deg); opacity: 0; } }
@@ -589,7 +589,7 @@ h2, h3, .prompt, .vs, .level, .fc-name, .banner, .float-text, .result-title {
 .pvp-row .pv-name, .pvp-row .pv-meta { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .mode-btn { min-width: 0; }
 .mode-btn small { display: block; }
-.banner { font-size: clamp(36px, 12vw, 60px); padding: 0 10px; line-height: 1; }
+.banner { font-size: clamp(31px, 10.2vw, 51px); padding: 0 10px; line-height: 1; }
 
 @media (max-height: 700px) {
   .logo-title { width: min(100%, 240px); }
