@@ -180,17 +180,28 @@
     b.classList.remove('hidden'); b.style.animation = 'none'; void b.offsetWidth; b.style.animation = '';
     await wait((ms || 1000) / 1000); b.classList.add('hidden');
   }
-  /* 🥊 Ring-card intro: "ROUND 1" card swings in, then READY... SLAP! — ~2.5s grace before round 1 */
-  async function roundCardIntro(roundNum) {
+  /* 🥊 Ring-card intro: VS card at fight start, ROUND N card each round */
+  async function roundCardIntro(label, sublabel) {
     const card = $('#round-card');
-    $('#rc-number').textContent = roundNum;
+    const rcLabel = card.querySelector('.rc-label');
+    const rcNumber = $('#rc-number');
+    if (sublabel) {
+      // VS card: "NAME vs NAME"
+      rcLabel.textContent = 'VS';
+      rcNumber.innerHTML = `<div style="font-size:32px;line-height:1.2">${label}</div><div style="font-size:20px;color:var(--yellow);margin:6px 0">VS</div><div style="font-size:32px;line-height:1.2">${sublabel}</div>`;
+      rcNumber.style.fontSize = '';
+    } else {
+      // Round card: "ROUND N"
+      rcLabel.textContent = 'ROUND';
+      rcNumber.textContent = label;
+      rcNumber.style.fontSize = '';
+      rcNumber.innerHTML = label;
+    }
     card.classList.remove('hidden');
     const inner = card.querySelector('.rc-inner');
     inner.style.animation = 'none'; void inner.offsetWidth; inner.style.animation = '';
     await wait(2.2);
     card.classList.add('hidden');
-    await banner('READY...', '#fff', 700);
-    await banner('SLAP! 👋', 'var(--yellow)', 600);
   }
   /* Slap haptics mirror scene3d reactTier (light/medium/heavy/perfect).
    * Golden Fist (fire) bumps weak→medium and good→heavy; perfect stays max.
@@ -1117,9 +1128,12 @@
     show('fight');
     sayPlayer(playerPhrase());
     setTimeout(() => F && F.token === token && say(pick(kol.taunts)), 900);
-    // Round 1 gets the ring-card intro (~3.5s grace before the first slap window)
+    // Fight start: VS card → READY → SLAP (~3.5s grace before round 1)
     (async () => {
-      await roundCardIntro(1);
+      const pName = profile().name || 'YOU';
+      await roundCardIntro(pName, kol.name);
+      await banner('READY...', '#fff', 700);
+      await banner('SLAP! 👋', 'var(--yellow)', 600);
       if (F && F.token === token) startChallengeRound();
     })();
   }
@@ -1129,10 +1143,7 @@
     if (!F || !F.challenge) { el.classList.add('hidden'); return; }
     const C = F.challenge;
     el.classList.remove('hidden');
-    el.innerHTML = `<span class="rs-p">${C.pWins}</span><span class="sep">—</span><span class="rs-k">${C.kWins}</span>`
-      // ROUND label = the round in play; it only advances when startChallengeRound() bumps C.round
-      // (score may update at resolve, but the label holds through reveal, slap and KO)
-      + `<span class="rs-meta">ROUND ${Math.max(1, Math.min(C.round, C.bestOf))} · FIRST TO ${C.winsNeeded}</span>`;
+    el.innerHTML = `<span class="rs-p">${C.pWins}</span><span class="sep">—</span><span class="rs-k">${C.kWins}</span>`;
     // Real HP lives in renderHp() — round wins decide the match; HP is flavour that drops on landed hits
   }
 
@@ -1161,11 +1172,19 @@
     if (msg) w.textContent = msg;
   }
 
-  function startChallengeRound() {
+  async function startChallengeRound() {
     if (!F || ['over', 'done'].includes(F.turn)) return;
-    A.bell(); // 🛎 boxing ring bell — round is starting
-    hideLockReveal();
     const C = F.challenge;
+    const upcomingRound = (C.round || 0) + 1;
+    // Rounds 2+: show ROUND N card (round 1 had the VS card at fight start)
+    if (upcomingRound > 1) {
+      A.bell();
+      await roundCardIntro(upcomingRound);
+      if (!F || ['over', 'done'].includes(F.turn)) return;
+    } else {
+      A.bell(); // 🛎 boxing ring bell — round is starting
+    }
+    hideLockReveal();
     C.round++;
     C.locks = { atk: null, def: null };
     C.resolving = false;
