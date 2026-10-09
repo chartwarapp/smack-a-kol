@@ -54,6 +54,13 @@ SAK.Storage = (function () {
     try {
       const raw = localStorage.getItem(KEY);
       state = merge(defaults(), raw ? JSON.parse(raw) : null);
+      // One-time migration: turn background music on for everyone.
+      // Users can still turn it off in Settings — that choice sticks.
+      if (!state.settings.musicMigrated) {
+        state.settings.battleMusic = true;
+        state.settings.musicMigrated = true;
+        save();
+      }
     } catch (e) {
       console.warn('[SAK] could not load save, starting fresh', e);
       state = defaults();
