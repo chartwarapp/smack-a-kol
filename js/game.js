@@ -413,6 +413,10 @@
     pkTab = 'starters'; pkLocked = false;
     pkStarterId = (S.profile && S.profile.starter_id) || 'rookie';
     pkCustomLook = null;
+    // Reset lock button
+    const lockBtn = $('#pk-lock');
+    if (lockBtn) { lockBtn.disabled = false; lockBtn.textContent = `🔒 LOCK FOR ${SAK.FIGHTER_LOCK.feeSol} SOL`; }
+    $('#pk-lock-err').textContent = '';
     // Tab switching
     $$('#cr-step-look [data-ptab]').forEach(b => {
       b.onclick = () => {
