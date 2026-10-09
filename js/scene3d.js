@@ -3728,18 +3728,28 @@ SAK.Scene3D = (function () {
     }
     const strike = SAK.Tween.to(p, { lift: ST.strike.lift, swing: ST.strike.swing, elbow: ST.strike.elbow, twist: -sd * ST.strike.twist, lean: ST.strike.lean, lunge: ST.strike.lunge }, ST.strikeDur, E.inCubic);
     await wait(0.1);
-    if (opts.grade !== 'miss' && tier) {
+    // Taunt shake: soft slap or miss = defender shakes head "nah, didn't hurt" (25-35°, 2-3 cycles)
+    const doTauntShake = (D) => {
+      try {
+        D.setExpression('neutral', 0.15);
+        D.setExpression('smirk', 0.2);
+        const hy0 = D.head.rotation.y;
+        const deg = (28 + Math.random() * 7) * Math.PI / 180; // 28-35°
+        SAK.Tween.to(D.head.rotation, { y: hy0 - deg }, 0.14, SAK.Ease.outCubic)
+          .then(() => SAK.Tween.to(D.head.rotation, { y: hy0 + deg }, 0.2, SAK.Ease.inOutQuad))
+          .then(() => SAK.Tween.to(D.head.rotation, { y: hy0 - deg }, 0.2, SAK.Ease.inOutQuad))
+          .then(() => SAK.Tween.to(D.head.rotation, { y: hy0 + deg * 0.6 }, 0.18, SAK.Ease.inOutQuad))
+          .then(() => { if (!D.ko) SAK.Tween.to(D.head.rotation, { y: hy0 }, 0.22, SAK.Ease.outCubic); });
+      } catch (e) {}
+    };
+    if (opts.grade === 'miss') {
+      doTauntShake(D);
+    } else if (opts.grade !== 'miss' && tier) {
       const R = applyHitReact(D, tier, !!opts.fire);
-      // Faces: light slap = dismissive head shake, no pain. Heavier = shock then pain/dizzy.
+      // Faces: light slap = taunting head shake, no pain. Heavier = shock then pain/dizzy.
       try {
         if (tier === 'light') {
-          // Soft slap: shake head side-to-side ("nah"), stay neutral — no pain face
-          D.setExpression('neutral', 0.15);
-          const hy0 = D.head.rotation.y;
-          SAK.Tween.to(D.head.rotation, { y: hy0 - 0.35 }, 0.12, SAK.Ease.outCubic)
-            .then(() => SAK.Tween.to(D.head.rotation, { y: hy0 + 0.35 }, 0.18, SAK.Ease.inOutQuad))
-            .then(() => SAK.Tween.to(D.head.rotation, { y: hy0 - 0.2 }, 0.15, SAK.Ease.inOutQuad))
-            .then(() => { if (!D.ko) SAK.Tween.to(D.head.rotation, { y: hy0 }, 0.2, SAK.Ease.outCubic); });
+          doTauntShake(D);
         } else {
           D.setExpression('shock', 0.1);
           setTimeout(() => { try { D.setExpression(tier === 'heavy' || tier === 'perfect' ? 'dizzy' : 'pain', 0.25); } catch (e) {} }, 180);
