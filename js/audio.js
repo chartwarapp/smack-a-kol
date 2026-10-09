@@ -218,20 +218,20 @@ SAK.Audio = (function () {
     if (!ready()) return;
     const s = Math.min(1.5, intensity || 1);
     // Gasp: sharp high intake
-    crowdLayer({ freq: 3200, q: 0.8, dur: 0.25, gain: 0.18, attack: 0.03, strength: s });
-    // Cheer swell: mid voices
-    crowdLayer({ freq: 1200, q: 0.5, dur: 0.6 + 0.3 * s, gain: 0.22, attack: 0.1, when: 0.05, strength: s });
-    crowdLayer({ freq: 800, q: 0.5, dur: 0.7 + 0.3 * s, gain: 0.18, attack: 0.12, when: 0.08, strength: s });
+    crowdLayer({ freq: 3200, q: 0.8, dur: 0.3, gain: 0.35, attack: 0.03, strength: s });
+    // Cheer swell: mid voices — boosted to cut through the slap
+    crowdLayer({ freq: 1200, q: 0.5, dur: 0.8 + 0.3 * s, gain: 0.4, attack: 0.08, when: 0.03, strength: s });
+    crowdLayer({ freq: 800, q: 0.5, dur: 0.9 + 0.3 * s, gain: 0.35, attack: 0.1, when: 0.05, strength: s });
     // Harder slaps = bigger roar
-    if (s > 1.1) crowdLayer({ freq: 500, q: 0.4, dur: 1.0, gain: 0.2, attack: 0.15, when: 0.1, strength: s });
+    if (s > 1.1) crowdLayer({ freq: 500, q: 0.4, dur: 1.2, gain: 0.38, attack: 0.12, when: 0.08, strength: s });
   }
   // Victory: full crowd eruption
   function crowdWin() {
     if (!ready()) return;
-    crowdLayer({ freq: 1200, q: 0.4, dur: 2.2, gain: 0.3, attack: 0.15, strength: 1.2 });
-    crowdLayer({ freq: 800, q: 0.4, dur: 2.5, gain: 0.25, attack: 0.2, when: 0.1, strength: 1.2 });
-    crowdLayer({ freq: 2000, q: 0.6, dur: 1.8, gain: 0.2, attack: 0.1, when: 0.05, strength: 1.2 });
-    crowdLayer({ freq: 500, q: 0.4, dur: 2.8, gain: 0.22, attack: 0.25, when: 0.15, strength: 1.2 });
+    crowdLayer({ freq: 1200, q: 0.4, dur: 2.5, gain: 0.5, attack: 0.12, strength: 1.3 });
+    crowdLayer({ freq: 800, q: 0.4, dur: 2.8, gain: 0.45, attack: 0.15, when: 0.08, strength: 1.3 });
+    crowdLayer({ freq: 2000, q: 0.6, dur: 2.0, gain: 0.35, attack: 0.08, when: 0.03, strength: 1.3 });
+    crowdLayer({ freq: 500, q: 0.4, dur: 3.0, gain: 0.4, attack: 0.2, when: 0.12, strength: 1.3 });
     // Whistles in the crowd
     [2400, 2800, 3200].forEach((fq, i) => {
       crowdLayer({ freq: fq, q: 3.0, dur: 0.4, gain: 0.08, attack: 0.05, when: 0.3 + i * 0.25, strength: 1 });
