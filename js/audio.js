@@ -353,7 +353,7 @@ SAK.Audio = (function () {
       if (buf && ctx) {
         const t = ctx.currentTime;
         const src = ctx.createBufferSource(); src.buffer = buf;
-        const g = ctx.createGain(); g.gain.value = 0.5;
+        const g = ctx.createGain(); g.gain.value = 0.4;
         src.connect(g); g.connect(master);
         src.start(t);
       } else {
@@ -364,7 +364,7 @@ SAK.Audio = (function () {
           .then(b => {
             crowdBufs['bell'] = b;
             const src = ctx.createBufferSource(); src.buffer = b;
-            const g = ctx.createGain(); g.gain.value = 0.5;
+            const g = ctx.createGain(); g.gain.value = 0.4;
             src.connect(g); g.connect(master);
             src.start();
           })
