@@ -612,7 +612,7 @@
       btn.disabled = true;
       btn.textContent = '⏳ Building card…';
       try {
-        const svg = SAK.FighterCard.buildFighterCard({
+        const svg = SAK.FightCard.buildFighterCard({
           name: S.profile.name,
           xHandle: S.profile.x_handle,
           phrase: S.profile.phrase,
