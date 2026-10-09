@@ -234,6 +234,15 @@ h2, h3, .prompt, .vs, .level, .fc-name, .banner, .float-text, .result-title {
 .meter.dim { opacity: .4; }
 .meter-svg { width: 100%; height: auto; display: block; overflow: visible; }
 .meter-perfect { fill: #fff; font-size: 11px; }
+/* Slap indicator needle: pulsing glow so it's easy to track */
+.meter-needle polygon {
+  animation: needlePulse 0.9s ease-in-out infinite;
+  filter: drop-shadow(0 0 6px #ffd23f);
+}
+@keyframes needlePulse {
+  0%, 100% { filter: drop-shadow(0 0 4px #ffd23f); opacity: 1; }
+  50% { filter: drop-shadow(0 0 12px #ffd23f) drop-shadow(0 0 20px #ff9a1f); opacity: 0.92; }
+}
 /* Compact classic slap-meter: kept low so round-score stays clear */
 .private-meter {
   margin: 0 auto 2px; width: min(220px, 60vw); max-width: 220px;
