@@ -180,29 +180,32 @@
     b.classList.remove('hidden'); b.style.animation = 'none'; void b.offsetWidth; b.style.animation = '';
     await wait((ms || 1000) / 1000); b.classList.add('hidden');
   }
-  /* 🥊 Ring-card intro: VS card at fight start, ROUND N card each round */
-  async function roundCardIntro(label, sublabel) {
+  /* 🥊 Ring cards: VS names card, then ROUND N card (same look all rounds) */
+  async function vsCardIntro(pName, kName) {
     const card = $('#round-card');
     const rcLabel = card.querySelector('.rc-label');
     const rcNumber = $('#rc-number');
-    if (sublabel) {
-      // Fight card: stacked names (player / vs / opponent), ROUND 1 label on top
-      const parts = label.split(' vs ');
-      rcLabel.textContent = sublabel;
-      rcLabel.style.cssText = 'font-size:18px;letter-spacing:6px;';
-      rcNumber.innerHTML = `<div style="font-size:26px;line-height:1.3">${parts[0] || ''}</div><div style="font-size:16px;color:var(--yellow);margin:2px 0">vs</div><div style="font-size:26px;line-height:1.3">${parts[1] || ''}</div>`;
-      rcNumber.style.fontSize = '';
-    } else {
-      // Round card: "ROUND N"
-      rcLabel.textContent = 'ROUND';
-      rcNumber.textContent = label;
-      rcNumber.style.fontSize = '';
-      rcNumber.innerHTML = label;
-    }
+    rcLabel.textContent = '';
+    rcLabel.style.cssText = '';
+    rcNumber.innerHTML = `<div style="font-size:28px;line-height:1.3">${pName}</div><div style="font-size:16px;color:var(--yellow);margin:4px 0">vs</div><div style="font-size:28px;line-height:1.3">${kName}</div>`;
     card.classList.remove('hidden');
     const inner = card.querySelector('.rc-inner');
     inner.style.animation = 'none'; void inner.offsetWidth; inner.style.animation = '';
-    await wait(2.2);
+    await wait(1.8);
+    card.classList.add('hidden');
+  }
+  async function roundCardIntro(roundNum) {
+    const card = $('#round-card');
+    const rcLabel = card.querySelector('.rc-label');
+    const rcNumber = $('#rc-number');
+    rcLabel.textContent = 'ROUND';
+    rcLabel.style.cssText = '';
+    rcNumber.textContent = roundNum;
+    rcNumber.innerHTML = roundNum;
+    card.classList.remove('hidden');
+    const inner = card.querySelector('.rc-inner');
+    inner.style.animation = 'none'; void inner.offsetWidth; inner.style.animation = '';
+    await wait(1.6);
     card.classList.add('hidden');
   }
   /* Slap haptics mirror scene3d reactTier (light/medium/heavy/perfect).
@@ -1130,10 +1133,11 @@
     show('fight');
     sayPlayer(playerPhrase());
     setTimeout(() => F && F.token === token && say(pick(kol.taunts)), 900);
-    // Fight start: "Name vs Name / ROUND 1" card → READY → SLAP (~3.5s grace)
+    // Fight start: VS names → ROUND 1 → READY → SLAP
     (async () => {
       const pName = profile().name || 'YOU';
-      await roundCardIntro(pName + ' vs ' + kol.name, 'ROUND 1');
+      await vsCardIntro(pName, kol.name);
+      await roundCardIntro(1);
       await banner('READY...', '#fff', 700);
       await banner('SLAP! 👋', 'var(--yellow)', 600);
       if (F && F.token === token) startChallengeRound();
