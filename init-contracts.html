@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Initialize Smack-a-KOL Contracts (Devnet)</title>
+<style>
+  body { font-family: system-ui, sans-serif; background: #0d0d1a; color: #fff; padding: 20px; max-width: 600px; margin: 0 auto; }
+  h1 { color: #ffd23f; }
+  .card { background: #1a0b3a; border: 2px solid #ffd23f; border-radius: 12px; padding: 20px; margin: 16px 0; }
+  .btn { background: #ffd23f; color: #000; border: none; padding: 14px 28px; font-size: 16px; font-weight: bold; border-radius: 10px; cursor: pointer; width: 100%; margin: 8px 0; }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .status { font-family: monospace; font-size: 13px; background: #000; padding: 12px; border-radius: 8px; margin: 12px 0; white-space: pre-wrap; word-break: break-all; }
+  code { background: #000; padding: 2px 6px; border-radius: 4px; font-size: 12px; word-break: break-all; }
+  .warn { background: #3a1a0b; border: 2px solid #ff6b3b; border-radius: 8px; padding: 12px; margin: 12px 0; }
+</style>
+</head>
+<body>
+<h1>🚀 Initialize Contracts</h1>
+<p>One-time setup for Smack-a-KOL devnet contracts.</p>
+
+<div class="warn">
+  ⚠️ <b>Connect with your ADMIN wallet:</b><br>
+  <code>6nocUciCs3o8Usa86NKJxm82p5b2Wzya23DJrFNi4brx</code>
+</div>
+
+<div class="card">
+  <h3>Programs</h3>
+  <p>Escrow:<br><code>F4kqMuoAP4kzDT6x41ha15UPicBpQpQay5Txsg85cSWr</code></p>
+  <p>House:<br><code>SpYmnT53X3KyYYawSLLzD8hVqWFTkNUQf3a8L3rCzjN</code></p>
+</div>
+
+<div class="card">
+  <h3>Configuration</h3>
+  <ul>
+    <li>Platform fee: <b>5%</b> (500 bps)</li>
+    <li>Player win rate: <b>45%</b> (4500 bps)</li>
+    <li>Payout: <b>1.9×</b> (19000 bps)</li>
+    <li>Max bet: <b>5%</b> of vault (500 bps)</li>
+    <li>SPL burn: <b>1%</b> (100 bps)</li>
+    <li>Treasury/Resolver: your wallet (devnet)</li>
+  </ul>
+</div>
+
+<button class="btn" id="btn-connect">👛 CONNECT WALLET</button>
+<button class="btn" id="btn-init" disabled>🚀 INITIALIZE BOTH CONTRACTS</button>
+
+<div class="status" id="status">Not connected.</div>
+
+<script src="https://unpkg.com/@solana/web3.js@1.95.3/lib/index.iife.min.js"></script>
+<script>
+const ESCROW_PROGRAM = 'F4kqMuoAP4kzDT6x41ha15UPicBpQpQay5Txsg85cSWr';
+const HOUSE_PROGRAM = 'SpYmnT53X3KyYYawSLLzD8hVqWFTkNUQf3a8L3rCzjN';
+const NATIVE_MINT = 'So11111111111111111111111111111111111111112';
+const RPC_URL = 'https://api.devnet.solana.com';
+const INIT_DISC = [175, 175, 109, 31, 13, 152, 155, 237];
+
+let wallet = null;
+let walletPubkey = null;
+
+const $ = id => document.getElementById(id);
+const log = msg => { $('status').textContent += '\n' + msg; };
+
+function getProvider() {
+  if (window.phantom?.solana?.isPhantom) return window.phantom.solana;
+  if (window.solflare?.isSolflare) return window.solflare;
+  if (window.solana?.isPhantom) return window.solana;
+  return null;
+}
+
+$('btn-connect').onclick = async () => {
+  const provider = getProvider();
+  if (!provider) { log('❌ No wallet found. Install Phantom or Solflare.'); return; }
+  try {
+    const resp = await provider.connect();
+    wallet = provider;
+    walletPubkey = resp.publicKey.toString();
+    log('✅ Connected: ' + walletPubkey);
+    $('btn-init').disabled = false;
+    $('btn-connect').textContent = '✅ CONNECTED';
+    $('btn-connect').disabled = true;
+  } catch (e) {
+    log('❌ Connect failed: ' + e.message);
+  }
+};
+
+function u16(n) { const b = Buffer.alloc(2); b.writeUInt16LE(n, 0); return b; }
+function u64(n) { const b = Buffer.alloc(8); b.writeBigUInt64LE(BigInt(n), 0); return b; }
+
+$('btn-init').onclick = async () => {
+  const btn = $('btn-init');
+  btn.disabled = true;
+  btn.textContent = 'INITIALIZING...';
+  
+  try {
+    const web3 = window.solanaWeb3;
+    const connection = new web3.Connection(RPC_URL, 'confirmed');
+    const admin = new web3.PublicKey(walletPubkey);
+    
+    // 1. Initialize Escrow
+    log('\n📝 Initializing Escrow...');
+    const escrowProgram = new web3.PublicKey(ESCROW_PROGRAM);
+    const [configPDA] = await web3.PublicKey.findProgramAddress([Buffer.from('config')], escrowProgram);
+    
+    const escrowData = Buffer.concat([Buffer.from(INIT_DISC), u16(500)]);
+    const escrowIx = new web3.TransactionInstruction({
+      programId: escrowProgram,
+      keys: [
+        { pubkey: configPDA, isSigner: false, isWritable: true },
+        { pubkey: admin, isSigner: true, isWritable: true },
+        { pubkey: admin, isSigner: false, isWritable: false },
+        { pubkey: admin, isSigner: false, isWritable: false },
+        { pubkey: web3.SystemProgram.programId, isSigner: false, isWritable: false },
+      ],
+      data: escrowData
+    });
+    
+    let tx = new web3.Transaction().add(escrowIx);
+    tx.feePayer = admin;
+    tx.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
+    let signed = await wallet.signTransaction(tx);
+    let sig = await connection.sendRawTransaction(signed.serialize());
+    await connection.confirmTransaction(sig, 'confirmed');
+    log('✅ Escrow initialized: ' + sig);
+    
+    // 2. Initialize House
+    log('\n📝 Initializing House...');
+    const houseProgram = new web3.PublicKey(HOUSE_PROGRAM);
+    const [housePDA] = await web3.PublicKey.findProgramAddress([Buffer.from('house')], houseProgram);
+    const [vaultPDA] = await web3.PublicKey.findProgramAddress([Buffer.from('vault')], houseProgram);
+    const mint = new web3.PublicKey(NATIVE_MINT);
+    
+    const houseData = Buffer.concat([
+      Buffer.from(INIT_DISC),
+      u16(4500), u64(19000), u16(500), u16(100)
+    ]);
+    const houseIx = new web3.TransactionInstruction({
+      programId: houseProgram,
+      keys: [
+        { pubkey: housePDA, isSigner: false, isWritable: true },
+        { pubkey: vaultPDA, isSigner: false, isWritable: true },
+        { pubkey: admin, isSigner: true, isWritable: true },
+        { pubkey: admin, isSigner: false, isWritable: false },
+        { pubkey: admin, isSigner: false, isWritable: false },
+        { pubkey: mint, isSigner: false, isWritable: false },
+        { pubkey: web3.SystemProgram.programId, isSigner: false, isWritable: false },
+      ],
+      data: houseData
+    });
+    
+    tx = new web3.Transaction().add(houseIx);
+    tx.feePayer = admin;
+    tx.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
+    signed = await wallet.signTransaction(tx);
+    sig = await connection.sendRawTransaction(signed.serialize());
+    await connection.confirmTransaction(sig, 'confirmed');
+    log('✅ House initialized: ' + sig);
+    
+    log('\n🎉 Both contracts initialized! You can close this page.');
+    btn.textContent = '✅ DONE';
+    
+  } catch (e) {
+    log('❌ Failed: ' + e.message);
+    btn.disabled = false;
+    btn.textContent = '🚀 INITIALIZE BOTH CONTRACTS';
+  }
+};
+</script>
+</body>
+</html>

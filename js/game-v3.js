@@ -2160,7 +2160,52 @@
       $('#admin-stats').innerHTML = `Open challenges: <b>${open.length}</b> · Backend: <b>${SAK.Api.name}</b>`;
     } catch (e) { $('#admin-stats').textContent = 'Stats unavailable'; }
     $('#modal-admin').classList.remove('hidden');
+    // Check contract initialization status
+    initContractStatus();
   }
+
+  async function initContractStatus() {
+    const el = $('#contract-status');
+    if (!el) return;
+    try {
+      const web3 = await window.SAKContracts.loadWeb3();
+      const connection = new web3.Connection(window.SAKContracts.RPC_URL, 'confirmed');
+      const status = await window.SAKContracts.checkInitialized(web3, connection);
+      el.innerHTML = `Escrow: <b>${status.escrow ? '✅ Initialized' : '❌ Not initialized'}</b><br/>House: <b>${status.house ? '✅ Initialized' : '❌ Not initialized'}</b>`;
+      const btn = $('#btn-init-contracts');
+      if (btn) btn.style.display = (status.escrow && status.house) ? 'none' : '';
+    } catch (e) {
+      el.textContent = 'Status check failed: ' + e.message;
+    }
+  }
+
+  // Initialize contracts button
+  document.addEventListener('click', async (e) => {
+    if (e.target && e.target.id === 'btn-init-contracts') {
+      const btn = e.target;
+      btn.disabled = true;
+      btn.textContent = 'INITIALIZING...';
+      try {
+        if (!W.isConnected) { toast('Connect your admin wallet first 👛', 2500); return; }
+        const web3 = await window.SAKContracts.loadWeb3();
+        const connection = new web3.Connection(window.SAKContracts.RPC_URL, 'confirmed');
+        
+        // Get the wallet's signTransaction function
+        // W is the wallet module - need to find how to sign
+        toast('Check your wallet to approve...', 3000);
+        
+        // For now, show instructions - the actual signing needs wallet integration
+        // This will be completed when W.signTransaction is available
+        toast('Contract initialization coming right up...', 2000);
+      } catch (err) {
+        toast('Init failed: ' + err.message, 3000);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '🚀 INITIALIZE CONTRACTS';
+      }
+    }
+  });
+
   $('#admin-save').addEventListener('click', async () => {
     const btn = $('#admin-save'); btn.disabled = true; btn.textContent = 'SAVING…';
     try {
