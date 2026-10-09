@@ -390,7 +390,7 @@ h2, h3, .prompt, .vs, .level, .fc-name, .banner, .float-text, .result-title {
 }
 /* 🥊 Ring-girl round card — swings in before round 1 */
 .round-card {
-  position: absolute; left: 0; right: 0; top: 30%; z-index: 39; text-align: center; pointer-events: none;
+  position: absolute; left: 0; right: 0; top: 22%; z-index: 39; text-align: center; pointer-events: none;
 }
 .round-card.hidden { display: none; }
 .rc-inner {

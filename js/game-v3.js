@@ -186,9 +186,9 @@
     const rcLabel = card.querySelector('.rc-label');
     const rcNumber = $('#rc-number');
     if (sublabel) {
-      // Fight card: "Name vs Name" + "ROUND 1"
-      rcLabel.textContent = sublabel;
-      rcNumber.innerHTML = `<div style="font-size:30px;line-height:1.3">${label}</div>`;
+      // Fight card: names on top, ROUND 1 below
+      rcLabel.innerHTML = `<div style="font-size:30px;line-height:1.3;letter-spacing:2px">${label}</div>`;
+      rcNumber.textContent = sublabel;
       rcNumber.style.fontSize = '';
     } else {
       // Round card: "ROUND N"
