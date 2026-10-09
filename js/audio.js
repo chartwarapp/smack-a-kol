@@ -309,7 +309,15 @@ SAK.Audio = (function () {
     ko() { if (!ready()) return; tone(520, 0.7, 'sawtooth', 0.2, 0, 90); noise(0.4, 300, 0.7, 0.6, 'lowpass'); },
     win() { if (!ready()) return; [523, 659, 784, 1046].forEach((f, i) => tone(f, 0.35, 'triangle', 0.2, i * 0.11)); crowdWin(); },
     lose() { if (!ready()) return; [392, 330, 262].forEach((f, i) => tone(f, 0.45, 'sine', 0.2, i * 0.18)); crowdLose(); },
-    brace() { if (!ready()) return; tone(300, 0.1, 'square', 0.12); },
+    brace() {
+      if (!ready()) return;
+      // Braced hit: play a real slap at reduced intensity (palm hits guard)
+      crowdSlap(0.5);
+      if (!playSlapBuf(0.5)) {
+        noise(0.1, 1800, 0.8, 0.5);
+        noise(0.08, 150, 0.6, 0.3, 'lowpass');
+      }
+    },
     /** Boxing ring bell — three classic dings with metallic partials. */
     bell() {      if (!ready()) return;
       const strike = (when) => {
