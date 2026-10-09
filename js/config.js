@@ -260,6 +260,9 @@ SAK.FIGHTER_LOCK = {
   rpcUrl: 'https://api.devnet.solana.com',
 };
 
+// Admin wallet — used for temporary testing bypasses (e.g. free fighter lock).
+SAK.ADMIN_WALLET = '6nocUciCs3o8Usa86NKJxm82p5b2Wzya23DJrFNi4brx';
+
 /* ---- User-submitted KOLs ----------------------------------------------
  * Players design their own parody KOL. Slots unlock with LIFETIME PTS earned.
  * Stats are derived from the chosen difficulty (see SAK.customKolStats).    */

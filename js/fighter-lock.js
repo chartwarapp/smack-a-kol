@@ -104,5 +104,35 @@ SAK.FighterLock = (() => {
     return { signature };
   }
 
-  return { payLockFee, lockFighter, loadWeb3 };
+  return { payLockFee, lockFighter, lockFighterFree, loadWeb3 };
 })();
+
+/**
+ * // TEMPORARY: admin free lock for testing — remove before mainnet
+ * Bypasses the 0.05 SOL payment entirely. Only callable for the admin wallet;
+ * callers must verify SAK.Wallet.address === SAK.ADMIN_WALLET first.
+ */
+SAK.FighterLock.lockFighterFree = async function (fighterLook) {
+  const clean = SAK.Account.sanitize(fighterLook);
+  const S = SAK.Storage.state;
+  if (S && S.profile) {
+    S.profile.avatar = clean;
+    S.profile.locked_fighter = {
+      look: clean,
+      tx: 'ADMIN_FREE_LOCK',
+      locked_at: Date.now(),
+      fee_sol: 0,
+    };
+    SAK.Storage.save();
+  }
+  try {
+    const W = SAK.Wallet;
+    if (W && W.isConnected && W.address && SAK.Api && SAK.Api.saveProfile) {
+      await SAK.Api.saveProfile(W.address, {
+        fighter_look: clean,
+        locked_fighter_tx: 'ADMIN_FREE_LOCK',
+      });
+    }
+  } catch (e) { console.warn('[SAK] admin free lock profile sync failed', e); }
+  return { signature: 'ADMIN_FREE_LOCK' };
+};

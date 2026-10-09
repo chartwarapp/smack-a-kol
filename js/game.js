@@ -409,14 +409,28 @@
   }
   /* ---- Fighter picker: Starters (free) + Custom (0.05 SOL lock) ---- */
   let pkTab = 'starters', pkStarterId = null, pkCustomLook = null, pkLocked = false;
+  // TEMPORARY: admin free lock for testing — remove before mainnet
+  function pkIsAdmin() {
+    const W = SAK.Wallet;
+    return !!(W && W.isConnected && W.address && SAK.ADMIN_WALLET && W.address === SAK.ADMIN_WALLET);
+  }
+  function updateLockButton() {
+    const lockBtn = $('#pk-lock');
+    if (!lockBtn || pkLocked) return;
+    lockBtn.disabled = false;
+    lockBtn.textContent = pkIsAdmin() ? '🔓 LOCK FREE (ADMIN)' : `🔒 LOCK FOR ${SAK.FIGHTER_LOCK.feeSol} SOL`;
+  }
   function initPicker() {
     pkTab = 'starters'; pkLocked = false;
     pkStarterId = (S.profile && S.profile.starter_id) || 'rookie';
     pkCustomLook = null;
-    // Reset lock button
-    const lockBtn = $('#pk-lock');
-    if (lockBtn) { lockBtn.disabled = false; lockBtn.textContent = `🔒 LOCK FOR ${SAK.FIGHTER_LOCK.feeSol} SOL`; }
+    // Reset lock button (admin-aware)
+    updateLockButton();
     $('#pk-lock-err').textContent = '';
+    // Refresh lock button when wallet connects/disconnects while picker is open
+    if (SAK.Wallet && SAK.Wallet.onChange) {
+      SAK.Wallet.onChange(() => { if (!$('#cr-step-look').classList.contains('hidden')) updateLockButton(); });
+    }
     // Tab switching
     $$('#cr-step-look [data-ptab]').forEach(b => {
       b.onclick = () => {
@@ -498,8 +512,7 @@
     A.click();
     pkCustomLook = SAK.Account.randomAvatar();
     pkLocked = false;
-    $('#pk-lock').disabled = false;
-    $('#pk-lock').textContent = `🔒 LOCK FOR ${SAK.FIGHTER_LOCK.feeSol} SOL`;
+    updateLockButton();
     renderCustomTraits();
     renderCreatorPreview();
     A.coin();
@@ -508,7 +521,9 @@
     const errEl = $('#pk-lock-err');
     errEl.textContent = '';
     const btn = $('#pk-lock');
-    // Must have a wallet connected to pay
+    // TEMPORARY: admin free lock for testing — remove before mainnet
+    const adminFree = pkIsAdmin();
+    // Must have a wallet connected to lock
     const W = SAK.Wallet;
     if (!W || !W.isConnected) {
       errEl.textContent = 'Connect your wallet first to lock a fighter.';
@@ -517,9 +532,12 @@
     }
     if (!pkCustomLook) { errEl.textContent = 'Randomize a fighter first.'; return; }
     btn.disabled = true;
-    btn.textContent = '⏳ Confirm in wallet…';
+    btn.textContent = adminFree ? '⏳ Locking…' : '⏳ Confirm in wallet…';
     try {
-      const { signature } = await SAK.FighterLock.lockFighter(pkCustomLook);
+      // TEMPORARY: admin free lock for testing — remove before mainnet
+      const { signature } = adminFree
+        ? await SAK.FighterLock.lockFighterFree(pkCustomLook)
+        : await SAK.FighterLock.lockFighter(pkCustomLook);
       pkLocked = true;
       crDraft = Object.assign({}, pkCustomLook);
       // Stamp the name/quote the user typed (validated on save path too)
@@ -532,8 +550,7 @@
     } catch (e) {
       console.warn('[SAK] lock failed', e);
       errEl.textContent = e.message || 'Payment failed. Try again.';
-      btn.disabled = false;
-      btn.textContent = `🔒 LOCK FOR ${SAK.FIGHTER_LOCK.feeSol} SOL`;
+      updateLockButton();
     }
   });
   $('#cr-later').addEventListener('click', () => { closeCreator(); if (playAfterFighter) setTimeout(openPicker, 50); });   // play as guest
