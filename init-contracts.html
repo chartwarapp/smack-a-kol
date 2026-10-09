@@ -140,6 +140,7 @@ $('btn-init').addEventListener('click', async () => {
     }
 
     // 1. Initialize Escrow (skip if done)
+    let tx, signed, sig;
     if (!escrowDone) {
       log('📝 Initializing Escrow...');
 
@@ -156,12 +157,12 @@ $('btn-init').addEventListener('click', async () => {
       data: escrowData
     });
 
-    let tx = new web3.Transaction().add(escrowIx);
+    tx = new web3.Transaction().add(escrowIx);
     tx.feePayer = admin;
     tx.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
     log('Approve in wallet...');
-    let signed = await wallet.signTransaction(tx);
-    let sig = await connection.sendRawTransaction(signed.serialize());
+    signed = await wallet.signTransaction(tx);
+    sig = await connection.sendRawTransaction(signed.serialize());
     await connection.confirmTransaction(sig, 'confirmed');
     log('✅ Escrow initialized: ' + sig);
     } else {
