@@ -1757,7 +1757,15 @@ SAK.Scene3D = (function () {
       this.torso.position.y = 0.95 + idle * 0.012;
       this.root.position.z = this.homeZ + this.facing * p.lunge;
       // slapping arm uses the tweened pose; the other arm idles / guards
-      this.applyArm(this.arms[this.armSide], p.lift, p.swing, p.elbow);
+      // Anticipatory swing: on player's attack turn, the slapping arm sways slightly
+      // like it's winding up, synced to the meter's rhythm
+      let armLift = p.lift, armSwing = p.swing;
+      if (this.anticipate && !this.ko) {
+        const sway = Math.sin(this.idlePhase * 4.5);
+        armLift += sway * 0.12;
+        armSwing += Math.cos(this.idlePhase * 4.5) * 0.08;
+      }
+      this.applyArm(this.arms[this.armSide], armLift, armSwing, p.elbow);
       const g = p.guard;
       this.applyArm(this.arms[-this.armSide], 0.12 + idle * 0.03 + g * 0.9, -g * 1.2, 0.15 + g * 1.9);
       if (this.rage.visible) { const k = 1 + Math.sin(time * 14) * 0.08; this.rage.scale.set(k, k, k); this.rage.material.opacity = 0.18 + Math.random() * 0.12; }
@@ -4329,6 +4337,7 @@ SAK.Scene3D = (function () {
   }
 
   return { init, setPlayer, applyAvatar, createPreview, setOpponent, setMode, resetFight, setRoleCam, slap, knockout, setFireArmed, setBrace, screenPos, taunt, coinRain, impactFlash, setHelmet, setRage, setArena, crowdExcite, chartDump,
+    setAnticipate(who, on) { const F = who === 'player' ? player : kol; if (F) F.anticipate = !!on; },
     get player() { return player; }, get kol() { return kol; },
     get arena() { return arenaStyle; }, get arenaName() { return ARENA_DEFS[arenaStyle].name; },
     get camDebug() { return { hit: hitCam ? +hitCam.w.toFixed(3) : null, role: roleCam.role, roleW: +roleCam.w.toFixed(3), ko: !!koCam, t: +time.toFixed(2) }; } };

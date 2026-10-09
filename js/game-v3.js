@@ -1206,6 +1206,10 @@
     const isAtk = C.localSide === 'atk';
     // Role camera: bracing → show YOUR face (incoming slap); attacking → default fight view
     if (Scene && Scene.setRoleCam) Scene.setRoleCam(isAtk ? 'attack' : 'brace');
+    if (Scene && Scene.setAnticipate) {
+      Scene.setAnticipate('player', isAtk);
+      Scene.setAnticipate('kol', !isAtk);
+    }
     // Degen play-by-play: random commentary so rounds never feel the same
     if (Math.random() < 0.4) setTimeout(() => { if (F && F.started) say(pick(SAK.COPY.fightCommentary)); }, 1400);
     const roleEl = $('#role-label');
