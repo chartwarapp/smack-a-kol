@@ -7,6 +7,32 @@ SAK.Audio = (function () {
   let ctx = null, master = null, noiseBuf = null;
 
   /* ---- Real recorded slap SFX bank (Pixabay Content License — free for use) ---- */
+  const CROWD_BANK = [
+    { id: 'cheer1', file: 'assets/sfx/crowd_crowd1.mp3' },
+    { id: 'cheer2', file: 'assets/sfx/crowd_crowd2.mp3' },
+    { id: 'victory', file: 'assets/sfx/crowd_victory.mp3' },
+  ];
+  const crowdBufs = {};
+  function loadCrowdBank() {
+    if (!ctx) return;
+    CROWD_BANK.forEach(b => {
+      fetch(b.file).then(r => { if (!r.ok) throw 0; return r.arrayBuffer(); })
+        .then(ab => ctx.decodeAudioData(ab))
+        .then(buf => { crowdBufs[b.id] = buf; })
+        .catch(() => { /* silent */ });
+    });
+  }
+  function playCrowdBuf(id, gain, when) {
+    const buf = crowdBufs[id];
+    if (!buf || !ctx) return false;
+    const t = ctx.currentTime + (when || 0);
+    const src = ctx.createBufferSource(); src.buffer = buf;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(gain || 0.5, t);
+    src.connect(g); g.connect(master);
+    src.start(t);
+    return true;
+  }
   const SLAP_BANK = [
     { id: 'crack',  name: '🦴 Bone Crack',   file: 'assets/sfx/slap-crack.mp3' },
     { id: 'smack',  name: '👋 Heavy Smack',  file: 'assets/sfx/slap-smack.mp3' },
@@ -30,6 +56,7 @@ SAK.Audio = (function () {
   function loadSlapBank() {
     if (slapLoading || !ctx) return;
     slapLoading = true;
+    loadCrowdBank();
     SLAP_BANK.forEach(b => {
       fetch(b.file).then(r => { if (!r.ok) throw 0; return r.arrayBuffer(); })
         .then(ab => ctx.decodeAudioData(ab))
@@ -213,29 +240,33 @@ SAK.Audio = (function () {
     src.connect(f); f.connect(g); g.connect(master);
     src.start(t); src.stop(t + opts.dur + 0.1);
   }
-  // Crowd gasp + cheer on slap impact — intensity scales with slap tier
+  // Crowd gasp + cheer on slap impact — real recordings, intensity scales volume
   function crowdSlap(intensity) {
     if (!ready()) return;
     const s = Math.min(1.5, intensity || 1);
-    // Gasp: sharp high intake
-    crowdLayer({ freq: 3200, q: 0.8, dur: 0.3, gain: 0.35, attack: 0.03, strength: s });
-    // Cheer swell: mid voices — boosted to cut through the slap
-    crowdLayer({ freq: 1200, q: 0.5, dur: 0.8 + 0.3 * s, gain: 0.4, attack: 0.08, when: 0.03, strength: s });
-    crowdLayer({ freq: 800, q: 0.5, dur: 0.9 + 0.3 * s, gain: 0.35, attack: 0.1, when: 0.05, strength: s });
-    // Harder slaps = bigger roar
-    if (s > 1.1) crowdLayer({ freq: 500, q: 0.4, dur: 1.2, gain: 0.38, attack: 0.12, when: 0.08, strength: s });
+    const id = Math.random() < 0.5 ? 'cheer1' : 'cheer2';
+    // Play a short slice of the cheer (first 1.5s has the eruption)
+    const buf = crowdBufs[id];
+    if (buf && ctx) {
+      const t = ctx.currentTime;
+      const src = ctx.createBufferSource(); src.buffer = buf;
+      const g = ctx.createGain();
+      g.gain.setValueAtTime(0.001, t);
+      g.gain.exponentialRampToValueAtTime(0.45 * s, t + 0.08);
+      g.gain.exponentialRampToValueAtTime(0.001, t + 1.5);
+      src.connect(g); g.connect(master);
+      src.start(t, Math.random() * 5, 1.6); // random offset into the 22s file
+    } else {
+      // Synth fallback
+      crowdLayer({ freq: 1200, q: 0.5, dur: 0.8, gain: 0.4, attack: 0.08, strength: s });
+    }
   }
-  // Victory: full crowd eruption
+  // Victory: full crowd eruption — real recording
   function crowdWin() {
     if (!ready()) return;
-    crowdLayer({ freq: 1200, q: 0.4, dur: 2.5, gain: 0.5, attack: 0.12, strength: 1.3 });
-    crowdLayer({ freq: 800, q: 0.4, dur: 2.8, gain: 0.45, attack: 0.15, when: 0.08, strength: 1.3 });
-    crowdLayer({ freq: 2000, q: 0.6, dur: 2.0, gain: 0.35, attack: 0.08, when: 0.03, strength: 1.3 });
-    crowdLayer({ freq: 500, q: 0.4, dur: 3.0, gain: 0.4, attack: 0.2, when: 0.12, strength: 1.3 });
-    // Whistles in the crowd
-    [2400, 2800, 3200].forEach((fq, i) => {
-      crowdLayer({ freq: fq, q: 3.0, dur: 0.4, gain: 0.08, attack: 0.05, when: 0.3 + i * 0.25, strength: 1 });
-    });
+    if (!playCrowdBuf('victory', 0.6)) {
+      crowdLayer({ freq: 1200, q: 0.4, dur: 2.5, gain: 0.5, attack: 0.12, strength: 1.3 });
+    }
   }
   // Defeat: crowd "oooh" — sympathetic groan
   function crowdLose() {
