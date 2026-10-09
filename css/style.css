@@ -670,7 +670,7 @@ h2, h3, .prompt, .vs, .level, .fc-name, .banner, .float-text, .result-title {
   max-height: calc(100% - 8px - var(--safe-top) - var(--safe-bot)); overflow-y: auto; overscroll-behavior: contain;
 }
 .creator-card h3 { color: #fff; text-shadow: var(--outline-soft); }
-.cr-step { display: grid; gap: 10px; min-width: 0; }
+.cr-step { display: grid; gap: 8px; min-width: 0; }
 .cr-label { display: grid; gap: 3px; font-size: 13px; color: var(--ink); }
 .cr-label input { font: 700 16px system-ui, sans-serif; padding: 10px; border-radius: 12px; border: 2px solid var(--ink); width: 100%; color: var(--ink); background: #fff; }
 .cr-inline { grid-template-columns: 56px 1fr; align-items: center; }
@@ -678,7 +678,7 @@ h2, h3, .prompt, .vs, .level, .fc-name, .banner, .float-text, .result-title {
 .cr-err { min-height: 0; font: 800 12px system-ui, sans-serif; color: var(--red-d); text-align: center; }
 .cr-err:empty { display: none; }
 .cr-preview {
-  position: relative; width: min(280px, 85%); aspect-ratio: 3 / 4; margin: 0 auto;
+  position: relative; width: min(220px, 75%); aspect-ratio: 3 / 4; margin: 0 auto;
   border-radius: 16px; overflow: hidden; border: 3px solid var(--ink);
   background: radial-gradient(circle at 50% 35%, #5a1aa8 0%, #2a0b5e 60%, #12002b 100%); touch-action: none; cursor: grab;
 }
@@ -757,10 +757,10 @@ h2, h3, .prompt, .vs, .level, .fc-name, .banner, .float-text, .result-title {
 }
 
 /* ---- Fighter picker (starters + custom) ---- */
-.pk-tabs { display: flex; gap: 8px; margin: 10px 0; }
+.pk-tabs { display: flex; gap: 6px; margin: 6px 0; }
 .pk-tab {
-  flex: 1; padding: 10px; border-radius: 12px; border: 2px solid var(--ink);
-  background: #2a2a3e; color: #fff; font-weight: 800; font-size: 14px; cursor: pointer;
+  flex: 1; padding: 8px; border-radius: 12px; border: 2px solid var(--ink);
+  background: #2a2a3e; color: #fff; font-weight: 800; font-size: 13px; cursor: pointer;
 }
 .pk-tab.on { background: var(--yellow); color: var(--ink); }
 .pk-price { font-size: 11px; opacity: .8; }

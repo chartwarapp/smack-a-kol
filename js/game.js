@@ -633,6 +633,20 @@
     const actions = document.querySelector('#cr-step-look .cr-actions');
     if (actions) actions.parentNode.insertBefore(btn, actions);
     else $('#cr-step-look').appendChild(btn);
+    // DONE button after lock — takes user back home
+    if (!document.getElementById('pk-done')) {
+      const done = document.createElement('button');
+      done.type = 'button'; done.id = 'pk-done';
+      done.className = 'btn btn-green'; done.style.cssText = 'width:100%;margin-top:8px';
+      done.textContent = 'DONE · LFG 🚀';
+      done.onclick = () => {
+        A.click();
+        closeCreator();
+        renderMenu();
+        if (typeof playAfterFighter !== 'undefined' && playAfterFighter) openPicker();
+      };
+      btn.parentNode.insertBefore(done, btn.nextSibling);
+    }
   }
 
   $('#fighter-form').addEventListener('submit', async e => {
