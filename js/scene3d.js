@@ -356,10 +356,10 @@ SAK.Scene3D = (function () {
      * heavy  = inner good / fire-boosted — strong recoil, stars, scream
      * perfect = green centre — max slapstick pain (no gore) */
     light: {
-      yaw: 5.5, roll: 3.2, lean: 0.14, mouthX: 1.08, mouthY: 2.0, mouthMs: 220,
-      eyeSx: 1.05, eyeSy: 0.72, sx: 1.18, sy: 0.82, sz: 1.12, squashDur: 0.24,
-      stars: 0, burstN: 9, burstSpd: 2.5, shake: 0.15, hitStop: 0.03, hop: 0,
-      blushAdd: 0.12, colors: ['#ffffff', '#fff27a'], ring: '#ffffff', yelpDelay: 0
+      yaw: 7.5, roll: 4.5, lean: 0.2, mouthX: 1.12, mouthY: 2.2, mouthMs: 280,
+      eyeSx: 1.08, eyeSy: 0.68, sx: 1.22, sy: 0.78, sz: 1.15, squashDur: 0.28,
+      stars: 0, burstN: 12, burstSpd: 3.0, shake: 0.22, hitStop: 0.04, hop: 0.04,
+      blushAdd: 0.15, colors: ['#ffffff', '#fff27a'], ring: '#ffffff', yelpDelay: 0
     },
     medium: {
       yaw: 9.5, roll: 5.8, lean: 0.24, mouthX: 1.2, mouthY: 2.7, mouthMs: 340,
@@ -3297,8 +3297,9 @@ SAK.Scene3D = (function () {
       setTimeout(() => { if (!D.ko) D.yaw.v += D.facing * R.yaw * 0.3; }, 320); // secondary wobble
     }
     // Body stagger on heavy hits: whole torso follows the head a beat later
-    if (tier === 'heavy' || tier === 'perfect') {
-      const sx0 = D.root.position.x, shove = -D.facing * (tier === 'perfect' ? 0.35 : 0.22);
+    // Body stagger: whole torso follows the head a beat later (scales with tier)
+    if (tier === 'medium' || tier === 'heavy' || tier === 'perfect') {
+      const sx0 = D.root.position.x, shove = -D.facing * (tier === 'perfect' ? 0.35 : tier === 'heavy' ? 0.22 : 0.12);
       SAK.Tween.to(D.root.position, { x: sx0 + shove }, 0.12, SAK.Ease.outCubic)
         .then(() => { if (!D.ko) return SAK.Tween.to(D.root.position, { x: sx0 }, 0.4, SAK.Ease.inOutQuad); });
     }
