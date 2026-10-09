@@ -103,3 +103,60 @@ SAK.KOLS = [
     taunts: ['The horns see your fear.', 'Darkness slaps back.', 'You were never bullish on this.']
   }
 ];
+
+/* ---- STARTER FIGHTERS -----------------------------------------------------
+ * FREE playable fighters. Every player picks one to start — no SOL required.
+ * High quality but generic: distinct personalities, not personalized.
+ * The paid value is identity (custom/rolled looks), not better visuals.
+ * `starter: true` marks these so the game can distinguish them from
+ * paid custom fighters. Keep look{} fields to values the 3D builder supports. */
+SAK.STARTERS = [
+  {
+    id: 'rookie', name: 'Rookie', starter: true,
+    tagline: 'Fresh face. Clean slap. The default pick.',
+    look: { skin: '#f6c9a0', shirt: '#2f6fd8', hair: '#7a4a24', pants: '#2b3a5c', hairStyle: 'short', eyes: 'round', eyeColor: '#3a6fd8', body: 'classic', outfit: 'tee', accessory: 'none', gloves: 'wrap' },
+    taunts: ['Let\'s do this! 🖐', 'I\'m new here, go easy... NOT.', 'Clean slap incoming!']
+  },
+  {
+    id: 'bruiser', name: 'Bruiser', starter: true,
+    tagline: 'Shaved head. Full beard. Hits like a truck.',
+    look: { skin: '#c98b5f', shirt: '#1a1a1a', hair: '#1a1a1a', pants: '#2b2b3a', hairStyle: 'buzz', eyes: 'angry', eyeColor: '#1a1a1a', body: 'gymbro', outfit: 'tank', accessory: 'none', facialHair: 'beard', necklace: 'chain', gloves: 'mma' },
+    taunts: ['You look soft.', 'I bench your portfolio.', 'Say goodbye to your cheek. 💪']
+  },
+  {
+    id: 'speedster', name: 'Speedster', starter: true,
+    tagline: 'Blink and you\'ll miss the slap.',
+    look: { skin: '#e0a77a', shirt: '#ff3b5c', hair: '#1a1a1a', pants: '#1f1f2e', hairStyle: 'spiky', eyes: 'round', eyeColor: '#1a1a1a', body: 'classic', outfit: 'tracksuit', accessory: 'headband', gloves: 'wrap' },
+    taunts: ['Too slow! ⚡', 'Catch me if you can.', 'Speed kills. So do I.']
+  },
+  {
+    id: 'degen', name: 'Degen', starter: true,
+    tagline: 'Laser eyes. Diamond hands. WAGMI.',
+    look: { skin: '#f6c9a0', shirt: '#1f1f2e', hair: '#39ff88', pants: '#1f1f2e', hairStyle: 'wild', eyes: 'laser', eyeColor: '#39ff88', body: 'classic', outfit: 'hoodie', accessory: 'none', gloves: 'mma' },
+    taunts: ['WAGMI (after this slap) 🚀', 'Diamond hands, diamond palm. 💎', 'To the moon, via your cheek. 🌙']
+  },
+  {
+    id: 'clown', name: 'Clown', starter: true,
+    tagline: 'Certified goofball. Uncertified slap machine.',
+    look: { skin: '#ffe0c4', shirt: '#ff7ad9', hair: '#ff7ad9', pants: '#2f6fd8', hairStyle: 'afro', eyes: 'big', eyeColor: '#3a6fd8', body: 'classic', outfit: 'hawaiian', accessory: 'none', gloves: 'boxing', fierce: true },
+    taunts: ['Honk honk! 🤡', 'Why so serious?', 'The joke\'s on your face!']
+  },
+  {
+    id: 'veteran', name: 'Veteran', starter: true,
+    tagline: 'Scars earned. Slaps perfected. No mercy left.',
+    look: { skin: '#d9a37a', shirt: '#4a5c3a', hair: '#888888', pants: '#2b2b3a', hairStyle: 'buzz', eyes: 'angry', eyeColor: '#1a1a1a', body: 'classic', outfit: 'tactical', accessory: 'none', facialHair: 'goatee', tattoo: 'sleeves', gloves: 'mma' },
+    taunts: ['I\'ve seen things. Then I slapped them.', 'War never changes. Slaps do.', 'At ease... NOT. 🖐']
+  },
+  {
+    id: 'bear', name: 'Bear', starter: true,
+    tagline: 'Lumberjack by day. Cheek-wrecker by night.',
+    look: { skin: '#8b5a2b', shirt: '#cc3333', hair: '#5a3a1a', pants: '#2b3a2b', hairStyle: 'bald', eyes: 'round', eyeColor: '#3a2410', body: 'chonk', species: 'bear', outfit: 'tee', accessory: 'none', facialHair: 'beard', gloves: 'wrap' },
+    taunts: ['Bear market energy. 🐻', 'I hug. Then I slap.', 'Timber! 🪓']
+  },
+  {
+    id: 'bull', name: 'Bull', starter: true,
+    tagline: 'Horns up. Leather on. Boss energy only.',
+    look: { skin: '#a8714d', shirt: '#1a1a1a', hair: '#1a1a1a', pants: '#1f1f2e', hairStyle: 'bald', eyes: 'angry', eyeColor: '#ff3b5c', body: 'gymbro', species: 'bull', outfit: 'leather', accessory: 'none', gloves: 'spike' },
+    taunts: ['The bull charges. 🐂', 'Horns see red. So will you.', 'No brakes on this slap.']
+  }
+];
