@@ -3726,30 +3726,33 @@ SAK.Scene3D = (function () {
     F.applyMaxDamageFace(); // random wrecked loss face, fresh every KO (stacks on bruises)
 
     // KO variety: fly-outs are rare treats now, even on big hits. Most KOs end
-    // with the loser dropping in place — usually a dead-weight crumple, sometimes
-    // a dizzy spin-out, occasionally a faceplant. Only sometimes do they get
-    // launched out of the ring (backflip launch or ragdoll rocket).
+    // with the loser dropping in place — crumple, spinout, flatback, plus the
+    // newer backflip, bounce, spiral and slow-mo crumble. Only sometimes do
+    // they get launched (backflip launch, ragdoll rocket, splat, towardcam).
     const hardKO = finTier === 'heavy' || finTier === 'perfect';
     const flyChance = hardKO ? 0.25 : 0.08;
     let variant;
     if (Math.random() < flyChance) {
-      // towardcam replaces some launch/rocket chance — stumbles at the camera
+      // towardcam stumbles at the camera, splat pastes them on a wall — both
+      // stay visible. launch/rocket arc toward the camera too.
       const fr = Math.random();
-      variant = fr < 0.35 ? 'launch' : fr < 0.7 ? 'rocket' : 'towardcam';
+      variant = fr < 0.3 ? 'launch' : fr < 0.55 ? 'rocket' : fr < 0.75 ? 'towardcam' : 'splat';
     } else {
       // No faceplant — the loser's face must stay visible at the end (funny > hidden).
       // 'flatback': launched onto their back, dazed face looking up at the sky.
       const r = Math.random();
-      variant = r < 0.45 ? 'crumple' : r < 0.75 ? 'spinout' : 'flatback';
+      variant = r < 0.28 ? 'crumple' : r < 0.44 ? 'spinout' : r < 0.58 ? 'flatback'
+        : r < 0.7 ? 'backflip' : r < 0.8 ? 'bounce' : r < 0.9 ? 'spiral' : 'slowmo';
     }
 
     // Impact beat scaled to the variant (no gore)
     const hp = F.headWorld();
-    shake = variant === 'crumple' ? 0.5 : variant === 'launch' || variant === 'rocket' ? 1.2 : 0.8;
+    const bigKO = variant === 'launch' || variant === 'rocket' || variant === 'backflip' || variant === 'splat';
+    shake = variant === 'crumple' ? 0.5 : bigKO ? 1.2 : 0.8;
     burst(hp, ['#39ff88', '#ff4fd8', '#ffd23f', '#ffffff', '#ff7a9a'],
-      variant === 'crumple' ? 18 : variant === 'launch' ? 44 : variant === 'rocket' ? 58 : 30, 8.5);
+      variant === 'crumple' ? 18 : variant === 'launch' ? 44 : variant === 'rocket' ? 58 : bigKO ? 44 : 30, 8.5);
     ring(hp, '#ffd23f');
-    if (variant === 'launch' || variant === 'rocket') ring(hp.clone().add(new T.Vector3(0, 0.12, 0)), '#ff4fd8');
+    if (bigKO) ring(hp.clone().add(new T.Vector3(0, 0.12, 0)), '#ff4fd8');
     await wait(0.1); // tiny cartoon hit-stop
 
     // Shared: the fighter's yaw baseline so fall tweens land exactly on the pose
@@ -3827,6 +3830,141 @@ SAK.Scene3D = (function () {
       const dust = F.root.position.clone(); dust.y = 0.15;
       burst(dust, ['#c4a574', '#e8d5a3', '#ffffff'], 18, 2.8);
       ring(dust, '#ffd23f');
+      F.stampLandPose(pose);
+    } else if (variant === 'backflip') {
+      // Full backward flip in the air, lands flat on the back. Acrobatic KO.
+      // NOTE: root.position.z is pose-driven every frame — Z travel uses
+      // F.pose.lunge (z = homeZ + facing * lunge). root x/y/rotation/scale
+      // are safe to tween directly.
+      const pose = LAND_POSES.find(p => p.id === 'starfished') || pickLandPose();
+      const y0 = F.root.position.y;
+      // hop up while starting the flip
+      SAK.Tween.to(F.root.position, { y: y0 + 1.3 }, 0.45, SAK.Ease.outCubic);
+      const rx0 = F.root.rotation.x;
+      await SAK.Tween.to(F.root.rotation, { x: rx0 - Math.PI * 2 }, 0.9, SAK.Ease.inOutQuad);
+      if (F.ko) return; // KO re-entered — bail cleanly
+      // slam down flat on the back
+      await SAK.Tween.to(F.root.position, { y: pose.y }, 0.22, SAK.Ease.inCubic);
+      const dust2 = F.root.position.clone(); dust2.y = 0.15;
+      burst(dust2, ['#c4a574', '#e8d5a3', '#ffffff', '#ffd23f'], 22, 3.2);
+      ring(dust2, '#ffd23f');
+      F.stampLandPose(pose);
+    } else if (variant === 'splat') {
+      // Launched at an invisible wall (camera side, stays visible) — sudden
+      // stop, squash SPLAT, slow slide down, crumple at the base. Cartoon classic.
+      const pose = LAND_POSES.find(p => p.id === 'heap') || pickLandPose();
+      const y0 = F.root.position.y;
+      // fly up and toward the camera-side "wall"
+      SAK.Tween.to(F.pose, { lunge: F.facing * 1.7 }, 0.38, SAK.Ease.outCubic);
+      await SAK.Tween.to(F.root.position, { y: y0 + 1.7 }, 0.38, SAK.Ease.outCubic);
+      if (F.ko) return;
+      // SPLAT: abrupt stop, body flattens against the wall
+      F.root.rotation.set(0, F.root.rotation.y, 0);
+      SAK.Tween.to(F.root.scale, { x: 1.3, y: 0.62, z: 1.3 }, 0.1, SAK.Ease.outCubic);
+      const hpSplat = F.headWorld();
+      burst(hpSplat, ['#ffffff', '#ffd23f', '#ff4fd8'], 20, 3.2);
+      ring(hpSplat, '#ffffff');
+      shake = Math.max(shake, 0.9);
+      await wait(0.38); // beat — stuck to the wall
+      if (F.ko) return;
+      // slow slide down the wall
+      await SAK.Tween.to(F.root.position, { y: 0.55 }, 0.75, SAK.Ease.inOutQuad);
+      if (F.ko) return;
+      // peel off and crumple at the base
+      SAK.Tween.to(F.root.scale, { x: 1, y: 1, z: 1 }, 0.18, SAK.Ease.outCubic);
+      SAK.Tween.to(F.pose, { lunge: 0 }, 0.3, SAK.Ease.inOutQuad);
+      await SAK.Tween.to(F.root.position, { y: pose.y }, 0.2, SAK.Ease.inCubic);
+      const dust3 = F.root.position.clone(); dust3.y = 0.12;
+      burst(dust3, ['#c4a574', '#e8d5a3', '#ffffff'], 14, 2.4);
+      F.stampLandPose(pose);
+    } else if (variant === 'spiral') {
+      // Dizzy stagger in a tightening spiral, arms windmilling, then the legs
+      // give out and they flop into a heap. ~2 seconds of slapstick.
+      const pose = LAND_POSES.find(p => p.id === 'heap') || pickLandPose();
+      const cx = F.root.position.x;
+      const dir = Math.random() > 0.5 ? 1 : -1;
+      // arms windmill (pose-driven so it survives the per-frame pose driver)
+      const windmill = () => {
+        if (F.ko) return Promise.resolve();
+        return SAK.Tween.to(F.pose, { lift: 2.2, swing: 1.1, elbow: 0.2 }, 0.22, SAK.Ease.outCubic)
+          .then(() => {
+            if (F.ko) return;
+            return SAK.Tween.to(F.pose, { lift: 2.2, swing: -1.1, elbow: 0.2 }, 0.22, SAK.Ease.inOutQuad);
+          });
+      };
+      windmill().then(() => windmill()).then(() => windmill()).then(() => windmill());
+      // tightening spiral: 2 loops, radius shrinking to the collapse point
+      // (X via root.position, Z via pose.lunge since Z is pose-driven)
+      const steps = 8;
+      for (let i = 1; i <= steps; i++) {
+        if (F.ko) break;
+        const a = dir * (i / steps) * Math.PI * 4;
+        const rad = 1.0 * (1 - i / (steps + 2));
+        SAK.Tween.to(F.root.rotation, { y: nearestY(F.root.rotation.y, faceY + a * 0.5) }, 0.22, SAK.Ease.inOutQuad);
+        SAK.Tween.to(F.pose, { lunge: F.facing * Math.sin(a) * rad * 0.7 }, 0.22, SAK.Ease.inOutQuad);
+        await SAK.Tween.to(F.root.position, { x: cx + Math.cos(a) * rad }, 0.22, SAK.Ease.inOutQuad);
+      }
+      if (F.ko) return;
+      SAK.Tween.to(F.pose, { lunge: 0 }, 0.3, SAK.Ease.inOutQuad);
+      // legs give out — flop down where the spiral ended
+      const yT = nearestY(F.root.rotation.y, faceY + (pose.ry || 0));
+      SAK.Tween.to(F.root.rotation, { x: pose.rx, y: yT, z: pose.rz || 0 }, 0.3, SAK.Ease.inCubic);
+      await SAK.Tween.to(F.root.position, { y: pose.y }, 0.3, SAK.Ease.inCubic);
+      const dust4 = F.root.position.clone(); dust4.y = 0.12;
+      burst(dust4, ['#c4a574', '#e8d5a3', '#ffffff'], 14, 2.4);
+      ring(dust4, '#ffd23f');
+      F.stampLandPose(pose);
+    } else if (variant === 'bounce') {
+      // Rubber-ball KO: three bounces, each lower than the last, squash on
+      // impact and stretch on the rise, then lies still.
+      const pose = LAND_POSES.find(p => p.id === 'heap') || pickLandPose();
+      const heights = [1.5, 0.85, 0.4];
+      // drift slightly toward the camera side while bouncing (pose-driven Z)
+      SAK.Tween.to(F.pose, { lunge: F.facing * 0.9 }, 1.4, SAK.Ease.inOutQuad);
+      for (let b = 0; b < heights.length; b++) {
+        if (F.ko) return;
+        // stretch on the rise
+        SAK.Tween.to(F.root.scale, { x: 0.88, y: 1.22, z: 0.88 }, 0.16, SAK.Ease.outCubic);
+        await SAK.Tween.to(F.root.position, { y: heights[b] }, 0.28, SAK.Ease.outCubic);
+        if (F.ko) return;
+        // fall + squash on impact
+        await SAK.Tween.to(F.root.position, { y: 0.12 }, 0.24, SAK.Ease.inCubic);
+        SAK.Tween.to(F.root.scale, { x: 1.28, y: 0.58, z: 1.28 }, 0.09, SAK.Ease.outCubic);
+        const bDust = F.root.position.clone(); bDust.y = 0.12;
+        burst(bDust, ['#c4a574', '#e8d5a3', '#ffffff'], 10, 2);
+        if (b === 0) ring(bDust, '#ffd23f');
+        await wait(0.1);
+        SAK.Tween.to(F.root.scale, { x: 1, y: 1, z: 1 }, 0.14, SAK.Ease.outCubic);
+      }
+      if (F.ko) return;
+      // lies still — reset scale/lunge exactly, then stamp the rest pose
+      F.root.scale.set(1, 1, 1);
+      SAK.Tween.to(F.pose, { lunge: 0 }, 0.2, SAK.Ease.inOutQuad);
+      const yT2 = nearestY(F.root.rotation.y, faceY + (pose.ry || 0));
+      SAK.Tween.to(F.root.rotation, { x: pose.rx, y: yT2, z: pose.rz || 0 }, 0.3, SAK.Ease.inCubic);
+      await SAK.Tween.to(F.root.position, { y: pose.y }, 0.3, SAK.Ease.inCubic);
+      F.stampLandPose(pose);
+    } else if (variant === 'slowmo') {
+      // Dramatic slow-motion crumble: freeze beat, then collapse straight
+      // down at ~0.3x speed, dust puff on landing.
+      const pose = LAND_POSES.find(p => p.id === 'heap') || pickLandPose();
+      // freeze beat — tiny tremble, time stands still
+      const tremble = () => {
+        if (F.ko) return Promise.resolve();
+        return SAK.Tween.to(F.root.rotation, { z: 0.03 }, 0.12, SAK.Ease.inOutQuad)
+          .then(() => { if (F.ko) return; return SAK.Tween.to(F.root.rotation, { z: -0.03 }, 0.12, SAK.Ease.inOutQuad); });
+      };
+      tremble().then(() => tremble());
+      await wait(0.5);
+      if (F.ko) return;
+      // slow-motion collapse (normal crumple is 0.35s — this is ~0.3x speed)
+      const yT3 = nearestY(F.root.rotation.y, faceY + (pose.ry || 0));
+      SAK.Tween.to(F.root.rotation, { x: pose.rx, y: yT3, z: pose.rz || 0 }, 1.15, SAK.Ease.inOutQuad);
+      await SAK.Tween.to(F.root.position, { y: pose.y }, 1.15, SAK.Ease.inOutQuad);
+      if (F.ko) return;
+      const dust5 = F.root.position.clone(); dust5.y = 0.12;
+      burst(dust5, ['#c4a574', '#e8d5a3', '#ffffff'], 18, 2.2);
+      ring(dust5, '#ffffff');
       F.stampLandPose(pose);
     } else {
       // launch: backflip-style launch arcing TOWARD the camera (stays visible).
