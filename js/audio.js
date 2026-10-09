@@ -12,6 +12,10 @@ SAK.Audio = (function () {
     { id: 'smack',  name: '👋 Heavy Smack',  file: 'assets/sfx/slap-smack.mp3' },
     { id: 'face',   name: '😲 Face Classic',  file: 'assets/sfx/slap-face.mp3' },
     { id: 'cinema', name: '🎬 Cinematic',    file: 'assets/sfx/slap-cinema.mp3' },
+    { id: 'monster', name: '👹 Monster Slap', file: 'assets/sfx/slap_monster.mp3' },
+    { id: 'heavy',  name: '💪 Heavy Double', file: 'assets/sfx/slap_heavy.mp3' },
+    { id: 'crack2', name: '⚡ Crack Layer',  file: 'assets/sfx/slap_crack.mp3' },
+    { id: 'clean',  name: '✨ Clean Slap',   file: 'assets/sfx/slap_clean.mp3' },
   ];
   const slapBufs = {};   // id -> AudioBuffer
   let slapLoading = false;
@@ -86,8 +90,8 @@ SAK.Audio = (function () {
 
   const SYNTH_SLAPS = { thunder: synthThunder, whip: synthWhip, sledge: synthSledge };
 
-  // Slap rotation pool: 3 recorded + 3 synth, all full and heavy.
-  const SLAP_POOL = ['smack', 'cinema', 'face', 'thunder', 'whip', 'sledge'];
+  // Slap rotation pool: real recordings + layered monsters, all full and heavy.
+  const SLAP_POOL = ['monster', 'heavy', 'crack2', 'smack', 'cinema', 'face', 'clean', 'thunder', 'whip', 'sledge'];
 
   function playSlapBuf(strength) {
     const pick = SLAP_POOL[Math.floor(Math.random() * SLAP_POOL.length)];
