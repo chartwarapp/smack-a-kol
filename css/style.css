@@ -394,12 +394,13 @@ h2, h3, .prompt, .vs, .level, .fc-name, .banner, .float-text, .result-title {
 }
 .round-card.hidden { display: none; }
 .rc-inner {
-  display: inline-block; background: #0d0d1a; border: 4px solid var(--yellow); border-radius: 18px;
-  padding: 18px 48px; box-shadow: 0 0 40px #ffd23f66, inset 0 0 20px #000;
+  display: inline-block; background: #0d0d1a; border: 3px solid var(--yellow); border-radius: 14px;
+  padding: 12px 32px; box-shadow: 0 0 30px #ffd23f66, inset 0 0 20px #000;
   animation: cardSwing 2.2s ease-in-out forwards; transform-origin: top center;
+  max-width: 78vw;
 }
-.rc-label { font-size: 22px; letter-spacing: 8px; color: var(--yellow); font-weight: bold; }
-.rc-number { font-size: 72px; font-weight: 900; color: #fff; line-height: 1; text-shadow: 0 0 20px var(--yellow); }
+.rc-label { font-size: 18px; letter-spacing: 6px; color: var(--yellow); font-weight: bold; }
+.rc-number { font-size: 48px; font-weight: 900; color: #fff; line-height: 1; text-shadow: 0 0 20px var(--yellow); }
 @keyframes cardSwing {
   0% { transform: rotate(-18deg) scale(0.3); opacity: 0; }
   15% { transform: rotate(4deg) scale(1.1); opacity: 1; }
