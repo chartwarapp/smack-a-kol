@@ -1134,14 +1134,15 @@
     show('fight');
     sayPlayer(playerPhrase());
     setTimeout(() => F && F.token === token && say(pick(kol.taunts)), 900);
-    // Fight start: VS names → ROUND 1 → READY → SLAP
+    // Fight start: VS names → ROUND 1 (+ bell) → READY → SLAP
     (async () => {
       const pName = profile().name || 'YOU';
       await vsCardIntro(pName, kol.name);
+      if (typeof A !== 'undefined' && A.bell) A.bell();
       await roundCardIntro(1);
       await banner('READY...', '#fff', 700);
       await banner('SLAP! 👋', 'var(--yellow)', 600);
-      if (F && F.token === token) startChallengeRound();
+      if (F && F.token === token) startChallengeRound(true);
     })();
   }
 
@@ -1179,16 +1180,16 @@
     if (msg) w.textContent = msg;
   }
 
-  async function startChallengeRound() {
+  async function startChallengeRound(skipBell) {
     if (!F || ['over', 'done'].includes(F.turn)) return;
     const C = F.challenge;
     const upcomingRound = (C.round || 0) + 1;
-    // Rounds 2+: show ROUND N card (round 1 had the VS card at fight start)
+    // Rounds 2+: bell + ROUND N card (round 1 bell already played with its card)
     if (upcomingRound > 1) {
       A.bell();
       await roundCardIntro(upcomingRound);
       if (!F || ['over', 'done'].includes(F.turn)) return;
-    } else {
+    } else if (!skipBell) {
       A.bell(); // 🛎 boxing ring bell — round is starting
     }
     hideLockReveal();
