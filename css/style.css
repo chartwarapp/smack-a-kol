@@ -197,14 +197,14 @@ h2, h3, .prompt, .vs, .level, .fc-name, .banner, .float-text, .result-title {
 .portrait.hit { animation: hitShake .3s; }
 @keyframes hitShake { 25% { transform: translateX(-5px) rotate(-6deg); } 75% { transform: translateX(5px) rotate(6deg); } }
 .fc-info { flex: 1; min-width: 0; }
-.fc-name { font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fc-name { font-size: 18px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .hp { position: relative; height: 16px; background: #1a0b3a; border: 2px solid #fff; border-radius: 9px; overflow: hidden; margin-top: 2px; }
 .hp-fill, .hp-lag { position: absolute; top: 0; bottom: 0; left: 0; width: 100%; border-radius: 6px; }
 .hp-lag { background: #fff; transition: width .8s .25s ease-out; }
 .hp-fill { background: linear-gradient(#7dff9e, #19c94f); transition: width .2s; }
 .right .hp-fill, .right .hp-lag { left: auto; right: 0; }
 .hp-fill.low { background: linear-gradient(#ff8a8a, #ff3b3b); }
-.hp-txt { position: absolute; inset: 0; font-size: 11px; line-height: 12px; text-align: center; text-shadow: 0 1px 0 #0008; }
+.hp-txt { position: absolute; inset: 0; font-size: 13px; line-height: 12px; text-align: center; text-shadow: 0 1px 0 #0008; }
 .vs-center { text-align: center; }
 .vs { font-size: 32px; color: var(--yellow); line-height: .9; }
 .level { font-size: 13px; background: var(--red); padding: 2px 8px; border-radius: 8px; border: 2px solid var(--ink); }
@@ -496,8 +496,7 @@ h2, h3, .prompt, .vs, .level, .fc-name, .banner, .float-text, .result-title {
 /* ---------------------------------------------------------------- degen crypto theme */
 #app { background: linear-gradient(180deg, #0d0326 0%, #2a0b5e 35%, #5a1aa8 62%, #1b8f5a 100%); }
 .ticker {
-  position: absolute; left: 0; right: 0; top: calc(60px + var(--safe-top)); height: 22px; z-index: 25; overflow: hidden;
-  background: #0b0220d9; border-top: 2px solid #39ff88; border-bottom: 2px solid #b44dff; pointer-events: none;
+  display: none; /* removed per user request */
 }
 .ticker-track { display: flex; width: max-content; animation: tick 38s linear infinite; }
 .tk-run { display: flex; align-items: center; white-space: nowrap; }
@@ -507,11 +506,11 @@ h2, h3, .prompt, .vs, .level, .fc-name, .banner, .float-text, .result-title {
 .tk.gm { color: #ffd23f; } .tk.moon { color: #e6d3ff; }
 .tk-sep { color: #b44dff; padding: 0 2px; }
 @keyframes tick { to { transform: translateX(-50%); } }
-/* push HUD rows below the ticker */
-.vs-bar { top: calc(88px + var(--safe-top)); }
-.stake-tag { top: calc(150px + var(--safe-top)); }
-.round-score { top: calc(202px + var(--safe-top)); } /* below arena-label; clear of meter */
-.taunt { top: calc(250px + var(--safe-top)); }
+/* ticker removed — vs-bar sits higher */
+.vs-bar { top: calc(62px + var(--safe-top)); }
+.stake-tag { top: calc(124px + var(--safe-top)); }
+.round-score { top: calc(176px + var(--safe-top)); } /* below arena-label; clear of meter */
+.taunt { top: calc(224px + var(--safe-top)); }
 .pick-header { top: calc(88px + var(--safe-top)); }
 .tagline b { color: #39ff88; }
 .level { background: #b44dff; }
