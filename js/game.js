@@ -450,11 +450,16 @@
   }
   function renderStarterGrid() {
     const grid = $('#pk-starter-grid');
-    grid.innerHTML = SAK.STARTERS.map(s => `
+    if (!grid || !SAK.STARTERS) return;
+    grid.innerHTML = SAK.STARTERS.map(s => {
+      let portrait = '';
+      try { portrait = SAK.avatarSVG(s.look); } catch (e) { portrait = '<div class="avatar-svg" style="background:#333"></div>'; }
+      return `
       <div class="pk-card ${pkStarterId === s.id ? 'on' : ''}" data-sid="${s.id}">
-        ${SAK.avatarSVG(s.look)}
+        ${portrait}
         <b>${s.name}</b><small>${s.tagline}</small>
-      </div>`).join('');
+      </div>`;
+    }).join('');
     grid.querySelectorAll('.pk-card').forEach(c => {
       c.onclick = () => {
         A.click();
