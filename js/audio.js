@@ -34,6 +34,24 @@ SAK.Audio = (function () {
     src.start(t);
     return true;
   }
+  // Play the real victory cheer recording only — no synth fallback.
+  // Waits for the buffer to load (up to 3s), then plays. Silent if it never loads.
+  function playRealCheer() {
+    if (!ready()) return;
+    if (crowdBufs['victory']) {
+      playCrowdBuf('victory', 0.6);
+      return;
+    }
+    // Not loaded yet — fetch it now and play when ready
+    fetch('assets/sfx/crowd_victory.mp3')
+      .then(r => r.arrayBuffer())
+      .then(ab => ctx.decodeAudioData(ab))
+      .then(buf => {
+        crowdBufs['victory'] = buf;
+        playCrowdBuf('victory', 0.6);
+      })
+      .catch(() => { /* silent — no synth fallback */ });
+  }
   const SLAP_BANK = [
     { id: 'crack',  name: '🦴 Bone Crack',   file: 'assets/sfx/slap-crack.mp3' },
     { id: 'smack',  name: '👋 Heavy Smack',  file: 'assets/sfx/slap-smack.mp3' },
@@ -335,6 +353,7 @@ SAK.Audio = (function () {
     fire() { if (!ready()) return; noise(0.5, 900, 0.6, 0.4, 'lowpass'); tone(220, 0.5, 'sawtooth', 0.15, 0, 880); },
     ko() { if (!ready()) return; tone(520, 0.7, 'sawtooth', 0.2, 0, 90); noise(0.4, 300, 0.7, 0.6, 'lowpass'); },
     win() { if (!ready()) return; [523, 659, 784, 1046].forEach((f, i) => tone(f, 0.35, 'triangle', 0.2, i * 0.11)); crowdWin(); },
+    realCheer() { playRealCheer(); }, // real victory recording only, no synth
     lose() { if (!ready()) return; [392, 330, 262].forEach((f, i) => tone(f, 0.45, 'sine', 0.2, i * 0.18)); crowdLose(); },
     brace() {
       if (!ready()) return;
