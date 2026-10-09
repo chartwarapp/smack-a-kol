@@ -61,6 +61,7 @@ SAK.Scene3D = (function () {
   let hitCam = null; // { target:Fighter, w:0..1, peak, aw:0..1 } — face-cam onto the slapped fighter + wind-up stage weight back to the wide view
   let roleCam = { role: 'attack', w: 0 }; // local role framing: 0 = default fight view, 1 = local player's brace face-cam
   let camK = 1;      // aspect pull-back factor from frameCamera (narrow screens > 1)
+  let introSweep = null, introArmed = false; // round-1 broadcast intro camera sweep
   let lastSlapTier = null; // tier of the most recent slap — picks the KO variation
   const camBase = { pos: new T.Vector3(), look: new T.Vector3() };
   const camCur = { pos: new T.Vector3(), look: new T.Vector3() };
@@ -2106,6 +2107,140 @@ SAK.Scene3D = (function () {
     return g;
   }
 
+  /** Memecoin mascot heads for the crowd — simple but recognizable, facing +z. */
+  function makeDogeHead() {
+    const g = new T.Group(), tan = mat('#d9a05a'), cream = mat('#f5e6c8');
+    const head = new T.Mesh(new T.SphereGeometry(0.32, 12, 10), tan); g.add(head);
+    // snout + nose
+    const snout = new T.Mesh(new T.SphereGeometry(0.16, 10, 8), cream);
+    snout.position.set(0, -0.1, 0.24); snout.scale.set(1.2, 0.8, 0.8); g.add(snout);
+    g.add(mesh(new T.SphereGeometry(0.055, 8, 6), mat('#1a1a1a'), 0, -0.04, 0.37));
+    // pointy shiba ears
+    for (const sx of [-1, 1]) {
+      const ear = mesh(new T.ConeGeometry(0.11, 0.28, 5), tan, sx * 0.19, 0.36, -0.02);
+      ear.rotation.z = -sx * 0.25; g.add(ear);
+    }
+    // side-eye glance (the look)
+    const eyeM = new T.MeshBasicMaterial({ color: '#1a1a1a' });
+    for (const sx of [-1, 1]) {
+      const eye = new T.Mesh(new T.SphereGeometry(0.05, 8, 6), eyeM);
+      eye.position.set(sx * 0.14, 0.08, 0.27); g.add(eye);
+    }
+    const smirk = new T.Mesh(new T.TorusGeometry(0.09, 0.02, 4, 10, Math.PI * 0.7), new T.MeshBasicMaterial({ color: '#5a3a1a' }));
+    smirk.position.set(0.05, -0.16, 0.3); smirk.rotation.z = Math.PI * 1.15; g.add(smirk);
+    return g;
+  }
+  function makePepeHead() {
+    const g = new T.Group(), green = mat('#4fae4a');
+    const head = new T.Mesh(new T.SphereGeometry(0.32, 12, 10), green);
+    head.scale.set(1.05, 0.95, 0.95); g.add(head);
+    // bulging frog eyes on top
+    for (const sx of [-1, 1]) {
+      const bump = new T.Mesh(new T.SphereGeometry(0.13, 10, 8), green);
+      bump.position.set(sx * 0.14, 0.3, 0.1); g.add(bump);
+      const white = new T.Mesh(new T.SphereGeometry(0.1, 10, 8), new T.MeshBasicMaterial({ color: '#ffffff' }));
+      white.position.set(sx * 0.14, 0.33, 0.16); g.add(white);
+      const pup = new T.Mesh(new T.SphereGeometry(0.045, 8, 6), new T.MeshBasicMaterial({ color: '#111111' }));
+      pup.position.set(sx * 0.14, 0.33, 0.25); g.add(pup);
+    }
+    // wide flat frog mouth
+    const mouth = new T.Mesh(new T.TorusGeometry(0.14, 0.022, 4, 12, Math.PI * 0.8), new T.MeshBasicMaterial({ color: '#2b6b1f' }));
+    mouth.position.set(0, -0.12, 0.28); mouth.rotation.z = Math.PI * 1.1; g.add(mouth);
+    return g;
+  }
+  function makeBonkHead() {
+    const g = new T.Group(), orange = mat('#ff8c1a'), cream = mat('#ffe8c8');
+    const head = new T.Mesh(new T.SphereGeometry(0.32, 12, 10), orange); g.add(head);
+    const snout = new T.Mesh(new T.SphereGeometry(0.15, 10, 8), cream);
+    snout.position.set(0, -0.1, 0.25); snout.scale.set(1.15, 0.8, 0.8); g.add(snout);
+    g.add(mesh(new T.SphereGeometry(0.05, 8, 6), mat('#1a1a1a'), 0, -0.04, 0.37));
+    // one ear up, one flopped
+    const earUp = mesh(new T.ConeGeometry(0.11, 0.3, 5), orange, -0.19, 0.37, -0.02);
+    earUp.rotation.z = 0.25; g.add(earUp);
+    const earFlop = mesh(new T.ConeGeometry(0.11, 0.26, 5), orange, 0.22, 0.3, -0.02);
+    earFlop.rotation.z = -1.1; g.add(earFlop);
+    const eyeM = new T.MeshBasicMaterial({ color: '#1a1a1a' });
+    for (const sx of [-1, 1]) {
+      const eye = new T.Mesh(new T.SphereGeometry(0.055, 8, 6), eyeM);
+      eye.position.set(sx * 0.14, 0.09, 0.27); g.add(eye);
+    }
+    // white forehead blaze
+    const blaze = new T.Mesh(new T.SphereGeometry(0.09, 8, 6), cream);
+    blaze.position.set(0, 0.22, 0.26); blaze.scale.set(0.7, 1.1, 0.5); g.add(blaze);
+    return g;
+  }
+  /** Giant comic-starburst SLAP-A-KOL centerpiece panel. */
+  function slapAKolPanel() {
+    return canvasTex(1024, 256, (ctx, w, h) => {
+      // dark arena backdrop with vignette glow
+      const bg = ctx.createRadialGradient(w / 2, h / 2, 40, w / 2, h / 2, w / 2);
+      bg.addColorStop(0, '#3a1060'); bg.addColorStop(1, '#12002b');
+      ctx.fillStyle = bg; ctx.fillRect(0, 0, w, h);
+      // comic starburst rays
+      ctx.save(); ctx.translate(w / 2, h / 2);
+      for (let i = 0; i < 24; i++) {
+        const a = (i / 24) * Math.PI * 2;
+        ctx.fillStyle = i % 2 ? 'rgba(255,79,216,0.16)' : 'rgba(255,210,63,0.14)';
+        ctx.beginPath(); ctx.moveTo(0, 0);
+        ctx.lineTo(Math.cos(a - 0.1) * w * 0.62, Math.sin(a - 0.1) * w * 0.62);
+        ctx.lineTo(Math.cos(a + 0.1) * w * 0.62, Math.sin(a + 0.1) * w * 0.62);
+        ctx.closePath(); ctx.fill();
+      }
+      ctx.restore();
+      // main title: thick black outline, white-hot fill, pink neon glow
+      ctx.font = `132px ${FONT}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.lineJoin = 'round'; ctx.lineWidth = 22; ctx.strokeStyle = '#0a0a0a';
+      ctx.shadowColor = '#ff4fd8'; ctx.shadowBlur = 34;
+      ctx.strokeText('SLAP-A-KOL', w / 2, h / 2 - 8);
+      ctx.shadowBlur = 0;
+      const tg = ctx.createLinearGradient(0, h / 2 - 70, 0, h / 2 + 70);
+      tg.addColorStop(0, '#ffffff'); tg.addColorStop(0.55, '#ffe23d'); tg.addColorStop(1, '#ff9a1f');
+      ctx.fillStyle = tg; ctx.fillText('SLAP-A-KOL', w / 2, h / 2 - 8);
+      // sub-tagline
+      ctx.font = `44px ${FONT}`; ctx.lineWidth = 8; ctx.strokeStyle = '#0a0a0a';
+      ctx.shadowColor = '#39ff88'; ctx.shadowBlur = 16;
+      ctx.strokeText('★ MEME FIGHT NIGHT ★', w / 2, h - 34);
+      ctx.fillStyle = '#39ff88'; ctx.fillText('★ MEME FIGHT NIGHT ★', w / 2, h - 34);
+      ctx.shadowBlur = 0;
+    }).tex;
+  }
+  /** Flat Solana decal for the arena floor — gradient bars + SOLANA wordmark. */
+  function solanaFloorDecal() {
+    return canvasTex(512, 256, (ctx, w, h) => {
+      ctx.clearRect(0, 0, w, h);
+      // subtle dark pill so it reads on the purple floor
+      ctx.fillStyle = 'rgba(10,3,24,0.72)';
+      ctx.beginPath();
+      const rx = 24, ry = 56, rw = w - 48, rh = h - 112, rr = 36;
+      ctx.moveTo(rx + rr, ry);
+      ctx.lineTo(rx + rw - rr, ry); ctx.quadraticCurveTo(rx + rw, ry, rx + rw, ry + rr);
+      ctx.lineTo(rx + rw, ry + rh - rr); ctx.quadraticCurveTo(rx + rw, ry + rh, rx + rw - rr, ry + rh);
+      ctx.lineTo(rx + rr, ry + rh); ctx.quadraticCurveTo(rx, ry + rh, rx, ry + rh - rr);
+      ctx.lineTo(rx, ry + rr); ctx.quadraticCurveTo(rx, ry, rx + rr, ry);
+      ctx.closePath(); ctx.fill();
+      // Solana three slanted bars (green → blue → purple)
+      const grad = ctx.createLinearGradient(60, 0, 200, 0);
+      grad.addColorStop(0, '#14f195'); grad.addColorStop(0.5, '#39c5ff'); grad.addColorStop(1, '#9945ff');
+      ctx.fillStyle = grad;
+      const barW = 92, barH = 20, gap = 12, slant = 14, x0 = 78, cy = h / 2;
+      for (let b = -1; b <= 1; b++) {
+        const y = cy + b * (barH + gap);
+        ctx.beginPath();
+        ctx.moveTo(x0 - barW / 2 + slant, y - barH / 2);
+        ctx.lineTo(x0 + barW / 2 + slant, y - barH / 2);
+        ctx.lineTo(x0 + barW / 2 - slant, y + barH / 2);
+        ctx.lineTo(x0 - barW / 2 - slant, y + barH / 2);
+        ctx.closePath(); ctx.fill();
+      }
+      // SOLANA wordmark in the same gradient
+      ctx.font = `900 62px ${FONT}`; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+      const tg = ctx.createLinearGradient(200, 0, w - 30, 0);
+      tg.addColorStop(0, '#14f195'); tg.addColorStop(0.55, '#39c5ff'); tg.addColorStop(1, '#9945ff');
+      ctx.fillStyle = tg;
+      ctx.fillText('SOLANA', 198, cy + 2);
+    }).tex;
+  }
+
   function makeRocket() {
     const g = new T.Group();
     g.add(mesh(new T.CylinderGeometry(0.28, 0.32, 1.4, 8), mat('#f2f2ff'), 0, 0, 0));
@@ -2251,6 +2386,19 @@ SAK.Scene3D = (function () {
     const neonG = new T.MeshBasicMaterial({ color: '#39ff88' }), neonP = new T.MeshBasicMaterial({ color: '#ff4fd8' });
     const ringEdge = new T.Mesh(new T.TorusGeometry(3.3, 0.07, 6, 48), neonG); ringEdge.rotation.x = Math.PI / 2; ringEdge.position.y = 0.1; AG.add(ringEdge);
     const ringEdge2 = new T.Mesh(new T.TorusGeometry(3.55, 0.05, 6, 48), neonP); ringEdge2.rotation.x = Math.PI / 2; ringEdge2.position.y = 0.06; AG.add(ringEdge2);
+    // Solana floor decal: right side of the floor, front of the ring — visible in the fight view
+    {
+      const decal = new T.Mesh(
+        new T.PlaneGeometry(2.4, 1.2),
+        new T.MeshBasicMaterial({ map: solanaFloorDecal(), transparent: true, toneMapped: false })
+      );
+      const dAng = -55 * Math.PI / 180, dR = 4.7;
+      decal.position.set(Math.cos(dAng) * dR, 0.055, Math.sin(dAng) * dR);
+      // lay flat, then spin so the text reads upright from the fight camera
+      const away = new T.Vector3(-1, 0, -0.42).normalize(); // opposite of the fight-cam view dir (xz)
+      decal.rotation.set(-Math.PI / 2, 0, Math.atan2(-away.x, -away.z));
+      AG.add(decal);
+    }
 
     // table (wood) + PTS coin stacks
     const wood = mat('#c9844a'), woodDark = mat('#8f5427');
@@ -2262,83 +2410,118 @@ SAK.Scene3D = (function () {
     for (let i = 0; i < 5; i++) AG.add(mesh(new T.CylinderGeometry(0.12, 0.12, 0.035, 10), coinMat, -0.65, 1.075 + i * 0.037, 0.05 * (i % 2)));
     for (let i = 0; i < 3; i++) AG.add(mesh(new T.CylinderGeometry(0.12, 0.12, 0.035, 10), coinMat, -0.4, 1.075 + i * 0.037, -0.15));
 
-    // crowd: a full 360° ring of little fight fans with faces, hair and clothes
-    // waving glow sticks — no blank side no matter where the camera swings.
+    // crowd: a full 360° ring of fight fans — full bodies (legs, torso,
+    // arms, heads with faces) so they read as actual people, not blobs.
     // FIXED deterministic variety (seeded by index): same crowd every load,
-    // but no two neighbors look alike.
+    // but no two neighbors look alike. Includes 3 memecoin mascots.
     const skinTones = ['#f2c49b', '#e8b088', '#d9a066', '#b07a4a', '#8a5a35', '#6e4426', '#9fd3ff', '#f6c9a0'];
     const shirtCols = ['#ff4fd8', '#39c5ff', '#ffe23d', '#39ff88', '#ff7a1a', '#b44dff', '#ff3b5c', '#f5f5f5', '#2e9dff', '#7dff6a', '#ffd23f', '#1f1f2e'];
+    const pantsCols = ['#2b3a5c', '#1f1f2e', '#4a3a5c', '#1a4a3a', '#5c2b3a', '#3a3a4a'];
     const hairCols = ['#141414', '#3a2410', '#6e4a1f', '#c9a24a', '#a33327', '#2b4f9e', '#6e6e6e', '#1f7a4d', '#d97fb0', '#ff5a36'];
     const capCols = ['#ff3b5c', '#2e9dff', '#39ff88', '#ffd23f', '#f5f5f5', '#ff4fd8'];
     // Seeded pseudo-random: deterministic per index, looks organic
     const srand = (seed) => { const x = Math.sin(seed * 127.1 + 311.7) * 43758.5453; return x - Math.floor(x); };
+    // Memecoin mascots sit at spread-out seats in the crowd
+    const MASCOTS = { 4: 'doge', 14: 'pepe', 24: 'bonk' };
     for (let i = 0; i < 30; i++) {
       const ang = (i / 30) * Math.PI * 2;
       const r = 5.6 + (srand(i * 3 + 1) > 0.5 ? 0.8 : 0);
       const g = new T.Group();
       const skin = skinTones[Math.floor(srand(i * 7 + 2) * skinTones.length)];
       const shirt = shirtCols[Math.floor(srand(i * 13 + 5) * shirtCols.length)];
+      const pants = pantsCols[Math.floor(srand(i * 43 + 21) * pantsCols.length)];
       const s = 0.85 + srand(i * 17 + 3) * 0.35; // height variety
-      // torso (clothing)
-      const torso = new T.Mesh(new T.CylinderGeometry(0.28, 0.34, 0.85, 8), mat(shirt));
-      g.add(torso);
-      // arms + hands
+      const mascot = MASCOTS[i];
+      // legs: two short cylinders so they stand like people
+      for (const sx of [-1, 1]) {
+        const leg = new T.Mesh(new T.CylinderGeometry(0.09, 0.08, 0.45, 6), mat(pants));
+        leg.position.set(sx * 0.13, -0.22, 0); g.add(leg);
+        const shoe = new T.Mesh(new T.SphereGeometry(0.09, 6, 5), mat('#1a1a1a'));
+        shoe.position.set(sx * 0.13, -0.44, 0.04); shoe.scale.set(1, 0.6, 1.3); g.add(shoe);
+      }
+      // torso (clothing) — slightly wider, rounded shoulders read as a person
+      const torso = new T.Mesh(new T.CylinderGeometry(0.3, 0.26, 0.7, 8), mat(shirt));
+      torso.position.y = 0.12; g.add(torso);
+      const shoulders = new T.Mesh(new T.SphereGeometry(0.3, 8, 6), mat(shirt));
+      shoulders.position.y = 0.42; shoulders.scale.set(1.25, 0.55, 0.85); g.add(shoulders);
+      // arms: ~1/3 of the crowd throws both arms up cheering
+      const armsUp = !mascot && srand(i * 47 + 23) > 0.66;
       for (const sx of [-1, 1]) {
         const arm = new T.Mesh(new T.CylinderGeometry(0.07, 0.06, 0.5, 6), mat(shirt));
-        arm.position.set(sx * 0.37, 0.1, 0); arm.rotation.z = sx * -0.3; g.add(arm);
         const hand = new T.Mesh(new T.SphereGeometry(0.075, 6, 5), mat(skin));
-        hand.position.set(sx * 0.45, -0.16, 0); g.add(hand);
+        if (armsUp) {
+          arm.position.set(sx * 0.42, 0.72, 0); arm.rotation.z = sx * -2.5; g.add(arm);
+          hand.position.set(sx * 0.52, 0.98, 0); g.add(hand);
+        } else {
+          arm.position.set(sx * 0.4, 0.22, 0); arm.rotation.z = sx * -0.3; g.add(arm);
+          hand.position.set(sx * 0.48, -0.02, 0); g.add(hand);
+        }
       }
       // head: big and high-contrast so faces read on phone screens.
       // A neck separates it from the torso; hair/cap sit strictly ON TOP
       // (hemisphere) so they can never swallow the face.
-      const neck = new T.Mesh(new T.CylinderGeometry(0.09, 0.1, 0.18, 6), mat(skin));
-      neck.position.y = 0.5; g.add(neck);
-      const head = new T.Mesh(new T.SphereGeometry(0.3, 12, 10), mat(skin));
-      head.position.y = 0.7; g.add(head);
-      // hair or beanie cap (+z faces the ring after lookAt). No brim — brims
-      // shade the eyes out from the fight camera, reading as a missing face.
-      // hair, cap, or occasional standout (mohawk/crown in the crowd)
-      const headRoll = srand(i * 23 + 7);
-      if (headRoll > 0.92) {
-        // Rare: tiny crown in the crowd
-        const cg = mat('#ffd23f');
-        g.add(mesh(new T.CylinderGeometry(0.2, 0.22, 0.1, 8), cg, 0, 0.95, 0));
-        for (let k = 0; k < 5; k++) {
-          const a2 = k / 5 * Math.PI * 2;
-          g.add(mesh(new T.ConeGeometry(0.04, 0.1, 4), cg, Math.sin(a2) * 0.2, 1.04, Math.cos(a2) * 0.2));
-        }
-      } else if (headRoll > 0.85) {
-        // Rare: mohawk in the crowd
-        const mh = mat(hairCols[Math.floor(srand(i * 29 + 11) * hairCols.length)]);
-        for (let k = 0; k < 4; k++) {
-          const t2 = -0.45 + k * 0.3;
-          g.add(mesh(new T.BoxGeometry(0.07, 0.2 - Math.abs(t2) * 0.1, 0.12), mh, 0, 0.85 + Math.cos(t2) * 0.25, Math.sin(t2) * 0.24));
-        }
-      } else if (srand(i * 31 + 13) > 0.6) {
-        const capC = capCols[Math.floor(srand(i * 37 + 17) * capCols.length)];
-        const dome = new T.Mesh(new T.SphereGeometry(0.315, 12, 8, 0, Math.PI * 2, 0, Math.PI * 0.55), mat(capC));
-        dome.position.set(0, 0.78, -0.03); g.add(dome);
+      const neck = new T.Mesh(new T.CylinderGeometry(0.09, 0.1, 0.18, 6), mat(mascot ? '#d9a05a' : skin));
+      neck.position.y = 0.58; g.add(neck);
+      if (mascot === 'doge') {
+        const dh = makeDogeHead(); dh.position.y = 0.82; g.add(dh);
+      } else if (mascot === 'pepe') {
+        const ph = makePepeHead(); ph.position.y = 0.82; g.add(ph);
+      } else if (mascot === 'bonk') {
+        const bh = makeBonkHead(); bh.position.y = 0.82; g.add(bh);
+        // tiny baseball bat held up in the right hand
+        const bat = new T.Mesh(new T.CylinderGeometry(0.045, 0.06, 0.55, 6), mat('#c9844a'));
+        bat.position.set(0.52, 0.28, 0.05); bat.rotation.z = -0.35; g.add(bat);
+        const batKnob = new T.Mesh(new T.SphereGeometry(0.055, 6, 5), mat('#8f5427'));
+        batKnob.position.set(0.47, 0.02, 0.03); g.add(batKnob);
       } else {
-        const hair = new T.Mesh(new T.SphereGeometry(0.32, 12, 8, 0, Math.PI * 2, 0, Math.PI * 0.5), mat(hairCols[Math.floor(srand(i * 41 + 19) * hairCols.length)]));
-        hair.position.set(0, 0.78, -0.03); g.add(hair);
+        const head = new T.Mesh(new T.SphereGeometry(0.3, 12, 10), mat(skin));
+        head.position.y = 0.82; g.add(head);
+        // hair or beanie cap (+z faces the ring after lookAt). No brim — brims
+        // shade the eyes out from the fight camera, reading as a missing face.
+        // hair, cap, or occasional standout (mohawk/crown in the crowd)
+        const headRoll = srand(i * 23 + 7);
+        if (headRoll > 0.92) {
+          // Rare: tiny crown in the crowd
+          const cg = mat('#ffd23f');
+          g.add(mesh(new T.CylinderGeometry(0.2, 0.22, 0.1, 8), cg, 0, 1.07, 0));
+          for (let k = 0; k < 5; k++) {
+            const a2 = k / 5 * Math.PI * 2;
+            g.add(mesh(new T.ConeGeometry(0.04, 0.1, 4), cg, Math.sin(a2) * 0.2, 1.16, Math.cos(a2) * 0.2));
+          }
+        } else if (headRoll > 0.85) {
+          // Rare: mohawk in the crowd
+          const mh = mat(hairCols[Math.floor(srand(i * 29 + 11) * hairCols.length)]);
+          for (let k = 0; k < 4; k++) {
+            const t2 = -0.45 + k * 0.3;
+            g.add(mesh(new T.BoxGeometry(0.07, 0.2 - Math.abs(t2) * 0.1, 0.12), mh, 0, 0.97 + Math.cos(t2) * 0.25, Math.sin(t2) * 0.24));
+          }
+        } else if (srand(i * 31 + 13) > 0.6) {
+          const capC = capCols[Math.floor(srand(i * 37 + 17) * capCols.length)];
+          const dome = new T.Mesh(new T.SphereGeometry(0.315, 12, 8, 0, Math.PI * 2, 0, Math.PI * 0.55), mat(capC));
+          dome.position.set(0, 0.9, -0.03); g.add(dome);
+        } else {
+          const hair = new T.Mesh(new T.SphereGeometry(0.32, 12, 8, 0, Math.PI * 2, 0, Math.PI * 0.5), mat(hairCols[Math.floor(srand(i * 41 + 19) * hairCols.length)]));
+          hair.position.set(0, 0.9, -0.03); g.add(hair);
+        }
+        // face: big unlit eyes + smile or cheering "O" mouth
+        const eyeMat = new T.MeshBasicMaterial({ color: '#0a0a0a' });
+        for (const sx of [-1, 1]) {
+          const eye = new T.Mesh(new T.SphereGeometry(0.045, 8, 6), eyeMat);
+          eye.position.set(sx * 0.11, 0.85, 0.285); g.add(eye);
+        }
+        if (i % 2) {
+          const smile = new T.Mesh(new T.TorusGeometry(0.07, 0.018, 4, 10, Math.PI), new T.MeshBasicMaterial({ color: '#5a1a1a' }));
+          smile.position.set(0, 0.76, 0.29); smile.rotation.z = Math.PI; g.add(smile);
+        } else {
+          const ooh = new T.Mesh(new T.CircleGeometry(0.04, 10), new T.MeshBasicMaterial({ color: '#4a1414' }));
+          ooh.position.set(0, 0.74, 0.292); g.add(ooh);
+        }
       }
-      // face: big unlit eyes + smile or cheering "O" mouth
-      const eyeMat = new T.MeshBasicMaterial({ color: '#0a0a0a' });
-      for (const sx of [-1, 1]) {
-        const eye = new T.Mesh(new T.SphereGeometry(0.045, 8, 6), eyeMat);
-        eye.position.set(sx * 0.11, 0.73, 0.285); g.add(eye);
+      // glow stick waved in the right hand (skipped for raised-arm cheerers — hands are up)
+      if (!armsUp && !mascot) {
+        const stick = new T.Mesh(new T.CylinderGeometry(0.03, 0.03, 0.5, 4), new T.MeshBasicMaterial({ color: i % 2 ? '#39ff88' : '#ff4fd8' }));
+        stick.position.set(0.5, 0.42, 0.05); stick.rotation.z = -0.4; g.add(stick);
       }
-      if (i % 2) {
-        const smile = new T.Mesh(new T.TorusGeometry(0.07, 0.018, 4, 10, Math.PI), new T.MeshBasicMaterial({ color: '#5a1a1a' }));
-        smile.position.set(0, 0.64, 0.29); smile.rotation.z = Math.PI; g.add(smile);
-      } else {
-        const ooh = new T.Mesh(new T.CircleGeometry(0.04, 10), new T.MeshBasicMaterial({ color: '#4a1414' }));
-        ooh.position.set(0, 0.62, 0.292); g.add(ooh);
-      }
-      // glow stick waved in the right hand
-      const stick = new T.Mesh(new T.CylinderGeometry(0.03, 0.03, 0.5, 4), new T.MeshBasicMaterial({ color: i % 2 ? '#39ff88' : '#ff4fd8' }));
-      stick.position.set(0.47, 0.3, 0.05); stick.rotation.z = -0.4; g.add(stick);
       g.scale.setScalar(s);
       g.position.set(Math.cos(ang) * r, 0.45, Math.sin(ang) * r);
       g.lookAt(0, 0.45, 0);
@@ -2362,9 +2545,11 @@ SAK.Scene3D = (function () {
   /** Candlestick Colosseum — the original trading-floor arena, V2 dressed. */
   function buildColosseum(AG) {
     // billboards: live chart + slogans (arc behind the ring, visible from both cameras)
+    // CENTERPIECE: giant SLAP-A-KOL billboard dead-center behind the fighters
+    billboard(slapAKolPanel(), 7, 1.75, 203, 8.5, 4.4);
     chart = makeChart();
-    billboard(chart.tex, 4.2, 2.6, 215, 8.5, 3.6);
-    billboard(textPanel('WAGMI', '#39ff88', ['#12002b', '#2a0b5e'], 512, 220), 3.6, 1.55, 248, 8.5, 4.4);
+    billboard(chart.tex, 4.2, 2.6, 243, 8.5, 3.6);
+    billboard(textPanel('WAGMI', '#39ff88', ['#12002b', '#2a0b5e'], 512, 220), 3.6, 1.55, 270, 8.5, 4.4);
     billboard(textPanel('TO THE MOON 🚀', '#ffd23f', ['#2a0b5e', '#5a1aa8'], 768, 200), 4.6, 1.2, 278, 8.8, 3.0);
     billboard(textPanel('NGMI', '#ff3b5c', ['#12002b', '#3a0b2e'], 512, 220), 3.0, 1.3, 183, 8.5, 2.6);
     billboard(chart.tex, 3.2, 2.0, 302, 8.6, 4.2);
@@ -2938,6 +3123,9 @@ SAK.Scene3D = (function () {
       else { _windup.pos.copy(_rest.pos); _windup.look.copy(_rest.look); }
       orbitBlend(_windup, _face, hitCam.w, camBase);
     }
+    // Round-1 broadcast intro sweep overrides the resting framing (never the
+    // slap face-cam or KO track — those cancel it).
+    updateIntroSweep(rawDt);
     // smooth camera + shake (snappier during KO pullback)
     const camLerp = koCam ? (1 - Math.pow(0.00005, dt)) : (1 - Math.pow(0.001, dt));
     camCur.pos.lerp(camBase.pos, camLerp);
@@ -3081,6 +3269,7 @@ SAK.Scene3D = (function () {
     koCam = null;
     roleCam = { role: 'attack', w: 0 };
     endHitCam(true);
+    introArmed = true; introSweep = null; // next setRoleCam() (round 1) plays the broadcast intro
     if (player) { player.resetPose(); player.setFire(false); }
     if (kol) { kol.resetPose(); kol.setFire(false); }
     if (mode === 'fight' || mode === 'arena') frameCamera();
@@ -3375,7 +3564,52 @@ SAK.Scene3D = (function () {
   /** Role-based framing for the LOCAL player each round:
    *  'brace'  → smooth orbit onto the local player's face (they're about to get slapped)
    *  'attack' → smooth return to the default fight view. */
+  /* ---- Round-1 broadcast intro camera ----
+   * Wide 45° establishing shot (arena, SLAP-A-KOL billboard, chart dome,
+   * crowd) then a smooth ~2s swoop into the standard fight view.
+   * Pure camera move — never blocks input or the round timer. A slap, KO,
+   * or mode change cancels it instantly and returns control. */
+  const _swDir = new T.Vector3();
+  function startIntroSweep() {
+    if (mode !== 'fight' || !player) return;
+    const k = camK || 1;
+    // Wide 45° view: higher + farther than the fight cam, tilted up to catch
+    // the billboard, chart dome and crowd ring.
+    const wideLook = new T.Vector3(0, 2.6, -0.4);
+    _swDir.set(1, 0.95, 0.95).normalize();
+    const widePos = wideLook.clone().addScaledVector(_swDir, Math.min(12.5, 6.8 * k * 1.55));
+    introSweep = {
+      t: 0,
+      pullDur: 0.4,  // quick pull-back from wherever the camera sits…
+      swoopDur: 1.8, // …then the slow cinematic push-in to the fight view
+      fromPos: camCur.pos.clone(), fromLook: camCur.look.clone(),
+      widePos, wideLook,
+      endPos: camFight.pos.clone(), endLook: camFight.look.clone(),
+    };
+  }
+  function updateIntroSweep(rawDt) {
+    const sw = introSweep;
+    if (!sw) return;
+    // Gameplay takes over: slap face-cam, KO track, or leaving fight mode
+    // cancels the intro instantly.
+    if (mode !== 'fight' || koCam || (hitCam && hitCam.target)) { introSweep = null; return; }
+    sw.t += rawDt;
+    if (sw.t < sw.pullDur) {
+      const u = SAK.Ease.outCubic(sw.t / sw.pullDur);
+      camBase.pos.copy(sw.fromPos).lerp(sw.widePos, u);
+      camBase.look.copy(sw.fromLook).lerp(sw.wideLook, u);
+    } else {
+      const u = SAK.Ease.inOutQuad(Math.min(1, (sw.t - sw.pullDur) / sw.swoopDur));
+      camBase.pos.copy(sw.widePos).lerp(sw.endPos, u);
+      camBase.look.copy(sw.wideLook).lerp(sw.endLook, u);
+      if (sw.t >= sw.pullDur + sw.swoopDur) introSweep = null;
+    }
+  }
+
   function setRoleCam(role, opts) {
+    // Round-1 broadcast intro: first role-cam after a resetFight() sweeps the
+    // camera from a wide 45° arena establishing shot into the fight view.
+    if (introArmed) { introArmed = false; startIntroSweep(); }
     const target = role === 'brace' ? 1 : 0;
     if (player && !player.ko) player.restHead = null; // re-derive from home spot
     const rc = { role: role === 'brace' ? 'brace' : 'attack', w: roleCam.w };
