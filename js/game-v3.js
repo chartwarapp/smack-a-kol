@@ -418,7 +418,7 @@
     const lockBtn = $('#pk-lock');
     if (!lockBtn || pkLocked) return;
     lockBtn.disabled = false;
-    lockBtn.textContent = pkIsAdmin() ? '🔓 LOCK FREE (ADMIN)' : `🔒 LOCK FOR ${SAK.FIGHTER_LOCK.feeSol} SOL`;
+    lockBtn.textContent = '🔒 LOCK'; // TEMPORARY: free lock for testing
   }
   function initPicker() {
     pkTab = 'starters'; pkLocked = false;
@@ -521,23 +521,13 @@
     const errEl = $('#pk-lock-err');
     errEl.textContent = '';
     const btn = $('#pk-lock');
-    // TEMPORARY: admin free lock for testing — remove before mainnet
-    const adminFree = pkIsAdmin();
-    // Must have a wallet connected to lock
-    const W = SAK.Wallet;
-    if (!W || !W.isConnected) {
-      errEl.textContent = 'Connect your wallet first to lock a fighter.';
-      toast('🔗 Connect wallet to lock', 2200);
-      return;
-    }
+    // TEMPORARY: free lock for everyone during testing — remove before mainnet
     if (!pkCustomLook) { errEl.textContent = 'Randomize a fighter first.'; return; }
     btn.disabled = true;
-    btn.textContent = adminFree ? '⏳ Locking…' : '⏳ Confirm in wallet…';
+    btn.textContent = '⏳ Locking…';
     try {
-      // TEMPORARY: admin free lock for testing — remove before mainnet
-      const { signature } = adminFree
-        ? await SAK.FighterLock.lockFighterFree(pkCustomLook)
-        : await SAK.FighterLock.lockFighter(pkCustomLook);
+      // TEMPORARY: free lock — no payment, no wallet needed. Remove before mainnet.
+      await SAK.FighterLock.lockFighterFree(pkCustomLook);
       pkLocked = true;
       crDraft = Object.assign({}, pkCustomLook);
       // Stamp the name/quote the user typed (validated on save path too)

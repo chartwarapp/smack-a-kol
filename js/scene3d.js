@@ -3041,9 +3041,9 @@ SAK.Scene3D = (function () {
       const w = canvas.clientWidth || 300, h = canvas.clientHeight || 200;
       r.setSize(w, h, false); cam.aspect = w / h;
       // fit the whole fighter (~3.3 units tall incl. hair/hats) vertically; pull back on narrow canvases
-      const vfit = 3.25 / (2 * Math.tan(T.MathUtils.degToRad(cam.fov / 2)));
+      const vfit = 3.6 / (2 * Math.tan(T.MathUtils.degToRad(cam.fov / 2)));
       const dist = vfit * Math.max(1, 0.9 / cam.aspect);
-      cam.position.set(0, 1.9, dist); cam.lookAt(0, 1.55, 0); cam.updateProjectionMatrix();
+      cam.position.set(0, 1.95, dist); cam.lookAt(0, 1.6, 0); cam.updateProjectionMatrix();
     }
     function tick(now) {
       if (!alive) return;
