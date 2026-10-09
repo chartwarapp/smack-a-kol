@@ -248,6 +248,18 @@ SAK.BRACE = { window: 0.28, damageMult: 0.5 };
 
 /* ---- KOL roster lives in js/roster.js (easy to edit) ---------------- */
 
+/* ---- Fighter lock (custom fighter NFT-style ownership) -----------------
+ * Players randomize a custom fighter and lock it to their wallet for a
+ * one-time SOL fee. Starters are free. */
+/* eslint-disable-next-line */
+SAK.FIGHTER_LOCK = {
+  feeSol: 0.05,
+  // Treasury wallet receiving lock fees. Defaults to the admin wallet;
+  // override via SAK.FIGHTER_LOCK.treasury before payment.
+  treasury: '6nocUciCs3o8Usa86NKJxm82p5b2Wzya23DJrFNi4brx',
+  rpcUrl: 'https://api.mainnet-beta.solana.com',
+};
+
 /* ---- User-submitted KOLs ----------------------------------------------
  * Players design their own parody KOL. Slots unlock with LIFETIME PTS earned.
  * Stats are derived from the chosen difficulty (see SAK.customKolStats).    */

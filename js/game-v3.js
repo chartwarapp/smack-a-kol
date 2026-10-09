@@ -377,7 +377,6 @@
   function openFighter(thenPlay) {
     playAfterFighter = !!thenPlay;
     crIsNew = !S.profile;
-    crRoll = null; crRerollsLeft = SAK.Traits.MAX_REROLLS; // reset NFT rerolls
     const p = profile();
     crDraft = Object.assign({}, p.avatar);
     $('#fit-name').value = S.profile ? p.name : '';
@@ -385,15 +384,17 @@
     $('#cr-name').value = S.profile ? p.name : '';
     $('#fit-phrase').value = S.profile ? (p.phrase || '') : '';
     $('#cr-name-err').textContent = ''; $('#cr-look-err').textContent = '';
+    // Hide any stale fighter-card button
+    const fcb = $('#pk-fighter-card'); if (fcb) fcb.remove();
     $('#modal-fighter').classList.remove('hidden');
     if (crIsNew) showCreatorStep('name'); else showCreatorStep('look');
   }
   function showCreatorStep(step) {
     $('#cr-step-name').classList.toggle('hidden', step !== 'name');
     $('#cr-step-look').classList.toggle('hidden', step !== 'look');
-    $('#cr-title').textContent = crIsNew ? '👤 BUILD YOUR FIGHTER' : '👤 EDIT MY FIGHTER';
+    $('#cr-title').textContent = crIsNew ? '👤 PICK YOUR FIGHTER' : '👤 CHANGE FIGHTER';
     if (step === 'name') { setTimeout(() => $('#fit-name').focus(), 50); return; }
-    renderCreatorOptions();
+    initPicker();
     if (!crPreview && Scene && Scene.createPreview) {
       try { crPreview = Scene.createPreview($('#cr-canvas')); } catch (err) { console.warn('[SAK] preview unavailable', err); crPreview = null; }
     }
@@ -406,18 +407,72 @@
     if (crPreview) { crPreview.dispose(); crPreview = null; }
     if (welcomePending) { welcomePending = false; setTimeout(() => toast(`🎁 Welcome bonus: +${fmt(SAK.POINTS.welcomeBonus)} PTS to get slapping`, 2600), 2000); }
   }
-  function renderCreatorOptions() {
-    $$('#cr-step-look [data-opt]').forEach(box => {
-      const key = box.dataset.opt, list = AO[key], chips = box.classList.contains('cr-chips');
-      box.innerHTML = list.map(o => chips
-        ? `<button type="button" data-v="${o.id}" class="${crDraft[key] === o.id ? 'on' : ''}">${o.label}</button>`
-        : `<button type="button" data-v="${o}" class="${crDraft[key] === o ? 'on' : ''}" style="background:${o}" aria-label="${key} ${o}"></button>`).join('');
-      box.querySelectorAll('button').forEach(b => b.onclick = () => { A.click(); crDraft[key] = b.dataset.v; renderCreatorOptions(); renderCreatorPreview(); });
+  /* ---- Fighter picker: Starters (free) + Custom (0.05 SOL lock) ---- */
+  let pkTab = 'starters', pkStarterId = null, pkCustomLook = null, pkLocked = false;
+  function initPicker() {
+    pkTab = 'starters'; pkLocked = false;
+    pkStarterId = (S.profile && S.profile.starter_id) || 'rookie';
+    pkCustomLook = null;
+    // Tab switching
+    $$('#cr-step-look [data-ptab]').forEach(b => {
+      b.onclick = () => {
+        A.click();
+        pkTab = b.dataset.ptab;
+        $$('#cr-step-look [data-ptab]').forEach(x => x.classList.toggle('on', x === b));
+        $('#pk-starters').classList.toggle('hidden', pkTab !== 'starters');
+        $('#pk-custom').classList.toggle('hidden', pkTab !== 'custom');
+        // SAVE button only for starters; custom uses the LOCK button
+        $('#cr-save').style.display = pkTab === 'starters' ? '' : 'none';
+        renderCreatorPreview();
+      };
     });
+    renderStarterGrid();
+    // Default custom draft
+    if (!pkCustomLook) { pkCustomLook = SAK.Account.randomAvatar(); renderCustomTraits(); }
+    renderCreatorPreview();
+  }
+  function renderStarterGrid() {
+    const grid = $('#pk-starter-grid');
+    grid.innerHTML = SAK.STARTERS.map(s => `
+      <div class="pk-card ${pkStarterId === s.id ? 'on' : ''}" data-sid="${s.id}">
+        ${SAK.avatarSVG(s.look)}
+        <b>${s.name}</b><small>${s.tagline}</small>
+      </div>`).join('');
+    grid.querySelectorAll('.pk-card').forEach(c => {
+      c.onclick = () => {
+        A.click();
+        pkStarterId = c.dataset.sid;
+        grid.querySelectorAll('.pk-card').forEach(x => x.classList.toggle('on', x === c));
+        const s = SAK.STARTERS.find(x => x.id === pkStarterId);
+        crDraft = Object.assign({}, s.look);
+        renderCreatorPreview();
+      };
+    });
+    // Set initial draft to selected starter
+    const s = SAK.STARTERS.find(x => x.id === pkStarterId);
+    if (s) crDraft = Object.assign({}, s.look);
+  }
+  function renderCustomTraits() {
+    const box = $('#pk-traits');
+    if (!pkCustomLook) { box.innerHTML = ''; return; }
+    const L = SAK.Account.toLook(pkCustomLook);
+    const rows = [
+      ['Species', (L.species || 'human').toUpperCase()],
+      ['Outfit', (L.outfit || 'tee').toUpperCase()],
+      ['Hair', (L.hairStyle || 'short').toUpperCase()],
+      ['Eyes', (L.eyes || 'round').toUpperCase()],
+    ];
+    if (L.facialHair && L.facialHair !== 'none') rows.push(['Facial hair', L.facialHair.toUpperCase()]);
+    if (L.necklace && L.necklace !== 'none') rows.push(['Necklace', L.necklace.toUpperCase()]);
+    if (L.glasses && L.glasses !== 'none') rows.push(['Glasses', L.glasses.toUpperCase()]);
+    if (L.tattoo && L.tattoo !== 'none') rows.push(['Tattoos', L.tattoo.toUpperCase()]);
+    box.innerHTML = rows.map(([k, v]) => `<div><span style="opacity:.6">${k}:</span> <b>${v}</b></div>`).join('');
   }
   function renderCreatorPreview() {
-    if (crPreview) crPreview.apply(crDraft);
-    else $('#cr-fallback').innerHTML = SAK.avatarSVG(SAK.Account.toLook(crDraft));
+    // Preview shows the active tab's fighter: starter selection or custom draft
+    const look = pkTab === 'custom' ? pkCustomLook : crDraft;
+    if (crPreview) crPreview.apply(look || crDraft);
+    else $('#cr-fallback').innerHTML = SAK.avatarSVG(SAK.Account.toLook(look || crDraft));
   }
   $('#cr-next').addEventListener('click', () => {
     const n = SAK.Account.validateName($('#fit-name').value), v = n.ok ? validateText(n.ok, SAK.UGC.maxName) : n;
@@ -433,70 +488,165 @@
     showCreatorStep('look');
   });
   $('#fit-name').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); $('#cr-next').click(); } });
-  $('#cr-random').addEventListener('click', () => { A.click(); crDraft = SAK.Account.randomAvatar(); renderCreatorOptions(); renderCreatorPreview(); });
 
-  // --- NFT-style trait reroll (Phase 1) ---
-  let crRoll = null, crRerollsLeft = SAK.Traits.MAX_REROLLS;
-  function renderTraitRoll() {
-    const box = $('#cr-traits'), list = $('#cr-trait-list');
-    if (!crRoll) { box.classList.add('hidden'); return; }
-    box.classList.remove('hidden');
-    const rarity = SAK.Traits.getRarity(crRoll);
-    const rc = SAK.Traits.RARITY[rarity];
-    $('#cr-rarity-badge').innerHTML = `<span style="color:${rc.color}">◆ ${rc.label.toUpperCase()}</span>`;
-    $('#cr-reroll-left').textContent = `${crRerollsLeft} reroll${crRerollsLeft === 1 ? '' : 's'} left`;
-    $('#cr-reroll-count').textContent = crRerollsLeft > 0 ? `(${crRerollsLeft})` : '';
-    list.innerHTML = SAK.Traits.LAYER_ORDER.map(lid => {
-      const t = crRoll[lid], tc = SAK.Traits.RARITY[t.rarity];
-      return `<div><span style="opacity:.6">${SAK.Traits.LAYER_LABELS[lid]}:</span> <b style="color:${tc.color}">${t.label}</b></div>`;
-    }).join('');
-    // Apply to the 3D preview
-    crDraft = Object.assign(crDraft || {}, SAK.Traits.toAvatar(crRoll));
-    renderCreatorOptions(); renderCreatorPreview();
-  }
-  $('#cr-reroll').addEventListener('click', () => {
+  // ---- Custom tab: randomize + lock ----
+  $('#pk-random').addEventListener('click', () => {
     A.click();
-    if (crRerollsLeft <= 0) { toast('No rerolls left — lock it in!', 1800); return; }
-    crRerollsLeft--;
-    crRoll = SAK.Traits.rollFighter();
-    const rarity = SAK.Traits.getRarity(crRoll);
-    if (rarity === 'legendary') A.fanfare && A.fanfare();
-    else A.coin();
-    renderTraitRoll();
-    if (rarity === 'epic' || rarity === 'legendary') {
-      toast(`🎰 ${SAK.Traits.RARITY[rarity].label.toUpperCase()} fighter!`, 2200);
+    pkCustomLook = SAK.Account.randomAvatar();
+    pkLocked = false;
+    $('#pk-lock').disabled = false;
+    $('#pk-lock').textContent = `🔒 LOCK FOR ${SAK.FIGHTER_LOCK.feeSol} SOL`;
+    renderCustomTraits();
+    renderCreatorPreview();
+    A.coin();
+  });
+  $('#pk-lock').addEventListener('click', async () => {
+    const errEl = $('#pk-lock-err');
+    errEl.textContent = '';
+    const btn = $('#pk-lock');
+    // Must have a wallet connected to pay
+    const W = SAK.Wallet;
+    if (!W || !W.isConnected) {
+      errEl.textContent = 'Connect your wallet first to lock a fighter.';
+      toast('🔗 Connect wallet to lock', 2200);
+      return;
+    }
+    if (!pkCustomLook) { errEl.textContent = 'Randomize a fighter first.'; return; }
+    btn.disabled = true;
+    btn.textContent = '⏳ Confirm in wallet…';
+    try {
+      const { signature } = await SAK.FighterLock.lockFighter(pkCustomLook);
+      pkLocked = true;
+      crDraft = Object.assign({}, pkCustomLook);
+      // Stamp the name/quote the user typed (validated on save path too)
+      const nm = $('#cr-name').value.trim(), q = $('#fit-phrase').value.trim();
+      await saveFighterProfile(nm || undefined, q || undefined, { starter_id: null, custom: true });
+      btn.textContent = '✅ LOCKED!';
+      A.perfect();
+      toast('🔒 Fighter locked to your wallet!', 2400);
+      showFighterCardButton();
+    } catch (e) {
+      console.warn('[SAK] lock failed', e);
+      errEl.textContent = e.message || 'Payment failed. Try again.';
+      btn.disabled = false;
+      btn.textContent = `🔒 LOCK FOR ${SAK.FIGHTER_LOCK.feeSol} SOL`;
     }
   });
   $('#cr-later').addEventListener('click', () => { closeCreator(); if (playAfterFighter) setTimeout(openPicker, 50); });   // play as guest
   $('#cr-cancel').addEventListener('click', () => { if (crIsNew) showCreatorStep('name'); else closeCreator(); });
-  $('#fighter-form').addEventListener('submit', e => {
-    e.preventDefault();
-    const n = SAK.Account.validateName($('#cr-name').value), v = n.ok ? validateText(n.ok, SAK.UGC.maxName) : n;
-    if (v.err) { $('#cr-look-err').textContent = 'Name: ' + v.err; return; }
-    // Unique check on save too (in case they edited the name in step 2)
+  /**
+   * Shared save: writes name/phrase/avatar to the profile (local + backend),
+   * updates the 3D player, and shows the fighter-card share button.
+   * `extra` may carry { starter_id } or { custom: true }.
+   */
+  async function saveFighterProfile(name, phrase, extra) {
+    extra = extra || {};
+    const v = name !== undefined ? { ok: name } : (() => {
+      const n = SAK.Account.validateName($('#cr-name').value);
+      return n.ok ? validateText(n.ok, SAK.UGC.maxName) : n;
+    })();
+    if (v.err) { $('#cr-look-err').textContent = 'Name: ' + v.err; return false; }
     const nameLower = v.ok.toLowerCase();
     const isOwnName = S.profile && S.profile.name.toLowerCase() === nameLower;
     if (!isOwnName && roster().some(k => k.name.toLowerCase() === nameLower)) {
-      $('#cr-look-err').textContent = 'That name is taken'; return;
+      $('#cr-look-err').textContent = 'That name is taken'; return false;
     }
-    const rawPh = $('#fit-phrase').value.trim();
+    const rawPh = phrase !== undefined ? phrase : $('#fit-phrase').value.trim();
     const ph = rawPh ? validateText(rawPh, SAK.UGC.maxCatchphrase) : { ok: '' };
-    if (ph.err) { $('#cr-look-err').textContent = 'Quote: ' + ph.err; return; }
+    if (ph.err) { $('#cr-look-err').textContent = 'Quote: ' + ph.err; return false; }
     const xh = $('#fit-x').value.trim().replace(/^@/, '').slice(0, 15);
-    if (S.profile) Object.assign(S.profile, { name: v.ok, phrase: ph.ok, x_handle: xh, avatar: SAK.Account.sanitize(crDraft) });
-    else S.profile = Object.assign(SAK.Account.create(v.ok, crDraft, ph.ok), { x_handle: xh });
+    // Resolve the avatar: starter selection or custom draft
+    let avatar = crDraft, starterId = extra.starter_id;
+    if (pkTab === 'starters' || starterId) {
+      const s = SAK.STARTERS.find(x => x.id === (starterId || pkStarterId));
+      if (s) { avatar = Object.assign({}, s.look); starterId = s.id; }
+    }
+    const cleanAvatar = SAK.Account.sanitize(avatar);
+    if (S.profile) Object.assign(S.profile, {
+      name: v.ok, phrase: ph.ok, x_handle: xh, avatar: cleanAvatar,
+      starter_id: starterId || null,
+    });
+    else S.profile = Object.assign(SAK.Account.create(v.ok, cleanAvatar, ph.ok), { x_handle: xh, starter_id: starterId || null });
     SAK.Storage.save();
-    // Persist to backend profile when a wallet is linked.
     if (W.isConnected && W.address) {
       SAK.Api.saveProfile(W.address, {
         name: S.profile.name, phrase: S.profile.phrase, fighter_look: S.profile.avatar, x_handle: xh,
       }).catch(e => console.warn('[SAK] profile save failed', e));
     }
     if (Scene) Scene.setPlayer(playerAvatar());
-    closeCreator();
-    A.perfect(); toast(crIsNew ? `🪪 Account created. ${v.ok} has entered the arena. LFG 🚀` : `${v.ok}: fresh drip saved 💅`);
+    return true;
+  }
+
+  /** After save/lock: show a "Save Fighter Card" share button in the modal. */
+  function showFighterCardButton() {
+    if ($('#pk-fighter-card')) return;
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.id = 'pk-fighter-card';
+    btn.className = 'btn btn-purple';
+    btn.style.cssText = 'width:100%;margin-top:10px';
+    btn.textContent = '🖼️ SAVE FIGHTER CARD';
+    btn.onclick = async () => {
+      A.click();
+      btn.disabled = true;
+      btn.textContent = '⏳ Building card…';
+      try {
+        const svg = SAK.FighterCard.buildFighterCard({
+          name: S.profile.name,
+          xHandle: S.profile.x_handle,
+          phrase: S.profile.phrase,
+          look: S.profile.avatar,
+          starterId: S.profile.starter_id,
+          wins: S.profile.wins || 0,
+          losses: S.profile.losses || 0,
+        });
+        await SAK.FightCard.share(svg, `🥊 My Smack-a-KOL fighter: ${S.profile.name}!`);
+        toast('🖼️ Fighter card shared!', 2000);
+      } catch (e) {
+        console.warn('[SAK] fighter card failed', e);
+        toast('Card failed — try again', 2000);
+      }
+      btn.disabled = false;
+      btn.textContent = '🖼️ SAVE FIGHTER CARD';
+    };
+    const actions = document.querySelector('#cr-step-look .cr-actions');
+    if (actions) actions.parentNode.insertBefore(btn, actions);
+    else $('#cr-step-look').appendChild(btn);
+  }
+
+  $('#fighter-form').addEventListener('submit', async e => {
+    e.preventDefault();
+    // Custom tab saves via the LOCK button, not this form.
+    if (pkTab === 'custom' && !pkLocked) {
+      $('#cr-look-err').textContent = 'Lock your custom fighter with 0.05 SOL first.';
+      return;
+    }
+    const ok = await saveFighterProfile();
+    if (!ok) return;
+    A.perfect();
+    toast(crIsNew ? `🪪 ${S.profile.name} has entered the arena. LFG 🚀` : `${S.profile.name}: fresh drip saved 💅`, 2600);
+    // Swap form actions for a success state: fighter-card button + Done
+    const actions = document.querySelector('#cr-step-look .cr-actions');
+    if (actions) actions.style.display = 'none';
+    showFighterCardButton();
+    if (!$('#pk-done')) {
+      const done = document.createElement('button');
+      done.type = 'button'; done.id = 'pk-done';
+      done.className = 'btn btn-green'; done.style.cssText = 'width:100%;margin-top:8px';
+      done.textContent = 'DONE · LFG 🚀';
+      done.onclick = () => {
+        A.click();
+        if (actions) actions.style.display = '';
+        const d = $('#pk-done'); if (d) d.remove();
+        const fcb = $('#pk-fighter-card'); if (fcb) fcb.remove();
+        closeCreator();
+        renderMenu();
+        if (playAfterFighter) openPicker();
+      };
+      const fcb = $('#pk-fighter-card');
+      if (fcb && fcb.parentNode) fcb.parentNode.insertBefore(done, fcb.nextSibling);
+    }
     renderMenu();
-    if (playAfterFighter) openPicker();
   });
   $('#btn-vault').addEventListener('click', () => { A.unlock(); A.click(); openVault(); });
   $('#btn-rescue').addEventListener('click', () => {

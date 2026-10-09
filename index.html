@@ -285,38 +285,41 @@
           <button type="button" class="btn btn-green" id="cr-next">NEXT →</button>
         </div>
       </div>
-      <!-- Step 2: character creator with live 3D preview -->
+      <!-- Step 2: fighter picker — Starters (free) or Custom (0.05 SOL) -->
       <div class="cr-step hidden" id="cr-step-look">
-        <h3 id="cr-title">👤 BUILD YOUR FIGHTER</h3>
-        <div class="cr-preview" id="cr-preview">
-          <canvas id="cr-canvas" aria-label="3D fighter preview, drag to spin"></canvas>
-          <div class="cr-fallback hidden" id="cr-fallback"></div>
-          <span class="cr-spin-hint">⟲ drag to spin</span>
-          <button type="button" class="cr-random" id="cr-random" aria-label="Randomize fighter">🎲 RANDOM</button>
-          <button type="button" class="cr-random" id="cr-reroll" aria-label="NFT-style trait reroll" style="top:52px">🎰 REROLL <span id="cr-reroll-count"></span></button>
+        <h3 id="cr-title">👤 PICK YOUR FIGHTER</h3>
+        <div class="pk-tabs">
+          <button type="button" class="pk-tab on" data-ptab="starters">🆓 STARTERS</button>
+          <button type="button" class="pk-tab" data-ptab="custom">🎲 CUSTOM <span class="pk-price">0.05 SOL</span></button>
         </div>
-        <div id="cr-traits" class="hidden" style="margin:8px 0;padding:10px;background:rgba(0,0,0,.25);border-radius:10px">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-            <b id="cr-rarity-badge" style="font-size:15px"></b>
-            <span id="cr-reroll-left" style="font-size:12px;opacity:.8"></span>
+
+        <!-- STARTERS TAB -->
+        <div id="pk-starters" class="pk-pane">
+          <p class="fine dark" style="margin:6px 0">Free forever. Pick your fighter.</p>
+          <div id="pk-starter-grid" class="pk-grid"></div>
+        </div>
+
+        <!-- CUSTOM TAB -->
+        <div id="pk-custom" class="pk-pane hidden">
+          <p class="fine dark" style="margin:6px 0">Roll the dice. Love it? Lock it to your wallet for <b>0.05 SOL</b> — yours forever.</p>
+          <div class="cr-preview" id="cr-preview">
+            <canvas id="cr-canvas" aria-label="3D fighter preview, drag to spin"></canvas>
+            <div class="cr-fallback hidden" id="cr-fallback"></div>
+            <span class="cr-spin-hint">⟲ drag to spin</span>
           </div>
-          <div id="cr-trait-list" style="display:grid;grid-template-columns:1fr 1fr;gap:4px;font-size:12px"></div>
+          <div id="pk-traits" class="pk-traits"></div>
+          <div class="row" style="margin-top:10px">
+            <button type="button" class="btn btn-purple" id="pk-random" style="flex:1">🎲 RANDOMIZE</button>
+          </div>
+          <div class="row" style="margin-top:8px">
+            <button type="button" class="btn btn-green" id="pk-lock" style="flex:1">🔒 LOCK FOR 0.05 SOL</button>
+          </div>
+          <div class="cr-err" id="pk-lock-err"></div>
         </div>
-        <label class="cr-label cr-inline">NAME<input id="cr-name" maxlength="16" autocapitalize="off" spellcheck="false" /></label>
-        <div class="cr-rows">
-          <div class="cr-row"><span class="cr-k">BODY</span><div class="cr-chips" data-opt="body"></div></div>
-          <div class="cr-row"><span class="cr-k">HAIR</span><div class="cr-chips" data-opt="hairStyle"></div></div>
-          <div class="cr-row"><span class="cr-k"></span><div class="cr-swatches" data-opt="hairColor"></div></div>
-          <div class="cr-row"><span class="cr-k">SKIN</span><div class="cr-swatches" data-opt="skin"></div></div>
-          <div class="cr-row"><span class="cr-k">EYES</span><div class="cr-chips" data-opt="eyes"></div></div>
-          <div class="cr-row"><span class="cr-k"></span><div class="cr-swatches" data-opt="eyeColor"></div></div>
-          <div class="cr-row"><span class="cr-k">FIT</span><div class="cr-swatches" data-opt="shirt"></div></div>
-          <div class="cr-row"><span class="cr-k">DRIP</span><div class="cr-chips" data-opt="accessory"></div></div>
-        </div>
+
+        <label class="cr-label cr-inline" style="margin-top:12px">NAME<input id="cr-name" maxlength="16" autocapitalize="off" spellcheck="false" /></label>
         <label class="cr-label cr-inline">QUOTE<input id="fit-phrase" maxlength="60" placeholder="gm. prepare to get slapped." /></label>
         <div class="cr-err" id="cr-look-err"></div>
-        <!-- Hook for a future feature: AI reads an uploaded PFP and fills the avatar params (SAK.Account.fromPfp) -->
-        <button type="button" class="cr-pfp" id="cr-pfp" disabled title="Coming soon: AI turns your PFP into a fighter">📸 Upload PFP — AI fighter <small>(coming soon)</small></button>
         <div class="row cr-actions">
           <button type="button" class="btn btn-grey" id="cr-cancel">Cancel</button>
           <button type="submit" class="btn btn-green" id="cr-save">SAVE · LFG 🚀</button>
@@ -427,6 +430,7 @@
 <script src="js/api.js?v=https-fix-2"></script>
 <script src="js/api-supabase.js?v=https-fix-2"></script>
 <script src="js/fightcard.js?v=https-fix-2"></script>
+<script src="js/fighter-lock.js?v=1"></script>
 <script src="js/game-v3.js?v=1"></script>
 </body>
 </html>

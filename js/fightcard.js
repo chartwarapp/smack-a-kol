@@ -112,5 +112,48 @@ SAK.FightCard = (() => {
     return 'x-opened';
   }
 
-  return { build, share, shareToX };
+  // ---- Fighter card (1080×1080): portrait, name, tagline, traits, record ----
+  function buildFighterCard(o) {
+    const look = o.look || {};
+    const hero = avatarInner(look, {});
+    const name = (o.name || 'DEGEN').toUpperCase();
+    const tagline = o.tagline || o.phrase || 'READY TO SLAP';
+    // Key traits line
+    const traits = [];
+    if (look.species && look.species !== 'human') traits.push(look.species.toUpperCase());
+    if (look.outfit && look.outfit !== 'none') traits.push(look.outfit.toUpperCase());
+    if (look.facialHair && look.facialHair !== 'none') traits.push(look.facialHair.toUpperCase());
+    if (look.necklace && look.necklace !== 'none') traits.push(look.necklace.toUpperCase());
+    if (look.glasses && look.glasses !== 'none') traits.push(look.glasses.toUpperCase());
+    if (look.tattoo && look.tattoo !== 'none') traits.push(look.tattoo.toUpperCase() + ' INK');
+    if (look.hairStyle && look.hairStyle !== 'bald' && look.hairStyle !== 'short') traits.push(look.hairStyle.toUpperCase() + ' HAIR');
+    const traitLine = traits.slice(0, 4).join(' · ') || 'CLASSIC DEGEN';
+    const record = `${o.wins || 0}W — ${o.losses || 0}L`;
+    const locked = o.lockedTx ? '🔒 LOCKED · 0.05 SOL' : '🆓 STARTER FIGHTER';
+
+    return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" font-family="system-ui, -apple-system, sans-serif">
+  <defs>
+    <linearGradient id="fbg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1a0b2e"/><stop offset="1" stop-color="#0e0218"/>
+    </linearGradient>
+    <radialGradient id="fglow" cx="0.5" cy="0.45" r="0.55">
+      <stop offset="0" stop-color="#ffd23f" stop-opacity="0.25"/><stop offset="1" stop-color="#ffd23f" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="${W}" height="${H}" fill="url(#fbg)"/>
+  <rect width="${W}" height="${H}" fill="url(#fglow)"/>
+  <text x="540" y="100" text-anchor="middle" font-size="64" font-weight="900" fill="#ffd23f" letter-spacing="10">SMACK-A-KOL</text>
+  <text x="540" y="148" text-anchor="middle" font-size="30" font-weight="700" fill="#ffffff" opacity="0.65" letter-spacing="6">MY FIGHTER</text>
+  <svg x="340" y="190" width="400" height="400" viewBox="0 0 100 100">${hero}</svg>
+  <text x="540" y="660" text-anchor="middle" font-size="84" font-weight="900" fill="#ffffff" letter-spacing="4">${esc(name)}</text>
+  ${o.xHandle ? `<text x="540" y="700" text-anchor="middle" font-size="30" font-weight="700" fill="#1d9bf0">@${esc(o.xHandle.replace(/^@/, ''))}</text>` : ''}
+  <text x="540" y="748" text-anchor="middle" font-size="34" font-weight="700" fill="#ffffff" opacity="0.85">${esc(tagline)}</text>
+  <text x="540" y="812" text-anchor="middle" font-size="28" font-weight="700" fill="#39ff88" letter-spacing="2">${esc(traitLine)}</text>
+  <text x="540" y="872" text-anchor="middle" font-size="36" font-weight="900" fill="#ffffff">RECORD  ${esc(record)}</text>
+  <text x="540" y="928" text-anchor="middle" font-size="30" font-weight="800" fill="#ffd23f">${esc(locked)}</text>
+  <text x="540" y="1000" text-anchor="middle" font-size="26" font-weight="700" fill="#ffffff" opacity="0.5" letter-spacing="3">🥊 PLAY AT SMACKAKOL.COM</text>
+</svg>`;
+  }
+
+  return { build, buildFighterCard, share, shareToX };
 })();
