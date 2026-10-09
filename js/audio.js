@@ -197,6 +197,53 @@ SAK.Audio = (function () {
     if (musicTimer) { clearInterval(musicTimer); musicTimer = null; }
   }
 
+  // 🎉 Crowd sounds — synthesized with layered filtered noise (no chimes)
+  function crowdLayer(opts) {
+    // Crowd = broadband voices: bandpass noise with slow amplitude swell
+    const t = ctx.currentTime + (opts.when || 0);
+    const src = ctx.createBufferSource(); src.buffer = noiseBuf; src.loop = true;
+    const f = ctx.createBiquadFilter(); f.type = 'bandpass';
+    f.frequency.value = opts.freq; f.Q.value = opts.q || 0.6;
+    const g = ctx.createGain();
+    const peak = opts.gain * (opts.strength || 1);
+    // Swell up fast, decay slow — like a crowd erupting
+    g.gain.setValueAtTime(0.001, t);
+    g.gain.exponentialRampToValueAtTime(peak, t + (opts.attack || 0.08));
+    g.gain.exponentialRampToValueAtTime(0.001, t + opts.dur);
+    src.connect(f); f.connect(g); g.connect(master);
+    src.start(t); src.stop(t + opts.dur + 0.1);
+  }
+  // Crowd gasp + cheer on slap impact — intensity scales with slap tier
+  function crowdSlap(intensity) {
+    if (!ready()) return;
+    const s = Math.min(1.5, intensity || 1);
+    // Gasp: sharp high intake
+    crowdLayer({ freq: 3200, q: 0.8, dur: 0.25, gain: 0.18, attack: 0.03, strength: s });
+    // Cheer swell: mid voices
+    crowdLayer({ freq: 1200, q: 0.5, dur: 0.6 + 0.3 * s, gain: 0.22, attack: 0.1, when: 0.05, strength: s });
+    crowdLayer({ freq: 800, q: 0.5, dur: 0.7 + 0.3 * s, gain: 0.18, attack: 0.12, when: 0.08, strength: s });
+    // Harder slaps = bigger roar
+    if (s > 1.1) crowdLayer({ freq: 500, q: 0.4, dur: 1.0, gain: 0.2, attack: 0.15, when: 0.1, strength: s });
+  }
+  // Victory: full crowd eruption
+  function crowdWin() {
+    if (!ready()) return;
+    crowdLayer({ freq: 1200, q: 0.4, dur: 2.2, gain: 0.3, attack: 0.15, strength: 1.2 });
+    crowdLayer({ freq: 800, q: 0.4, dur: 2.5, gain: 0.25, attack: 0.2, when: 0.1, strength: 1.2 });
+    crowdLayer({ freq: 2000, q: 0.6, dur: 1.8, gain: 0.2, attack: 0.1, when: 0.05, strength: 1.2 });
+    crowdLayer({ freq: 500, q: 0.4, dur: 2.8, gain: 0.22, attack: 0.25, when: 0.15, strength: 1.2 });
+    // Whistles in the crowd
+    [2400, 2800, 3200].forEach((fq, i) => {
+      crowdLayer({ freq: fq, q: 3.0, dur: 0.4, gain: 0.08, attack: 0.05, when: 0.3 + i * 0.25, strength: 1 });
+    });
+  }
+  // Defeat: crowd "oooh" — sympathetic groan
+  function crowdLose() {
+    if (!ready()) return;
+    crowdLayer({ freq: 900, q: 0.5, dur: 1.2, gain: 0.2, attack: 0.2, strength: 1 });
+    crowdLayer({ freq: 600, q: 0.5, dur: 1.4, gain: 0.18, attack: 0.25, when: 0.1, strength: 1 });
+  }
+
   return {
     unlock,
     SLAP_BANK,
@@ -214,6 +261,7 @@ SAK.Audio = (function () {
     stopMusic,
     slap(strength) {          // strength 0..1+
       if (!ready()) return;
+      crowdSlap(strength);  // crowd gasps/cheers on every slap
       if (playSlapBuf(strength)) return;   // real recorded slap
       // synth fallback (bank not loaded yet / fetch failed)
       const s = Math.min(1.5, strength);
@@ -228,8 +276,8 @@ SAK.Audio = (function () {
     click() { if (!ready()) return; tone(660, 0.05, 'square', 0.08); },
     fire() { if (!ready()) return; noise(0.5, 900, 0.6, 0.4, 'lowpass'); tone(220, 0.5, 'sawtooth', 0.15, 0, 880); },
     ko() { if (!ready()) return; tone(520, 0.7, 'sawtooth', 0.2, 0, 90); noise(0.4, 300, 0.7, 0.6, 'lowpass'); },
-    win() { if (!ready()) return; [523, 659, 784, 1046].forEach((f, i) => tone(f, 0.35, 'triangle', 0.2, i * 0.11)); },
-    lose() { if (!ready()) return; [392, 330, 262].forEach((f, i) => tone(f, 0.45, 'sine', 0.2, i * 0.18)); },
+    win() { if (!ready()) return; [523, 659, 784, 1046].forEach((f, i) => tone(f, 0.35, 'triangle', 0.2, i * 0.11)); crowdWin(); },
+    lose() { if (!ready()) return; [392, 330, 262].forEach((f, i) => tone(f, 0.45, 'sine', 0.2, i * 0.18)); crowdLose(); },
     brace() { if (!ready()) return; tone(300, 0.1, 'square', 0.12); },
     /** Boxing ring bell — three classic dings with metallic partials. */
     bell() {      if (!ready()) return;
