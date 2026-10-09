@@ -117,8 +117,8 @@ SAK.Audio = (function () {
 
   const SYNTH_SLAPS = { thunder: synthThunder, whip: synthWhip, sledge: synthSledge };
 
-  // Slap rotation pool: real recordings + layered monsters, all full and heavy.
-  const SLAP_POOL = ['monster', 'heavy', 'crack2', 'smack', 'cinema', 'face', 'clean', 'thunder', 'whip', 'sledge'];
+  // Slap rotation pool: real recordings only — no synth, no chimes.
+  const SLAP_POOL = ['monster', 'heavy', 'crack2', 'smack', 'cinema', 'face', 'clean'];
 
   function playSlapBuf(strength) {
     const pick = SLAP_POOL[Math.floor(Math.random() * SLAP_POOL.length)];
@@ -294,11 +294,11 @@ SAK.Audio = (function () {
       if (!ready()) return;
       crowdSlap(strength);  // crowd gasps/cheers on every slap
       if (playSlapBuf(strength)) return;   // real recorded slap
-      // synth fallback (bank not loaded yet / fetch failed)
+      // synth fallback (bank not loaded yet / fetch failed) — noise only, no tones
       const s = Math.min(1.5, strength);
       noise(0.12 + 0.08 * s, 2200, 0.8, 0.9 * Math.max(0.3, s));
       noise(0.05, 5000, 1.2, 0.5);
-      tone(140, 0.12, 'sine', 0.5 * s, 0, 60);
+      noise(0.15, 180, 0.6, 0.5 * s, 'lowpass');
     },
     whoosh() { if (!ready()) return; const f = noise(0.22, 600, 1.5, 0.25); f.frequency.exponentialRampToValueAtTime(2400, ctx.currentTime + 0.2); },
     miss() { if (!ready()) return; tone(400, 0.25, 'triangle', 0.15, 0, 180); },
