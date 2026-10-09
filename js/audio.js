@@ -215,12 +215,25 @@ SAK.Audio = (function () {
     musicStep++;
   }
 
+  let bgmSrc = null, bgmGain = null;
   function startMusic() {
-    if (musicTimer || !ctx) return;
-    musicStep = 0;
-    musicTimer = setInterval(musicTick, 150); // 16th notes at ~100bpm
+    if (!ctx || bgmSrc) return;
+    // Play the trap BGM on loop
+    fetch('assets/sfx/bgm_trap.mp3')
+      .then(r => r.arrayBuffer())
+      .then(ab => ctx.decodeAudioData(ab))
+      .then(buf => {
+        if (bgmSrc) return; // already started
+        bgmSrc = ctx.createBufferSource();
+        bgmSrc.buffer = buf; bgmSrc.loop = true;
+        bgmGain = ctx.createGain(); bgmGain.gain.value = 0.35;
+        bgmSrc.connect(bgmGain); bgmGain.connect(master);
+        bgmSrc.start();
+      })
+      .catch(() => { /* silent if BGM fails to load */ });
   }
   function stopMusic() {
+    if (bgmSrc) { try { bgmSrc.stop(); } catch (e) {} bgmSrc = null; bgmGain = null; }
     if (musicTimer) { clearInterval(musicTimer); musicTimer = null; }
   }
 
