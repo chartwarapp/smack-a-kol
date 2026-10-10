@@ -2232,13 +2232,20 @@
         toast('Opponent is waiting — rejoin from the lobby', 2600);
       }
     }, 1000);
-    document.getElementById('chain-join-btn').onclick = () => {
+    document.getElementById('chain-join-btn').onclick = async () => {
       clearInterval(countdown);
       const m = document.getElementById('chain-accepted-modal');
       if (m) m.remove();
       chainStatus('Fighting!', true);
       const shadow = Object.assign({}, roster()[0], { name: 'Opponent ' + (ch.opponent || '').slice(0, 4), pvp: true });
-      // Challenger fights; winner resolves via claimChainWinnings
+      // Look up the opponent's real fighter name
+      if (SAK.Api && SAK.Api.getProfile && ch.opponent) {
+        try {
+          const op = await SAK.Api.getProfile(ch.opponent);
+          if (op && op.name) shadow.name = op.name;
+        } catch (e) {}
+      }
+      // Challenger fights; winner settles via SETTLE & CLAIM
       startFight(shadow, 0, { mode: 'classic', pvp: true, chainChallenge: ch.address, chainWagerSol: wagerSol, chainRole: 'challenger', chainOpponentWallet: ch.opponent });
     };
   }
@@ -2318,7 +2325,14 @@
         await SAK.SolanaEscrow.acceptChallenge(ch.address);
         toast(`Accepted! ${sol} SOL each on the line \u2694\uFE0F`, 2600);
         const shadow = Object.assign({}, roster()[0], { name: 'Challenger ' + ch.challenger.slice(0, 4), pvp: true });
-        startFight(shadow, 0, { mode: 'classic', pvp: true, chainChallenge: ch.address, chainWagerSol: sol, chainOpponentWallet: ch.challenger });
+        // Look up the challenger's real fighter name
+      if (SAK.Api && SAK.Api.getProfile) {
+        try {
+          const cp = await SAK.Api.getProfile(ch.challenger);
+          if (cp && cp.name) shadow.name = cp.name;
+        } catch (e) {}
+      }
+      startFight(shadow, 0, { mode: 'classic', pvp: true, chainChallenge: ch.address, chainWagerSol: sol, chainOpponentWallet: ch.challenger });
       } catch (e) { toast('Accept failed: ' + (e.message || e), 2600); }
     };
     const closeChainModal = () => {
