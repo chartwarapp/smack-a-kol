@@ -2113,11 +2113,14 @@
           await SAK.SolanaEscrow.cancelChallenge(activeChainChallenge.address);
           chainStatus('Challenge cancelled, wager refunded.', true);
           activeChainChallenge = null;
+          stopChainWatch();
           $('#pvp-chain-share').classList.add('hidden');
         } catch (e) { chainStatus('Cancel failed: ' + (e.message || e)); }
       };
       chainStatus('Challenge live! Share the link. ' + res.signature.slice(0, 12) + '…', true);
       A.perfect(); toast('On-chain challenge ready \u26D3', 2000);
+      // Watch for the opponent accepting — poll every 5s
+      startChainWatch(res.challenge, chainWager);
     } catch (e) {
       console.warn('[SAK] on-chain challenge failed', e);
       chainStatus('Failed: ' + (e.message || e));
@@ -2125,6 +2128,69 @@
     }
     btn.disabled = false; btn.textContent = '⛓ CREATE ON-CHAIN CHALLENGE';
   });
+  // ---- Challenge waiting room: poll for accept, notify with join countdown ----
+  let chainWatchTimer = null;
+  function stopChainWatch() {
+    if (chainWatchTimer) { clearInterval(chainWatchTimer); chainWatchTimer = null; }
+  }
+  function startChainWatch(challengeAddr, wagerSol) {
+    stopChainWatch();
+    chainStatus('⏳ Waiting for opponent to accept… (watching on-chain)');
+    chainWatchTimer = setInterval(async () => {
+      if (!SAK.SolanaEscrow) return;
+      let ch = null;
+      try { ch = await SAK.SolanaEscrow.getChallenge(challengeAddr); } catch (e) { return; }
+      if (!ch) { stopChainWatch(); return; }
+      if (ch.stateName === 'Accepted') {
+        stopChainWatch();
+        showAcceptedModal(ch, wagerSol);
+      } else if (ch.stateName !== 'Open') {
+        stopChainWatch();
+        chainStatus('Challenge is no longer open.', true);
+      }
+    }, 5000);
+  }
+  function showAcceptedModal(ch, wagerSol) {
+    const old = document.getElementById('chain-accepted-modal');
+    if (old) old.remove();
+    const oppShort = (ch.opponent || '').slice(0, 4) + '…' + (ch.opponent || '').slice(-4);
+    let secs = 60;
+    const modal = document.createElement('div');
+    modal.id = 'chain-accepted-modal';
+    modal.innerHTML =
+      '<div style="position:fixed;inset:0;z-index:9999;background:rgba(5,5,15,0.94);display:flex;align-items:center;justify-content:center;padding:20px;">' +
+      '<div style="background:linear-gradient(160deg,#0f2f1a,#0a1f12);border:2px solid #4ade80;border-radius:20px;padding:28px 24px;max-width:380px;width:100%;text-align:center;box-shadow:0 0 60px rgba(74,222,128,0.3);">' +
+      '<div style="font-size:52px;margin-bottom:8px;">\u{1F525}</div>' +
+      '<div style="font-size:24px;font-weight:800;color:#4ade80;margin-bottom:4px;">OPPONENT ACCEPTED!</div>' +
+      '<div style="font-size:13px;color:#aaa;margin-bottom:16px;">' + oppShort + ' locked ' + wagerSol + ' SOL</div>' +
+      '<div style="font-size:48px;font-weight:800;color:#f5c542;margin:12px 0;" id="chain-join-timer">' + secs + '</div>' +
+      '<div style="font-size:12px;color:#888;margin-bottom:16px;">seconds to join the fight</div>' +
+      '<button id="chain-join-btn" style="display:block;width:100%;padding:16px;margin:8px 0;border:none;border-radius:14px;font-size:18px;font-weight:800;cursor:pointer;background:linear-gradient(180deg,#f5c542,#d4a017);color:#000;">\u{1F94A} JOIN FIGHT</button>' +
+      '</div></div>';
+    document.body.appendChild(modal);
+    try { if (navigator.vibrate) navigator.vibrate([200, 100, 200]); } catch (e) {}
+    A.perfect();
+    const timerEl = document.getElementById('chain-join-timer');
+    const countdown = setInterval(() => {
+      secs--;
+      if (timerEl) timerEl.textContent = secs;
+      if (secs <= 0) {
+        clearInterval(countdown);
+        const m = document.getElementById('chain-accepted-modal');
+        if (m) m.remove();
+        toast('Opponent is waiting — rejoin from the lobby', 2600);
+      }
+    }, 1000);
+    document.getElementById('chain-join-btn').onclick = () => {
+      clearInterval(countdown);
+      const m = document.getElementById('chain-accepted-modal');
+      if (m) m.remove();
+      chainStatus('Fighting!', true);
+      const shadow = Object.assign({}, roster()[0], { name: 'Opponent ' + (ch.opponent || '').slice(0, 4), pvp: true });
+      // Challenger fights; winner resolves via claimChainWinnings
+      startFight(shadow, 0, { mode: 'classic', pvp: true, chainChallenge: ch.address, chainWagerSol: wagerSol, chainRole: 'challenger' });
+    };
+  }
 
   // ---- SOLO VS HOUSE (devnet) ----
   let soloWager = 0.05;
