@@ -6,7 +6,7 @@
   'use strict';
 
   const ESCROW_PROGRAM = 'F4kqMuoAP4kzDT6x41ha15UPicBpQpQay5Txsg85cSWr';
-  const HOUSE_PROGRAM = 'SpYmnT53X3KyYYawSLLzD8hVqWFTkNUQf3a8L3rCzjN';
+  const HOUSE_PROGRAM = 'LwLXTnzwZAB3BhSmNmCKZVa7F6R7nwDyegcmfD5dXzy';
   const NATIVE_MINT = 'So11111111111111111111111111111111111111112'; // SOL
   const RPC_URL = 'https://api.devnet.solana.com';
 
