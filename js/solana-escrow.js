@@ -320,7 +320,7 @@
 
   /** Shareable challenge link for the game site. */
   function challengeUrl(challengeAddr) {
-    return 'https://smackakol.com/?sol_challenge=' + challengeAddr;
+    return 'https://smackakol.com/challenge.html?sol_challenge=' + challengeAddr;
   }
 
   window.SAK = window.SAK || {};
