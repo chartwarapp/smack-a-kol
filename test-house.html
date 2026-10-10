@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>House Contract Test (devnet)</title>
+<script src="https://unpkg.com/@solana/web3.js@1.95.3/lib/index.iife.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0a0a12;color:#fff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;padding:16px;max-width:600px;margin:0 auto}
+h1{font-size:22px;text-align:center;margin:12px 0}
+.ver{font-size:11px;color:#888;text-align:center;margin-bottom:12px}
+.warn{background:#3a2a00;border:1px solid #f0a020;border-radius:10px;padding:10px;margin-bottom:14px;font-size:13px;text-align:center}
+button{display:block;width:100%;padding:14px;margin:10px 0;border:none;border-radius:12px;font-size:16px;font-weight:700;cursor:pointer}
+.btn-gold{background:linear-gradient(180deg,#f5c542,#d4a017);color:#000}
+.btn-blue{background:#2563eb;color:#fff}
+.btn-green{background:#16a34a;color:#fff}
+.btn-red{background:#dc2626;color:#fff}
+.btn-dim{background:#444;color:#fff}
+input{width:100%;padding:12px;margin:6px 0;border-radius:10px;border:1px solid #444;background:#1a1a24;color:#fff;font-size:16px}
+label{font-size:13px;color:#aaa;display:block;margin-top:8px}
+#log{background:#000;border-radius:10px;padding:12px;font-family:monospace;font-size:12px;white-space:pre-wrap;word-break:break-all;max-height:400px;overflow-y:auto;margin-top:12px}
+.step{background:#15151f;border-radius:12px;padding:14px;margin:12px 0;border:1px solid #2a2a3a}
+.step h2{font-size:16px;margin-bottom:8px}
+.row{display:flex;gap:8px}
+.row button{flex:1}
+</style>
+</head>
+<body>
+<h1>🏠 House Contract Test</h1>
+<div class="ver">v1 · devnet only</div>
+<div class="warn">⚠️ DEVNET ONLY — test SOL, no real money</div>
+
+<button class="btn-gold" id="connectBtn">CONNECT WALLET</button>
+
+<div class="step">
+<h2>1. Fund vault</h2>
+<label>Amount (SOL)</label>
+<input id="fundAmt" type="number" value="1" step="0.1" min="0.1">
+<button class="btn-blue" id="fundBtn">FUND VAULT</button>
+</div>
+
+<div class="step">
+<h2>2. Place bet</h2>
+<label>Bet amount (SOL)</label>
+<input id="betAmt" type="number" value="0.05" step="0.01" min="0.01">
+<button class="btn-blue" id="betBtn">PLACE BET</button>
+</div>
+
+<div class="step">
+<h2>3. Resolve bet</h2>
+<div class="row">
+<button class="btn-green" id="winBtn">PLAYER WINS</button>
+<button class="btn-red" id="loseBtn">PLAYER LOSES</button>
+</div>
+</div>
+
+<div class="step">
+<h2>Vault balance</h2>
+<button class="btn-dim" id="balBtn">CHECK VAULT BALANCE</button>
+</div>
+
+<div id="log">Ready. Connect your wallet to start.\n</div>
+
+<script>
+const web3 = window.solanaWeb3;
+const HOUSE_PROGRAM = new web3.PublicKey('LwLXTnzwZAB3BhSmNmCKZVa7F6R7nwDyegcmfD5dXzy');
+const connection = new web3.Connection('https://api.devnet.solana.com', 'confirmed');
+const te = new TextEncoder();
+const SYS = web3.SystemProgram.programId;
+const TOKEN_PROG = new web3.PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA');
+const NATIVE_MINT = web3.PublicKey.default; // all-zeros = SOL
+
+let wallet = null;
+let lastNonce = null;
+
+// Discriminators: sha256("global:<name>")[:8]
+const DISC = {
+  fund: [218,188,111,221,152,113,174,7],
+  place_bet: [222,62,67,220,63,166,126,33],
+  resolve_bet: [137,132,33,97,48,208,30,159],
+};
+
+function log(msg){ const el=document.getElementById('log'); el.textContent+=msg+'\n'; el.scrollTop=el.scrollHeight; }
+function u64(n){ const b=new Uint8Array(8); new DataView(b.buffer).setBigUint64(0, BigInt(n), true); return b; }
+function concat(...arrs){ const t=new Uint8Array(arrs.reduce((s,a)=>s+a.length,0)); let o=0; for(const a of arrs){t.set(a,o);o+=a.length;} return t; }
+
+async function getProvider(){
+  if (window.phantom?.solana?.isPhantom) return window.phantom.solana;
+  if (window.solflare?.isSolflare) return window.solflare;
+  if (window.solana?.isPhantom) return window.solana;
+  throw new Error('No wallet found. Open in Phantom or Solflare.');
+}
+async function signAndSend(tx){
+  tx.feePayer = wallet.publicKey;
+  const {blockhash} = await connection.getLatestBlockhash();
+  tx.recentBlockhash = blockhash;
+  const signed = await wallet.signTransaction(tx);
+  const sig = await connection.sendRawTransaction(signed.serialize());
+  log('Sent: '+sig);
+  await connection.confirmTransaction(sig, 'confirmed');
+  log('✅ Confirmed');
+  return sig;
+}
+async function derivePDAs(playerPk, nonce){
+  const [housePDA] = await web3.PublicKey.findProgramAddress([te.encode('house')], HOUSE_PROGRAM);
+  const [vaultPDA] = await web3.PublicKey.findProgramAddress([te.encode('house_vault')], HOUSE_PROGRAM);
+  const nonceBytes = u64(nonce);
+  const [betPDA] = await web3.PublicKey.findProgramAddress([te.encode('bet'), playerPk.toBuffer(), nonceBytes], HOUSE_PROGRAM);
+  const [betVaultPDA] = await web3.PublicKey.findProgramAddress([te.encode('bet_vault'), playerPk.toBuffer(), nonceBytes], HOUSE_PROGRAM);
+  return {housePDA, vaultPDA, betPDA, betVaultPDA};
+}
+
+document.getElementById('connectBtn').onclick = async () => {
+  try{
+    const p = await getProvider();
+    await p.connect();
+    wallet = p;
+    log('✅ Connected: '+wallet.publicKey.toBase58());
+    document.getElementById('connectBtn').textContent = '✅ CONNECTED';
+  }catch(e){ log('❌ '+e.message); }
+};
+
+document.getElementById('fundBtn').onclick = async () => {
+  try{
+    const lamports = Math.round(parseFloat(document.getElementById('fundAmt').value) * 1e9);
+    const {housePDA, vaultPDA} = await derivePDAs(wallet.publicKey, 0);
+    const data = concat(new Uint8Array(DISC.fund), u64(lamports));
+    const ix = new web3.TransactionInstruction({
+      programId: HOUSE_PROGRAM,
+      keys: [
+        {pubkey: housePDA, isSigner:false, isWritable:false},
+        {pubkey: vaultPDA, isSigner:false, isWritable:true},
+        {pubkey: wallet.publicKey, isSigner:true, isWritable:true},
+        {pubkey: TOKEN_PROG, isSigner:false, isWritable:false},
+        {pubkey: SYS, isSigner:false, isWritable:false},
+      ],
+      data: Buffer.from(data),
+    });
+    log('Funding vault with '+(lamports/1e9)+' SOL...');
+    await signAndSend(new web3.Transaction().add(ix));
+  }catch(e){ log('❌ '+e.message); }
+};
+
+document.getElementById('betBtn').onclick = async () => {
+  try{
+    const lamports = Math.round(parseFloat(document.getElementById('betAmt').value) * 1e9);
+    const nonce = Date.now(); // unique nonce
+    lastNonce = nonce;
+    const {housePDA, vaultPDA, betPDA, betVaultPDA} = await derivePDAs(wallet.publicKey, nonce);
+    const data = concat(new Uint8Array(DISC.place_bet), u64(nonce), u64(lamports));
+    const ix = new web3.TransactionInstruction({
+      programId: HOUSE_PROGRAM,
+      keys: [
+        {pubkey: housePDA, isSigner:false, isWritable:false},
+        {pubkey: vaultPDA, isSigner:false, isWritable:false},
+        {pubkey: betPDA, isSigner:false, isWritable:true},
+        {pubkey: betVaultPDA, isSigner:false, isWritable:true},
+        {pubkey: wallet.publicKey, isSigner:true, isWritable:true},
+        {pubkey: wallet.publicKey, isSigner:false, isWritable:false}, // player_token_account (unused for SOL)
+        {pubkey: NATIVE_MINT, isSigner:false, isWritable:false},       // mint_account (unused for SOL)
+        {pubkey: TOKEN_PROG, isSigner:false, isWritable:false},
+        {pubkey: SYS, isSigner:false, isWritable:false},
+      ],
+      data: Buffer.from(data),
+    });
+    log('Placing bet of '+(lamports/1e9)+' SOL (nonce '+nonce+')...');
+    await signAndSend(new web3.Transaction().add(ix));
+    log('Bet PDA: '+betPDA.toBase58());
+  }catch(e){ log('❌ '+e.message); }
+};
+
+async function resolveBet(playerWon){
+  try{
+    if(!lastNonce){ log('❌ Place a bet first'); return; }
+    const {housePDA, vaultPDA, betPDA, betVaultPDA} = await derivePDAs(wallet.publicKey, lastNonce);
+    const data = concat(new Uint8Array(DISC.resolve_bet), new Uint8Array([playerWon?1:0]));
+    const ix = new web3.TransactionInstruction({
+      programId: HOUSE_PROGRAM,
+      keys: [
+        {pubkey: housePDA, isSigner:false, isWritable:false},
+        {pubkey: vaultPDA, isSigner:false, isWritable:true},
+        {pubkey: betPDA, isSigner:false, isWritable:true},
+        {pubkey: betVaultPDA, isSigner:false, isWritable:true},
+        {pubkey: wallet.publicKey, isSigner:true, isWritable:false}, // resolver = admin wallet
+        {pubkey: wallet.publicKey, isSigner:false, isWritable:true}, // player
+        {pubkey: TOKEN_PROG, isSigner:false, isWritable:false},
+      ],
+      data: Buffer.from(data),
+    });
+    log('Resolving bet as '+(playerWon?'WIN':'LOSS')+'...');
+    await signAndSend(new web3.Transaction().add(ix));
+    lastNonce = null;
+  }catch(e){ log('❌ '+e.message); }
+}
+document.getElementById('winBtn').onclick = () => resolveBet(true);
+document.getElementById('loseBtn').onclick = () => resolveBet(false);
+
+document.getElementById('balBtn').onclick = async () => {
+  try{
+    const {vaultPDA} = await derivePDAs(wallet.publicKey, 0);
+    const bal = await connection.getBalance(vaultPDA);
+    log('Vault balance: '+(bal/1e9)+' SOL');
+  }catch(e){ log('❌ '+e.message); }
+};
+</script>
+</body>
+</html>
