@@ -127,7 +127,7 @@ $('btn-close-house').addEventListener('click', async () => {
     const connection = new web3.Connection(RPC_URL, 'confirmed');
     const admin = new web3.PublicKey(walletPubkey);
     const houseProgram = new web3.PublicKey(HOUSE_PROGRAM);
-    const [housePDA] = await web3.PublicKey.findProgramAddress([te.encode('house')], houseProgram);
+    const [housePDA] = await web3.PublicKey.findProgramAddress([te.encode('house_v2')], houseProgram);
 
     log('🧹 Closing corrupted house account...');
     const closeIx = new web3.TransactionInstruction({
@@ -173,7 +173,7 @@ $('btn-init').addEventListener('click', async () => {
     const escrowDone = configInfo && configInfo.data.length > 0;
 
     const houseProgram = new web3.PublicKey(HOUSE_PROGRAM);
-    const [housePDA] = await web3.PublicKey.findProgramAddress([te.encode('house')], houseProgram);
+    const [housePDA] = await web3.PublicKey.findProgramAddress([te.encode('house_v2')], houseProgram);
     const houseInfo = await connection.getAccountInfo(housePDA);
     const houseDone = houseInfo && houseInfo.data.length > 0;
 
