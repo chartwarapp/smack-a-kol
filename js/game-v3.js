@@ -1615,6 +1615,15 @@
       F.opts.chainClaimed = true;
       setTimeout(() => claimChainWinnings(), 1500);
     }
+    // Solo vs house: settle the bet on-chain (resolver signs on devnet).
+    if (F.opts && F.opts.soloHouse && !F.opts.soloSettled) {
+      F.opts.soloSettled = true;
+      const soloBet = F.opts.soloHouse;
+      setTimeout(async () => {
+        const res = await resolveSoloBet(win);
+        if (res) F.opts.soloResult = res;
+      }, 1500);
+    }
     const modeMult = SAK.MODES[F.mode].ptsMult;
     const boost = V.boost, boostMul = 1 + boost;
     const streakBefore = st.streak;
@@ -1718,6 +1727,27 @@
               <div><span>You lost</span><b class="neg">-${w} SOL</b></div>`;
           }
           return '';
+        })() : ''}
+        ${F.opts && F.opts.soloHouse ? (() => {
+          const w = parseFloat(F.opts.soloHouse.wagerSol || 0);
+          const r = F.opts.soloResult;
+          // SOL skips the 1% burn — only SPL burns
+          const burnLine = `<div><span>Burn (1%)</span><b>0 SOL <small style="color:#666;">(SOL skips burn)</small></b></div>`;
+          if (r && r.won) {
+            return `<div class="bd-head" style="margin-top:8px;">🏠 SOLO VS HOUSE (DEVNET)</div>
+              <div><span>Wagered</span><b>${w} SOL</b></div>
+              ${burnLine}
+              <div><span>You won</span><b style="color:#4ade80;">+${r.payout.toFixed(3)} SOL</b></div>`;
+          } else if (r && !r.won) {
+            return `<div class="bd-head" style="margin-top:8px;">🏠 SOLO VS HOUSE (DEVNET)</div>
+              <div><span>Wagered</span><b>${w} SOL</b></div>
+              ${burnLine}
+              <div><span>You lost</span><b class="neg">-${w} SOL</b></div>`;
+          }
+          return `<div class="bd-head" style="margin-top:8px;">🏠 SOLO VS HOUSE (DEVNET)</div>
+            <div><span>Wagered</span><b>${w} SOL</b></div>
+            ${burnLine}
+            <div class="fine" style="font-size:11px;color:#888;">Settling… approve in wallet</div>`;
         })() : ''}
       </div>`;
     if (!F.bet && win) html += `<p class="fine">💡 Bet PTS next time for x${k.payout.toFixed(1)}. Scared money don't make money.</p>`;
@@ -1920,6 +1950,7 @@
     renderModes($('#pvp-modes'), pvpMode, m => { pvpMode = m; openPvp(); });
     renderSolBets();
     renderChainBets();
+    renderSoloBets();
     $('#pvp-share').classList.add('hidden');
     $('#pvp-chain-share').classList.add('hidden');
     const pcs = $('#pvp-chain-status'); if (pcs) pcs.classList.add('hidden');
@@ -2105,6 +2136,61 @@
     }
     btn.disabled = false; btn.textContent = '⛓ CREATE ON-CHAIN CHALLENGE';
   });
+
+  // ---- SOLO VS HOUSE (devnet) ----
+  let soloWager = 0.05;
+  const SOLO_PRESETS = [0.01, 0.02, 0.05, 0.1, 0.5];
+  let activeSoloBet = null; // { bet, nonce, wagerSol }
+  function renderSoloBets() {
+    const el = $('#pvp-solo-bets');
+    if (!el) return;
+    el.innerHTML = SOLO_PRESETS.map(s =>
+      `<button class="bet-chip ${s === soloWager ? 'selected' : ''}" data-sol="${s}">${s} SOL</button>`).join('');
+    $$('#pvp-solo-bets .bet-chip').forEach(c => c.onclick = () => { soloWager = +c.dataset.sol; A.click(); renderSoloBets(); });
+  }
+  function soloStatus(msg, done) {
+    const st = $('#pvp-solo-status');
+    if (!st) return;
+    st.textContent = msg;
+    st.classList.remove('hidden');
+    st.classList.toggle('done', !!done);
+  }
+  const soloBetBtn = $('#pvp-solo-bet');
+  if (soloBetBtn) soloBetBtn.addEventListener('click', async () => {
+    if (!W.isConnected) { toast('Connect your wallet first \u{1F45B}', 2200); openWalletModal(); return; }
+    if (!SAK.SolanaHouse) { toast('House module not loaded', 2000); return; }
+    const btn = soloBetBtn; btn.disabled = true; btn.textContent = 'PLACING BET…';
+    soloStatus('Approve the bet in your wallet…');
+    try {
+      const lamports = Math.round(soloWager * 1e9);
+      const res = await SAK.SolanaHouse.placeBet(lamports);
+      activeSoloBet = { bet: res.bet, nonce: res.nonce, wagerSol: soloWager };
+      soloStatus(`Bet locked: ${soloWager} SOL. Fight!`, true);
+      toast(`Bet locked — ${soloWager} SOL vs house \u{1F3E0}`, 2400);
+      // Start a solo fight vs AI; resolve on-chain when it ends
+      const ai = Object.assign({}, roster()[0], { name: 'House', pvp: false });
+      startFight(ai, 0, { mode: 'classic', soloHouse: activeSoloBet });
+    } catch (e) {
+      soloStatus('Bet failed: ' + (e.message || e));
+      toast('Bet failed: ' + (e.message || e), 2600);
+    }
+    btn.disabled = false; btn.textContent = '🏠 BET VS HOUSE';
+  });
+  // Resolve the solo bet after the fight ends. Called from the result screen.
+  async function resolveSoloBet(won) {
+    if (!activeSoloBet || !SAK.SolanaHouse) return null;
+    const { bet, nonce, wagerSol } = activeSoloBet;
+    try {
+      toast('Settling vs house — approve in wallet…', 2400);
+      await SAK.SolanaHouse.resolveBet(bet, W.address, nonce, won);
+      const payout = won ? (wagerSol * 1.9) : 0;
+      activeSoloBet = null;
+      return { wagerSol, payout, won, burnSol: 0 }; // SOL skips the 1% burn
+    } catch (e) {
+      toast('Settle failed: ' + (e.message || e), 2600);
+      return null;
+    }
+  }
 
   // Incoming on-chain challenge via ?sol_challenge=<PDA> link.
   async function checkIncomingChainChallenge() {

@@ -278,6 +278,14 @@
           </div>
           <div id="pvp-chain-status" class="pvp-status hidden"></div>
         </div>
+        <div class="pvp-head"><span>🏠 SOLO VS HOUSE</span><span>devnet · 45% win · 1.9× payout</span></div>
+        <div id="pvp-solo">
+          <div class="bet-label dark-lbl">BET (SOL) <span class="tag-devnet">DEVNET</span></div>
+          <div id="pvp-solo-bets" class="bet-chips light"></div>
+          <button class="btn btn-yellow" id="pvp-solo-bet">🏠 BET VS HOUSE</button>
+          <div id="pvp-solo-status" class="pvp-status hidden"></div>
+          <p class="fine dark">Bet locks in the house contract. Win pays 1.9×. SOL bets skip the 1% burn.</p>
+        </div>
         <button class="btn btn-grey" data-close>CLOSE</button>
       </div>
       <div id="pvp-search" class="pvp-search hidden">
@@ -464,6 +472,7 @@
 <script src="js/fightcard.js?v=https-fix-2"></script>
 <script src="js/fighter-lock.js?v=1"></script>
 <script src="js/solana-escrow.js?v=1"></script>
+<script src="js/solana-house.js?v=1"></script>
 <script src="js/game-v3.js?v=1"></script>
 </body>
 </html>
