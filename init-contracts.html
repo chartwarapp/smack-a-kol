@@ -46,6 +46,7 @@
 </div>
 
 <button class="btn" id="btn-connect">👛 CONNECT WALLET</button>
+<button class="btn" id="btn-close-house" disabled style="background:#ff6b3b">🧹 CLOSE CORRUPTED HOUSE ACCOUNT</button>
 <button class="btn" id="btn-init" disabled>🚀 INITIALIZE BOTH CONTRACTS</button>
 
 <div class="status" id="status">Not connected.</div>
@@ -60,6 +61,7 @@ const HOUSE_PROGRAM = 'SpYmnT53X3KyYYawSLLzD8hVqWFTkNUQf3a8L3rCzjN';
 const NATIVE_MINT = 'So11111111111111111111111111111111111111112';
 const RPC_URL = 'https://api.devnet.solana.com';
 const INIT_DISC = new Uint8Array([175, 175, 109, 31, 13, 152, 155, 237]);
+const CLOSE_HOUSE_DISC = new Uint8Array([122, 1, 139, 0, 208, 240, 48, 151]);
 
 let wallet = null;
 let walletPubkey = null;
@@ -108,10 +110,49 @@ $('btn-connect').addEventListener('click', async () => {
     walletPubkey = resp.publicKey.toString();
     $('status').textContent = '✅ Connected: ' + walletPubkey;
     $('btn-init').disabled = false;
+    $('btn-close-house').disabled = false;
     $('btn-connect').textContent = '✅ CONNECTED';
     $('btn-connect').disabled = true;
   } catch (e) {
     log('❌ Connect failed: ' + (e.message || e));
+  }
+});
+
+$('btn-close-house').addEventListener('click', async () => {
+  const btn = $('btn-close-house');
+  btn.disabled = true;
+  btn.textContent = 'CLOSING...';
+  try {
+    const web3 = window.solanaWeb3;
+    const connection = new web3.Connection(RPC_URL, 'confirmed');
+    const admin = new web3.PublicKey(walletPubkey);
+    const houseProgram = new web3.PublicKey(HOUSE_PROGRAM);
+    const [housePDA] = await web3.PublicKey.findProgramAddress([te.encode('house')], houseProgram);
+
+    log('🧹 Closing corrupted house account...');
+    const closeIx = new web3.TransactionInstruction({
+      programId: houseProgram,
+      keys: [
+        { pubkey: housePDA, isSigner: false, isWritable: true },
+        { pubkey: admin, isSigner: true, isWritable: true },
+      ],
+      data: CLOSE_HOUSE_DISC
+    });
+
+    let tx = new web3.Transaction().add(closeIx);
+    tx.feePayer = admin;
+    tx.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
+    log('Approve in wallet...');
+    let signed = await wallet.signTransaction(tx);
+    let sig = await connection.sendRawTransaction(signed.serialize());
+    await connection.confirmTransaction(sig, 'confirmed');
+    log('✅ Corrupted account closed: ' + sig);
+    log('Now tap INITIALIZE to set up the House contract fresh.');
+    btn.textContent = '✅ CLOSED';
+  } catch (e) {
+    log('❌ Close failed: ' + (e.message || e));
+    btn.disabled = false;
+    btn.textContent = '🧹 CLOSE CORRUPTED HOUSE ACCOUNT';
   }
 });
 
