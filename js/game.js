@@ -1120,7 +1120,10 @@
     const tag = kol.pvp ? 'PVP · PRIVATE' : (kol.custom ? 'FAN KOL' : 'LEVEL ' + kol.level);
     $('#fight-level').textContent = tag;
     const M = SAK.MODES[mode];
-    $('#stake-tag').innerHTML = `${M.icon} ${M.label} · Bo${bestOf} · ` + (bet
+    const chainWager = opts.chainWagerSol;
+    $('#stake-tag').innerHTML = `${M.icon} ${M.label} · Bo${bestOf} · ` + (chainWager
+      ? `⛓ ${chainWager} SOL <span class="escrow-badge">ON-CHAIN · DEVNET</span>`
+      : bet
       ? `BET ${ptsHTML()} ${fmt(bet)} → ${fmt(boosted(bet * kol.payout))}`
       : `FREE · WIN ${ptsHTML()} +${fmt(modePts(kol, mode))}`);
     $('#upgrade-bar').classList.remove('gone');
@@ -1596,6 +1599,11 @@
       // lands with the realtime backend. v1 resolves by the local match result.
       SAK.Api.resolveChallenge(cid, win ? W.address : 'opponent').catch(() => {});
     }
+    // On-chain escrow: winner claims the pot (resolver signs on devnet).
+    if (win && F.opts && F.opts.chainChallenge && !F.opts.chainClaimed) {
+      F.opts.chainClaimed = true;
+      setTimeout(() => claimChainWinnings(), 1500);
+    }
     const modeMult = SAK.MODES[F.mode].ptsMult;
     const boost = V.boost, boostMul = 1 + boost;
     const streakBefore = st.streak;
@@ -1884,7 +1892,10 @@
     $('#pvp-lobby').classList.remove('hidden'); $('#pvp-search').classList.add('hidden');
     renderModes($('#pvp-modes'), pvpMode, m => { pvpMode = m; openPvp(); });
     renderSolBets();
+    renderChainBets();
     $('#pvp-share').classList.add('hidden');
+    $('#pvp-chain-share').classList.add('hidden');
+    const pcs = $('#pvp-chain-status'); if (pcs) pcs.classList.add('hidden');
     const wagers = [0, 100, 250, 500, 1000];
     if (!P.canAfford(pvpWager)) pvpWager = 0;
     $('#pvp-bets').innerHTML = wagers.map(b => `<button class="bet-chip ${b === pvpWager ? 'selected' : ''} ${b && !P.canAfford(b) ? 'locked' : ''}" data-bet="${b}">${b ? ptsHTML() + b : 'FREE'}</button>`).join('');
@@ -2008,6 +2019,109 @@
       if (confirm(`⚔️ CHALLENGE!\n\n${challengerShort} challenges you to a ${sol} SOL slap match.\n\nAccept?`)) go();
     }, 1500);
   }
+
+  /* --- on-chain SOL escrow (devnet) ------------------------------------- */
+  let chainWager = 0.1;
+  const CHAIN_PRESETS = [0.01, 0.05, 0.1, 0.5, 1];
+  let activeChainChallenge = null; // { address, wagerSol }
+  function renderChainBets() {
+    const el = $('#pvp-sol-bets-chain');
+    if (!el) return;
+    el.innerHTML = CHAIN_PRESETS.map(s =>
+      `<button class="bet-chip ${s === chainWager ? 'selected' : ''}" data-sol="${s}">${s} SOL</button>`).join('');
+    $$('#pvp-sol-bets-chain .bet-chip').forEach(c => c.onclick = () => { chainWager = +c.dataset.sol; A.click(); renderChainBets(); });
+  }
+  function chainStatus(msg, done) {
+    const st = $('#pvp-chain-status');
+    if (!st) return;
+    st.textContent = msg;
+    st.classList.remove('hidden');
+    st.classList.toggle('done', !!done);
+  }
+  const chainCreateBtn = $('#pvp-create-chain');
+  if (chainCreateBtn) chainCreateBtn.addEventListener('click', async () => {
+    if (!W.isConnected) { toast('Connect your wallet first \u{1F45B}', 2200); openWalletModal(); return; }
+    if (!SAK.SolanaEscrow) { toast('Escrow module not loaded', 2000); return; }
+    const btn = chainCreateBtn; btn.disabled = true; btn.textContent = 'CREATING ON-CHAIN…';
+    chainStatus('Approve the wager deposit in your wallet…');
+    try {
+      const lamports = Math.round(chainWager * 1e9);
+      const res = await SAK.SolanaEscrow.createChallenge(lamports, 24);
+      activeChainChallenge = { address: res.challenge, wagerSol: chainWager };
+      const url = SAK.SolanaEscrow.challengeUrl(res.challenge);
+      $('#pvp-chain-link').textContent = url;
+      $('#pvp-chain-share').classList.remove('hidden');
+      $('#pvp-chain-post-x').onclick = () => {
+        const text = `\u26D4\uFE0F I locked ${chainWager} SOL on-chain for a Smack-a-KOL slap match! Accept if you're not scared \u{1F590}`;
+        window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`, '_blank');
+      };
+      $('#pvp-chain-copy').onclick = async () => {
+        try { await navigator.clipboard.writeText(url); toast('Link copied \u{1F4CB}', 1600); }
+        catch (e) { toast('Copy failed — long-press the link', 2000); }
+      };
+      $('#pvp-chain-cancel').onclick = async () => {
+        if (!activeChainChallenge) return;
+        try {
+          chainStatus('Cancelling — approve in wallet…');
+          await SAK.SolanaEscrow.cancelChallenge(activeChainChallenge.address);
+          chainStatus('Challenge cancelled, wager refunded.', true);
+          activeChainChallenge = null;
+          $('#pvp-chain-share').classList.add('hidden');
+        } catch (e) { chainStatus('Cancel failed: ' + (e.message || e)); }
+      };
+      chainStatus('Challenge live! Share the link. ' + res.signature.slice(0, 12) + '…', true);
+      A.perfect(); toast('On-chain challenge ready \u26D3', 2000);
+    } catch (e) {
+      console.warn('[SAK] on-chain challenge failed', e);
+      chainStatus('Failed: ' + (e.message || e));
+      toast('Could not create on-chain challenge', 2200);
+    }
+    btn.disabled = false; btn.textContent = '⛓ CREATE ON-CHAIN CHALLENGE';
+  });
+
+  // Incoming on-chain challenge via ?sol_challenge=<PDA> link.
+  async function checkIncomingChainChallenge() {
+    let addr = null;
+    try { addr = new URLSearchParams(location.search).get('sol_challenge'); } catch (e) {}
+    if (!addr) return;
+    try { history.replaceState(null, '', location.pathname); } catch (e) {}
+    if (!SAK.SolanaEscrow) { setTimeout(() => toast('Escrow module not loaded', 2600), 1200); return; }
+    let ch = null;
+    try { ch = await SAK.SolanaEscrow.getChallenge(addr); } catch (e) {}
+    if (!ch || ch.stateName !== 'Open') { setTimeout(() => toast('That on-chain challenge is no longer open', 2600), 1200); return; }
+    const sol = ch.wagerSol;
+    const challengerShort = ch.challenger.slice(0, 4) + '…' + ch.challenger.slice(-4);
+    const go = async () => {
+      if (!W.isConnected) { openWalletModal(); toast('Connect wallet to accept \u{1F45B}', 2200); return; }
+      try {
+        toast('Accepting — approve the matching deposit…', 2400);
+        await SAK.SolanaEscrow.acceptChallenge(ch.address);
+        toast(`Accepted! ${sol} SOL each on the line \u2694\uFE0F`, 2600);
+        const shadow = Object.assign({}, roster()[0], { name: 'Challenger ' + ch.challenger.slice(0, 4), pvp: true });
+        startFight(shadow, 0, { mode: 'classic', pvp: true, chainChallenge: ch.address, chainWagerSol: sol });
+      } catch (e) { toast('Accept failed: ' + (e.message || e), 2600); }
+    };
+    setTimeout(() => {
+      if (confirm(`\u26D4\uFE0F ON-CHAIN CHALLENGE (devnet)\n\n${challengerShort} locked ${sol} SOL in escrow.\nAccept and lock your ${sol} SOL?`)) go();
+    }, 1600);
+  }
+  // Claim winnings after an on-chain fight (resolver signs).
+  async function claimChainWinnings() {
+    const addr = F.opts && F.opts.chainChallenge;
+    if (!addr || !SAK.SolanaEscrow) return;
+    try {
+      const ch = await SAK.SolanaEscrow.getChallenge(addr);
+      if (!ch || ch.stateName !== 'Accepted') { toast('Challenge not ready to settle', 2000); return; }
+      const winner = W.address; // local player won (this runs on win path)
+      toast('Settling on-chain — approve in wallet…', 2400);
+      const res = await SAK.SolanaEscrow.resolveChallenge(addr, winner);
+      toast('Winnings claimed! ' + res.signature.slice(0, 12) + '…', 2600);
+    } catch (e) {
+      if (e.code === 'NOT_RESOLVER') toast('Only the resolver wallet can settle on devnet', 2600);
+      else toast('Settle failed: ' + (e.message || e), 2600);
+    }
+  }
+
   // AI stand-in wearing the challenger's wallet tag (until realtime PvP).
   function pvpShadowKOL(ch) {
     const base = roster()[0];
@@ -2318,6 +2432,8 @@
     refreshAdminAccess();
     // Incoming X challenge link (?challenge=CODE)
     setTimeout(checkIncomingChallenge, 1800);
+    setTimeout(checkIncomingChainChallenge, 2200);
+    renderChainBets();
     // First launch: create a local account + fighter
     if (!S.profile) setTimeout(() => { if (!S.profile && screen === 'menu') openFighter(false); }, 500);
     // debug hook for console testing / automated smoke tests

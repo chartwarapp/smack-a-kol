@@ -260,6 +260,24 @@
             <p class="fine dark" id="pvp-share-hint">Anyone with the link can accept. Wager locks on-chain when contracts deploy — off-chain for now.</p>
           </div>
         </div>
+        <div class="pvp-head"><span>⛓ ON-CHAIN ESCROW</span><span>devnet · SOL locked in contract</span></div>
+        <div id="pvp-onchain">
+          <div class="bet-label dark-lbl">WAGER (SOL) <span class="tag-devnet">DEVNET</span></div>
+          <div id="pvp-sol-bets-chain" class="bet-chips light"></div>
+          <button class="btn btn-purple" id="pvp-create-chain">⛓ CREATE ON-CHAIN CHALLENGE</button>
+          <div id="pvp-chain-share" class="hidden">
+            <div class="pvp-link-box"><code id="pvp-chain-link"></code></div>
+            <div class="row">
+              <button class="btn btn-blue" id="pvp-chain-post-x">𝕏 POST TO X</button>
+              <button class="btn btn-grey" id="pvp-chain-copy">COPY</button>
+            </div>
+            <p class="fine dark">Wager is locked in the escrow contract. Share the link — opponent accepts on-chain, winner claims the pot minus 5% fee.</p>
+            <div class="row">
+              <button class="btn btn-grey" id="pvp-chain-cancel">CANCEL & REFUND</button>
+            </div>
+          </div>
+          <div id="pvp-chain-status" class="pvp-status hidden"></div>
+        </div>
         <button class="btn btn-grey" data-close>CLOSE</button>
       </div>
       <div id="pvp-search" class="pvp-search hidden">
@@ -426,6 +444,7 @@
 
 <!-- Three.js r158 (classic build, vendored so the game works offline / from file://) -->
 <script src="vendor/three.min.js"></script>
+<script src="https://unpkg.com/@solana/web3.js@1.95.3/lib/index.iife.min.js"></script>
 <script src="js/config.js?v=https-fix-2"></script>
 <script src="js/roster.js?v=https-fix-2"></script>
 <script src="js/storage.js?v=https-fix-2"></script>
@@ -444,6 +463,7 @@
 <script src="js/api-supabase.js?v=https-fix-2"></script>
 <script src="js/fightcard.js?v=https-fix-2"></script>
 <script src="js/fighter-lock.js?v=1"></script>
+<script src="js/solana-escrow.js?v=1"></script>
 <script src="js/game-v3.js?v=1"></script>
 </body>
 </html>

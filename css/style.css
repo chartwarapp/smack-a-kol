@@ -828,3 +828,18 @@ h2, h3, .prompt, .vs, .level, .fc-name, .banner, .float-text, .result-title {
   0%, 100% { transform: translateX(-50%) scale(1); }
   50% { transform: translateX(-50%) scale(1.25); }
 }
+
+/* On-chain escrow PvP section */
+.tag-devnet {
+  display: inline-block; font-size: 10px; font-weight: 900; letter-spacing: 1px;
+  background: #ff9f1c; color: #1a0b3a; padding: 2px 8px; border-radius: 6px;
+  margin-left: 6px; vertical-align: middle;
+}
+#pvp-onchain { margin-top: 8px; }
+#pvp-chain-status { margin-top: 8px; font-size: 13px; }
+#pvp-chain-status.done { color: #7dff9e; }
+.escrow-badge {
+  display: inline-block; font-size: 11px; font-weight: 800;
+  background: #7b2ff755; border: 1px solid #7b2ff7; color: #d0b3ff;
+  padding: 2px 8px; border-radius: 8px; margin-left: 6px;
+}
