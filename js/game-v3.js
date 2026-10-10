@@ -1794,9 +1794,18 @@
         // Wager win amount: for PvP, winner takes ~2x wager minus fee. Show SOL won.
         const wagerSol = C && C.wager_lamports ? C.wager_lamports / 1e9 : (reBet || 0);
         const winSol = win && wagerSol ? (wagerSol * 2 * 0.95) : 0; // est. after 5% fee
+        // For on-chain PvP, use the opponent's real fighter name instead of wallet preview
+        let oppName = k.name;
+        const oppWallet = F.opts && F.opts.chainOpponentWallet;
+        if (oppWallet && SAK.Api && SAK.Api.getProfile) {
+          try {
+            const oppProfile = await SAK.Api.getProfile(oppWallet);
+            if (oppProfile && oppProfile.name) oppName = oppProfile.name;
+          } catch (e) {}
+        }
         const svg = SAK.FightCard.build({
           win, playerName: profile().name, xHandle: (S.profile && S.profile.x_handle) || "", playerLook: playerLook(), playerDmg: dmgLevel('player'),
-          kolName: k.name, scoreP: C ? C.pWins : (win ? 1 : 0), scoreK: C ? C.kWins : (win ? 0 : 1),
+          kolName: oppName, scoreP: C ? C.pWins : (win ? 1 : 0), scoreK: C ? C.kWins : (win ? 0 : 1),
           bestOf: C ? C.bestOf : 1, biggestHit: Math.round(F.maxHit || 0), pts: Math.round(pts || 0),
           modeLabel: (SAK.MODES[F.mode] && SAK.MODES[F.mode].label || 'CLASSIC KO').toUpperCase(),
           wagerSol, winSol,
@@ -1816,9 +1825,17 @@
         const C = F.challenge;
         const wagerSol = C && C.wager_lamports ? C.wager_lamports / 1e9 : (reBet || 0);
         const winSol = win && wagerSol ? (wagerSol * 2 * 0.95) : 0;
+        let oppName2 = k.name;
+        const oppWallet2 = F.opts && F.opts.chainOpponentWallet;
+        if (oppWallet2 && SAK.Api && SAK.Api.getProfile) {
+          try {
+            const oppProfile2 = await SAK.Api.getProfile(oppWallet2);
+            if (oppProfile2 && oppProfile2.name) oppName2 = oppProfile2.name;
+          } catch (e) {}
+        }
         const svg = SAK.FightCard.build({
           win, playerName: profile().name, xHandle: (S.profile && S.profile.x_handle) || "", playerLook: playerLook(), playerDmg: dmgLevel('player'),
-          kolName: k.name, scoreP: C ? C.pWins : (win ? 1 : 0), scoreK: C ? C.kWins : (win ? 0 : 1),
+          kolName: oppName2, scoreP: C ? C.pWins : (win ? 1 : 0), scoreK: C ? C.kWins : (win ? 0 : 1),
           bestOf: C ? C.bestOf : 1, biggestHit: Math.round(F.maxHit || 0), pts: Math.round(pts || 0),
           modeLabel: (SAK.MODES[F.mode] && SAK.MODES[F.mode].label || 'CLASSIC KO').toUpperCase(),
           wagerSol, winSol,
@@ -2222,7 +2239,7 @@
       chainStatus('Fighting!', true);
       const shadow = Object.assign({}, roster()[0], { name: 'Opponent ' + (ch.opponent || '').slice(0, 4), pvp: true });
       // Challenger fights; winner resolves via claimChainWinnings
-      startFight(shadow, 0, { mode: 'classic', pvp: true, chainChallenge: ch.address, chainWagerSol: wagerSol, chainRole: 'challenger' });
+      startFight(shadow, 0, { mode: 'classic', pvp: true, chainChallenge: ch.address, chainWagerSol: wagerSol, chainRole: 'challenger', chainOpponentWallet: ch.opponent });
     };
   }
 
@@ -2301,7 +2318,7 @@
         await SAK.SolanaEscrow.acceptChallenge(ch.address);
         toast(`Accepted! ${sol} SOL each on the line \u2694\uFE0F`, 2600);
         const shadow = Object.assign({}, roster()[0], { name: 'Challenger ' + ch.challenger.slice(0, 4), pvp: true });
-        startFight(shadow, 0, { mode: 'classic', pvp: true, chainChallenge: ch.address, chainWagerSol: sol });
+        startFight(shadow, 0, { mode: 'classic', pvp: true, chainChallenge: ch.address, chainWagerSol: sol, chainOpponentWallet: ch.challenger });
       } catch (e) { toast('Accept failed: ' + (e.message || e), 2600); }
     };
     const closeChainModal = () => {
