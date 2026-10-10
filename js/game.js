@@ -2092,6 +2092,7 @@
     const sol = ch.wagerSol;
     const challengerShort = ch.challenger.slice(0, 4) + '…' + ch.challenger.slice(-4);
     const go = async () => {
+      closeChainModal();
       if (!W.isConnected) { openWalletModal(); toast('Connect wallet to accept \u{1F45B}', 2200); return; }
       try {
         toast('Accepting — approve the matching deposit…', 2400);
@@ -2101,8 +2102,33 @@
         startFight(shadow, 0, { mode: 'classic', pvp: true, chainChallenge: ch.address, chainWagerSol: sol });
       } catch (e) { toast('Accept failed: ' + (e.message || e), 2600); }
     };
+    const closeChainModal = () => {
+      const m = document.getElementById('chain-challenge-modal');
+      if (m) m.remove();
+    };
     setTimeout(() => {
-      if (confirm(`\u26D4\uFE0F ON-CHAIN CHALLENGE (devnet)\n\n${challengerShort} locked ${sol} SOL in escrow.\nAccept and lock your ${sol} SOL?`)) go();
+      closeChainModal();
+      const modal = document.createElement('div');
+      modal.id = 'chain-challenge-modal';
+      modal.innerHTML =
+        '<div style="position:fixed;inset:0;z-index:9999;background:rgba(5,5,15,0.92);display:flex;align-items:center;justify-content:center;padding:20px;">' +
+        '<div style="background:linear-gradient(160deg,#1a1033,#0d0a1f);border:2px solid #f5c542;border-radius:20px;padding:28px 24px;max-width:380px;width:100%;text-align:center;box-shadow:0 0 60px rgba(245,197,66,0.25);">' +
+        '<div style="font-size:52px;margin-bottom:8px;">\u{1F94B}</div>' +
+        '<div style="font-size:22px;font-weight:800;color:#f5c542;margin-bottom:4px;">YOU\u2019VE BEEN CHALLENGED</div>' +
+        '<div style="font-size:12px;color:#888;margin-bottom:16px;">⛓ ON-CHAIN ESCROW · DEVNET</div>' +
+        '<div style="background:#00000055;border-radius:12px;padding:14px;margin-bottom:16px;">' +
+        '<div style="font-size:13px;color:#aaa;">CHALLENGER</div>' +
+        '<div style="font-size:16px;font-weight:700;font-family:monospace;margin:4px 0;">' + challengerShort + '</div>' +
+        '<div style="font-size:13px;color:#aaa;margin-top:10px;">WAGER EACH</div>' +
+        '<div style="font-size:32px;font-weight:800;color:#4ade80;">' + sol + ' SOL</div>' +
+        '<div style="font-size:11px;color:#666;margin-top:4px;">Winner takes ' + (parseFloat(sol) * 2 * 0.95).toFixed(3) + ' SOL (5% fee)</div>' +
+        '</div>' +
+        '<button id="chain-accept-btn" style="display:block;width:100%;padding:16px;margin:8px 0;border:none;border-radius:14px;font-size:18px;font-weight:800;cursor:pointer;background:linear-gradient(180deg,#22c55e,#16a34a);color:#fff;">\u{2694}\uFE0F ACCEPT & FIGHT</button>' +
+        '<button id="chain-decline-btn" style="display:block;width:100%;padding:12px;margin:8px 0;border:1px solid #444;border-radius:14px;font-size:15px;font-weight:600;cursor:pointer;background:transparent;color:#999;">Decline</button>' +
+        '</div></div>';
+      document.body.appendChild(modal);
+      document.getElementById('chain-accept-btn').onclick = go;
+      document.getElementById('chain-decline-btn').onclick = closeChainModal;
     }, 1600);
   }
   // Claim winnings after an on-chain fight (resolver signs).
