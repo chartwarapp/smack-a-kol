@@ -1939,6 +1939,7 @@
     renderModes($('#pvp-modes'), pvpMode, m => { pvpMode = m; openPvp(); });
     renderSolBets();
     renderChainBets();
+    renderChainExpiry();
     renderSoloBets();
     $('#pvp-share').classList.add('hidden');
     $('#pvp-chain-share').classList.add('hidden');
@@ -2070,6 +2071,15 @@
   /* --- on-chain SOL escrow (devnet) ------------------------------------- */
   let chainWager = 0.1;
   const CHAIN_PRESETS = [0.01, 0.05, 0.1, 0.5, 1];
+  let chainTtlHours = 6;
+  const CHAIN_EXPIRY_PRESETS = [1, 6, 12, 24];
+  function renderChainExpiry() {
+    const el = $('#pvp-expiry-chain');
+    if (!el) return;
+    el.innerHTML = CHAIN_EXPIRY_PRESETS.map(h =>
+      `<button class="bet-chip ${h === chainTtlHours ? 'selected' : ''}" data-hrs="${h}">${h}h</button>`).join('');
+    $$('#pvp-expiry-chain .bet-chip').forEach(c => c.onclick = () => { chainTtlHours = +c.dataset.hrs; A.click(); renderChainExpiry(); });
+  }
   let activeChainChallenge = null; // { address, wagerSol }
   function renderChainBets() {
     const el = $('#pvp-sol-bets-chain');
@@ -2093,18 +2103,18 @@
     chainStatus('Approve the wager deposit in your wallet…');
     try {
       const lamports = Math.round(chainWager * 1e9);
-      const res = await SAK.SolanaEscrow.createChallenge(lamports, 24);
+      const res = await SAK.SolanaEscrow.createChallenge(lamports, chainTtlHours);
       activeChainChallenge = { address: res.challenge, wagerSol: chainWager };
       const url = SAK.SolanaEscrow.challengeUrl(res.challenge);
       $('#pvp-chain-link').textContent = url;
       $('#pvp-chain-share').classList.remove('hidden');
       $('#pvp-chain-post-x').onclick = () => {
-        const text = `\u26D4\uFE0F I locked ${chainWager} SOL on-chain for a Smack-a-KOL slap match! Accept if you're not scared \u{1F590}`;
+        const text = `\u26D4\uFE0F I locked ${chainWager} SOL on-chain for a Smack-a-KOL slap match! ${chainTtlHours}h to accept. Accept if you're not scared \u{1F590}`;
         window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`, '_blank');
       };
       $('#pvp-chain-copy').onclick = async () => {
         const me = (W.address || '').slice(0, 4) + '…' + (W.address || '').slice(-4);
-        const msg = `\u{1F94A} ${me} challenged you to a Smack-a-KOL slap fight!\n\u{1F4B0} ${chainWager} SOL each on the line (winner takes ${(chainWager * 2 * 0.95).toFixed(3)} SOL)\n\u26D3 Accept: ${url}`;
+        const msg = `\u{1F94A} ${me} challenged you to a Smack-a-KOL slap fight!\n\u{1F4B0} ${chainWager} SOL each on the line (winner takes ${(chainWager * 2 * 0.95).toFixed(3)} SOL)\n⏰ Expires in ${chainTtlHours}h\n\u26D3 Accept: ${url}`;
         try { await navigator.clipboard.writeText(msg); toast('Challenge message copied \u{1F4CB}', 1600); }
         catch (e) { toast('Copy failed — long-press the link', 2000); }
       };
@@ -2292,6 +2302,15 @@
         '<div style="font-size:13px;color:#aaa;margin-top:10px;">WAGER EACH</div>' +
         '<div style="font-size:32px;font-weight:800;color:#4ade80;">' + sol + ' SOL</div>' +
         '<div style="font-size:11px;color:#666;margin-top:4px;">Winner takes ' + (parseFloat(sol) * 2 * 0.95).toFixed(3) + ' SOL (5% fee)</div>' +
+        (() => {
+          const nowSec = Math.floor(Date.now() / 1000);
+          const remainSec = Math.max(0, (ch.expiry || 0) - nowSec);
+          if (remainSec <= 0) return '';
+          const hrs = Math.floor(remainSec / 3600);
+          const mins = Math.floor((remainSec % 3600) / 60);
+          const tstr = hrs > 0 ? hrs + 'h ' + mins + 'm' : mins + 'm';
+          return '<div style="font-size:12px;color:#f5c542;margin-top:8px;">⏰ Expires in ' + tstr + '</div>';
+        })() +
         '</div>' +
         '<button id="chain-accept-btn" style="display:block;width:100%;padding:16px;margin:8px 0;border:none;border-radius:14px;font-size:18px;font-weight:800;cursor:pointer;background:linear-gradient(180deg,#22c55e,#16a34a);color:#fff;">\u{2694}\uFE0F ACCEPT & FIGHT</button>' +
         '<button id="chain-decline-btn" style="display:block;width:100%;padding:12px;margin:8px 0;border:1px solid #444;border-radius:14px;font-size:15px;font-weight:600;cursor:pointer;background:transparent;color:#999;">Decline</button>' +
