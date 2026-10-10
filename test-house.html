@@ -135,7 +135,7 @@ document.getElementById('fundBtn').onclick = async () => {
         {pubkey: TOKEN_PROG, isSigner:false, isWritable:false},
         {pubkey: SYS, isSigner:false, isWritable:false},
       ],
-      data: Buffer.from(data),
+      data: data,
     });
     log('Funding vault with '+(lamports/1e9)+' SOL...');
     await signAndSend(new web3.Transaction().add(ix));
@@ -162,7 +162,7 @@ document.getElementById('betBtn').onclick = async () => {
         {pubkey: TOKEN_PROG, isSigner:false, isWritable:false},
         {pubkey: SYS, isSigner:false, isWritable:false},
       ],
-      data: Buffer.from(data),
+      data: data,
     });
     log('Placing bet of '+(lamports/1e9)+' SOL (nonce '+nonce+')...');
     await signAndSend(new web3.Transaction().add(ix));
@@ -186,7 +186,7 @@ async function resolveBet(playerWon){
         {pubkey: wallet.publicKey, isSigner:false, isWritable:true}, // player
         {pubkey: TOKEN_PROG, isSigner:false, isWritable:false},
       ],
-      data: Buffer.from(data),
+      data: data,
     });
     log('Resolving bet as '+(playerWon?'WIN':'LOSS')+'...');
     await signAndSend(new web3.Transaction().add(ix));
