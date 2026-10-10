@@ -1703,6 +1703,22 @@
         ${rows.map(([l, v]) => `<div><span>${l}</span><b>+${fmt(v)}</b></div>`).join('')}
         <div class="total pts-total"><span>MATCH PTS</span><span>${ptsHTML('')} +${fmt(pts)}</span></div>
         ${betHtml}
+        ${F.opts && F.opts.chainChallenge ? (() => {
+          const w = parseFloat(F.opts.chainWagerSol || 0);
+          const fee = 0.05;
+          if (win) {
+            const payout = (w * 2 * (1 - fee)).toFixed(3);
+            return `<div class="bd-head" style="margin-top:8px;">⛓ ON-CHAIN WAGER (DEVNET)</div>
+              <div><span>Wagered</span><b>${w} SOL</b></div>
+              <div><span>You won</span><b style="color:#4ade80;">+${payout} SOL</b></div>
+              <div class="fine" style="font-size:11px;color:#888;">Settle in wallet to claim — 5% fee</div>`;
+          } else if (!draw) {
+            return `<div class="bd-head" style="margin-top:8px;">⛓ ON-CHAIN WAGER (DEVNET)</div>
+              <div><span>Wagered</span><b>${w} SOL</b></div>
+              <div><span>You lost</span><b class="neg">-${w} SOL</b></div>`;
+          }
+          return '';
+        })() : ''}
       </div>`;
     if (!F.bet && win) html += `<p class="fine">💡 Bet PTS next time for x${k.payout.toFixed(1)}. Scared money don't make money.</p>`;
     const total = pts + betTotal;
