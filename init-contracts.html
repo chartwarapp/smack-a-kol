@@ -19,7 +19,7 @@
 </style>
 </head>
 <body>
-<h1>🚀 Initialize Contracts</h1><div style="font-size:11px;color:#888;text-align:center;">v5 · house_v2 seed</div>
+<h1>🚀 Initialize Contracts</h1><div style="font-size:11px;color:#888;text-align:center;">v6 · fresh program</div>
 <p>One-time setup for Smack-a-KOL devnet contracts.</p>
 
 <div class="warn">
@@ -30,7 +30,7 @@
 <div class="card">
   <h3>Programs</h3>
   <p>Escrow:<br><code>F4kqMuoAP4kzDT6x41ha15UPicBpQpQay5Txsg85cSWr</code></p>
-  <p>House:<br><code>SpYmnT53X3KyYYawSLLzD8hVqWFTkNUQf3a8L3rCzjN</code></p>
+  <p>House:<br><code>LwLXTnzwZAB3BhSmNmCKZVa7F6R7nwDyegcmfD5dXzy</code></p>
 </div>
 
 <div class="card">
@@ -57,7 +57,7 @@
 'use strict';
 
 const ESCROW_PROGRAM = 'F4kqMuoAP4kzDT6x41ha15UPicBpQpQay5Txsg85cSWr';
-const HOUSE_PROGRAM = 'SpYmnT53X3KyYYawSLLzD8hVqWFTkNUQf3a8L3rCzjN';
+const HOUSE_PROGRAM = 'LwLXTnzwZAB3BhSmNmCKZVa7F6R7nwDyegcmfD5dXzy';
 const NATIVE_MINT = 'So11111111111111111111111111111111111111112';
 const RPC_URL = 'https://api.devnet.solana.com';
 const INIT_DISC = new Uint8Array([175, 175, 109, 31, 13, 152, 155, 237]);
@@ -127,7 +127,7 @@ $('btn-close-house').addEventListener('click', async () => {
     const connection = new web3.Connection(RPC_URL, 'confirmed');
     const admin = new web3.PublicKey(walletPubkey);
     const houseProgram = new web3.PublicKey(HOUSE_PROGRAM);
-    const [housePDA] = await web3.PublicKey.findProgramAddress([te.encode('house_v2')], houseProgram);
+    const [housePDA] = await web3.PublicKey.findProgramAddress([te.encode('house')], houseProgram);
 
     log('🧹 Closing corrupted house account...');
     const closeIx = new web3.TransactionInstruction({
@@ -173,7 +173,7 @@ $('btn-init').addEventListener('click', async () => {
     const escrowDone = configInfo && configInfo.data.length > 0;
 
     const houseProgram = new web3.PublicKey(HOUSE_PROGRAM);
-    const [housePDA] = await web3.PublicKey.findProgramAddress([te.encode('house_v2')], houseProgram);
+    const [housePDA] = await web3.PublicKey.findProgramAddress([te.encode('house')], houseProgram);
     const houseInfo = await connection.getAccountInfo(housePDA);
     const houseDone = houseInfo && houseInfo.data.length > 0;
 
