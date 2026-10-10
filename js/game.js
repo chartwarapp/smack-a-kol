@@ -1709,7 +1709,8 @@
             return `<div class="bd-head" style="margin-top:8px;">⛓ ON-CHAIN WAGER (DEVNET)</div>
               <div><span>Wagered</span><b>${w} SOL</b></div>
               <div><span>You won</span><b style="color:#4ade80;">+${payout} SOL</b></div>
-              <div class="fine" style="font-size:11px;color:#888;">Settle in wallet to claim — 5% fee</div>`;
+              <div class="fine" style="font-size:11px;color:#888;">5% fee · resolver settles</div>
+              <button id="chain-settle-btn" style="display:block;width:100%;padding:12px;margin-top:8px;border:none;border-radius:10px;font-size:15px;font-weight:800;cursor:pointer;background:linear-gradient(180deg,#f5c542,#d4a017);color:#000;">💰 SETTLE & CLAIM</button>`;
           } else if (!draw) {
             return `<div class="bd-head" style="margin-top:8px;">⛓ ON-CHAIN WAGER (DEVNET)</div>
               <div><span>Wagered</span><b>${w} SOL</b></div>
@@ -1742,6 +1743,19 @@
     if (!F.bet && win) html += `<p class="fine">💡 Bet PTS next time for x${k.payout.toFixed(1)}. Scared money don't make money.</p>`;
     const total = pts + betTotal;
     setTimeout(() => {
+      const sb = $('#chain-settle-btn');
+      if (sb) sb.onclick = async () => {
+        sb.disabled = true; sb.textContent = 'SETTLING…';
+        try {
+          const res = await SAK.SolanaEscrow.resolveChallenge(F.opts.chainChallenge, W.address);
+          toast('Winnings claimed! ' + res.signature.slice(0, 12) + '…', 2600);
+          sb.textContent = '✅ CLAIMED';
+        } catch (e) {
+          if (e.code === 'NOT_RESOLVER') toast('Only the resolver wallet can settle on devnet', 2600);
+          else toast('Settle failed: ' + (e.message || e), 2600);
+          sb.disabled = false; sb.textContent = '💰 SETTLE & CLAIM';
+        }
+      };
       const app = appRect(), pp = $('#pts-pill').getBoundingClientRect();
       floatText(pp.left - app.left + 30, pp.bottom - app.top + 30, `+${fmt(total)}`, 'pts-gain');
       A.coin();
