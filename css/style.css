@@ -812,3 +812,19 @@ h2, h3, .prompt, .vs, .level, .fc-name, .banner, .float-text, .result-title {
   display: grid; grid-template-columns: 1fr 1fr; gap: 4px; font-size: 12px;
   margin: 8px 0; padding: 10px; background: rgba(0,0,0,.25); border-radius: 10px; color: #fff;
 }
+
+/* Meter is the attack button — pulsing TAP cue */
+#meter-local { position: relative; }
+#meter-local::after {
+  content: 'TAP!';
+  position: absolute; left: 50%; bottom: -8px; transform: translateX(-50%);
+  font-size: 13px; font-weight: 900; color: #ffd23f; letter-spacing: 2px;
+  text-shadow: 0 0 8px #ffd23f88; pointer-events: none;
+  animation: tapPulse 0.8s ease-in-out infinite;
+  opacity: 0;
+}
+#meter-local.attack-ready::after { opacity: 1; }
+@keyframes tapPulse {
+  0%, 100% { transform: translateX(-50%) scale(1); }
+  50% { transform: translateX(-50%) scale(1.25); }
+}

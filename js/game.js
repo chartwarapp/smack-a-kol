@@ -1212,6 +1212,8 @@
       Scene.setAnticipate('player', isAtk);
       Scene.setAnticipate('kol', !isAtk);
     }
+    const ml = $('#meter-local');
+    if (ml) ml.classList.toggle('attack-ready', isAtk && F.turn === 'challenge');
     // Degen play-by-play: random commentary so rounds never feel the same
     if (Math.random() < 0.4) setTimeout(() => { if (F && F.started) say(pick(SAK.COPY.fightCommentary)); }, 1400);
     const roleEl = $('#role-label');
@@ -2013,15 +2015,22 @@
   }
 
   /* --- input: private local meter lock ----------------------------------- */
-  function onTap(e) {
+  function onMeterTap(e) {
     if (screen !== 'fight' || !F) return;
-    if (e && e.target && e.target.closest && e.target.closest('button, .modal, .pu-rail, .upgrade-bar')) return;
     if (!$('#modal-settings').classList.contains('hidden')) return;
     if (F.turn !== 'challenge') return;
+    e.preventDefault();
+    e.stopPropagation();
     A.unlock();
     lockLocal(false);
   }
-  $('#screen-fight').addEventListener('pointerdown', onTap);
+  // Attacks ONLY via the meter — no more tap-anywhere
+  const meterLocal = $('#meter-local');
+  if (meterLocal) {
+    meterLocal.addEventListener('pointerdown', onMeterTap);
+    meterLocal.style.cursor = 'pointer';
+    meterLocal.style.touchAction = 'manipulation';
+  }
   window.addEventListener('keydown', e => {
     if (e.target && /input|textarea/i.test(e.target.tagName)) return;
     if (screen !== 'fight' || !F) return;
