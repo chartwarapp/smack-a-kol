@@ -1599,11 +1599,8 @@
       // lands with the realtime backend. v1 resolves by the local match result.
       SAK.Api.resolveChallenge(cid, win ? W.address : 'opponent').catch(() => {});
     }
-    // On-chain escrow: winner claims the pot (resolver signs on devnet).
-    if (win && F.opts && F.opts.chainChallenge && !F.opts.chainClaimed) {
-      F.opts.chainClaimed = true;
-      setTimeout(() => claimChainWinnings(), 1500);
-    }
+    // On-chain escrow: winner settles manually via SETTLE & CLAIM button.
+    // No auto-settle — the result card stays until the player acts or closes it.
     // Solo vs house: settle the bet on-chain (resolver signs on devnet).
     if (F.opts && F.opts.soloHouse && !F.opts.soloSettled) {
       F.opts.soloSettled = true;
