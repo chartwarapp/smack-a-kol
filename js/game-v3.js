@@ -2114,7 +2114,9 @@
         window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`, '_blank');
       };
       $('#pvp-chain-copy').onclick = async () => {
-        try { await navigator.clipboard.writeText(url); toast('Link copied \u{1F4CB}', 1600); }
+        const me = (W.address || '').slice(0, 4) + '…' + (W.address || '').slice(-4);
+        const msg = `\u{1F94A} ${me} challenged you to a Smack-a-KOL slap fight!\n\u{1F4B0} ${chainWager} SOL each on the line (winner takes ${(chainWager * 2 * 0.95).toFixed(3)} SOL)\n\u26D3 Accept: ${url}`;
+        try { await navigator.clipboard.writeText(msg); toast('Challenge message copied \u{1F4CB}', 1600); }
         catch (e) { toast('Copy failed — long-press the link', 2000); }
       };
       $('#pvp-chain-cancel').onclick = async () => {
