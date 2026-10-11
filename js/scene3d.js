@@ -651,7 +651,7 @@ SAK.Scene3D = (function () {
         const handMat = mat(L.skin, {}); // own material so it can turn golden
         // Open palm with individual fingers (Slap Kings-style readability) —
         // a Group so the slap squash-scale still flattens the whole hand.
-        const hand = new T.Group(); hand.position.set(0, -0.46, 0); hand.scale.setScalar(2.4); elbow.add(hand); // HUGE cartoon slap hands — the money maker, reads at any distance
+        const hand = new T.Group(); hand.position.set(0, -0.46, 0); hand.scale.setScalar(3.12); elbow.add(hand); // HUGE cartoon slap hands — the money maker, reads at any distance
         const palm = mesh(new T.SphereGeometry(0.13, 14, 10), handMat, 0, -0.02, 0);
         palm.scale.set(1.05, 0.85, 0.55); hand.add(palm); // big meaty palm
         outline(palm, 1.14); // V5: bold comic outline on the slap hand
