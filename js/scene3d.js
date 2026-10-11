@@ -2199,11 +2199,11 @@ SAK.Scene3D = (function () {
       ctx.font = `132px ${FONT}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
       ctx.lineJoin = 'round'; ctx.lineWidth = 22; ctx.strokeStyle = '#0a0a0a';
       ctx.shadowColor = '#ff4fd8'; ctx.shadowBlur = 34;
-      ctx.strokeText('SLAP-A-KOL', w / 2, h / 2 - 8);
+      ctx.strokeText('SMACK-A-KOL', w / 2, h / 2 - 8);
       ctx.shadowBlur = 0;
       const tg = ctx.createLinearGradient(0, h / 2 - 70, 0, h / 2 + 70);
       tg.addColorStop(0, '#ffffff'); tg.addColorStop(0.55, '#ffe23d'); tg.addColorStop(1, '#ff9a1f');
-      ctx.fillStyle = tg; ctx.fillText('SLAP-A-KOL', w / 2, h / 2 - 8);
+      ctx.fillStyle = tg; ctx.fillText('SMACK-A-KOL', w / 2, h / 2 - 8);
       // sub-tagline
       ctx.font = `44px ${FONT}`; ctx.lineWidth = 8; ctx.strokeStyle = '#0a0a0a';
       ctx.shadowColor = '#39ff88'; ctx.shadowBlur = 16;
