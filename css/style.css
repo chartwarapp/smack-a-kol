@@ -277,15 +277,24 @@ h2, h3, .prompt, .vs, .level, .fc-name, .banner, .float-text, .result-title {
 .meter-panel.meter-pressed.role-atk { box-shadow: 0 0 0 4px #ff7a9aaa, 0 0 28px #ff3b5c88; }
 .meter-panel.meter-pressed.role-def { box-shadow: 0 0 0 4px #7dffc8aa, 0 0 28px #2ee66b88; }
 .meter-panel.meter-pressed.you-control { box-shadow: 0 0 0 4px #ffd23faa, 0 0 28px #ffd23f88; }
-/* SMACK label: big, glowing, pulsing */
+/* SMACK / BRACE labels: big, glowing, pulsing — consistent sizing */
 .meter-role.smack-label {
   font-size: 26px; font-weight: 900; letter-spacing: 3px; color: #a7f3d0;
   text-shadow: 0 0 12px #4ade80, 0 0 24px #4ade8088, 0 3px 0 #000;
   animation: smackPulse 1s ease-in-out infinite;
 }
+.meter-role.brace-label {
+  font-size: 26px; font-weight: 900; letter-spacing: 3px; color: #a5f3fc;
+  text-shadow: 0 0 12px #22d3ee, 0 0 24px #22d3ee88, 0 3px 0 #000;
+  animation: bracePulse 1s ease-in-out infinite;
+}
 @keyframes smackPulse {
   0%, 100% { transform: scale(1); text-shadow: 0 0 12px #4ade80, 0 0 24px #4ade8088, 0 3px 0 #000; }
   50% { transform: scale(1.08); text-shadow: 0 0 20px #4ade80, 0 0 40px #4ade80cc, 0 3px 0 #000; }
+}
+@keyframes bracePulse {
+  0%, 100% { transform: scale(1); text-shadow: 0 0 12px #22d3ee, 0 0 24px #22d3ee88, 0 3px 0 #000; }
+  50% { transform: scale(1.08); text-shadow: 0 0 20px #22d3ee, 0 0 40px #22d3eecc, 0 3px 0 #000; }
 }
 .meter-panel.locked .meter { filter: brightness(.85); }
 .meter-panel .meter { width: 100%; margin: 0; max-width: none; }

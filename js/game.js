@@ -1223,7 +1223,7 @@
     if (Math.random() < 0.4) setTimeout(() => { if (F && F.started) say(pick(SAK.COPY.fightCommentary)); }, 1400);
     const roleEl = $('#role-label');
     roleEl.textContent = isAtk ? '🖐 SMACK' : '🛡 BRACE';
-    roleEl.className = 'meter-role ' + (isAtk ? 'atk-role smack-label' : 'def-role');
+    roleEl.className = 'meter-role ' + (isAtk ? 'atk-role smack-label' : 'def-role brace-label');
     const panel = $('#panel-local');
     panel.classList.remove('locked');
     panel.classList.add('you-control');
