@@ -2559,7 +2559,7 @@ SAK.Scene3D = (function () {
     billboard(chart.tex, 4.2, 2.6, 243, 8.5, 3.6);
     billboard(textPanel('WAGMI', '#39ff88', ['#12002b', '#2a0b5e'], 512, 220), 3.6, 1.55, 270, 8.5, 4.4);
     billboard(textPanel('TO THE MOON 🚀', '#ffd23f', ['#2a0b5e', '#5a1aa8'], 768, 200), 4.6, 1.2, 278, 8.8, 3.0);
-    billboard(textPanel('NGMI', '#ff3b5c', ['#12002b', '#3a0b2e'], 512, 220), 3.0, 1.3, 183, 8.5, 2.6);
+    billboard(textPanel('FOMO', '#ff3b5c', ['#12002b', '#3a0b2e'], 512, 220), 3.0, 1.3, 183, 8.5, 2.6);
     billboard(chart.tex, 3.2, 2.0, 302, 8.6, 4.2);
     // Solana memecoin degen dressing
     billboard(textPanel('DIAMOND HANDS 💎🙌', '#39ff88', ['#12002b', '#1a3a2e'], 768, 200), 4.6, 1.2, 218, 8.8, 3.4);
