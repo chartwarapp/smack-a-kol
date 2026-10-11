@@ -618,7 +618,7 @@ h2, h3, .prompt, .vs, .level, .fc-name, .banner, .float-text, .result-title {
 .lb-row .dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 4px; background: #bbb; }
 .lb-row .dot.on { background: #2ee66b; }
 /* ---------------------------------------------------------------- power-up rail */
-.pu-rail { position: absolute; right: 8px; bottom: calc(138px + var(--safe-bot)); display: grid; gap: 8px; z-index: 12; }
+.pu-rail { display: none; /* Power-ups removed — pure timing skill game */ }
 .pu-btn {
   position: relative; width: 62px; height: 62px; border-radius: 50%; border: 3px solid var(--ink); box-shadow: 0 4px 0 var(--ink);
   display: grid; place-items: center; align-content: center; line-height: 1;

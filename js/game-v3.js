@@ -1006,6 +1006,7 @@
 
   /* --- power-ups (limited-use consumables) ---------------------------- */
   function renderPowerups() {
+    return; // Power-ups removed — pure timing skill game
     const rail = $('#powerups');
     rail.innerHTML = Object.values(SAK.POWERUPS).map(pu => {
       const own = S.powerups[pu.id] || 0, used = F && F.pu.used[pu.id];
@@ -1023,6 +1024,7 @@
   }
 
   function usePowerup(id) {
+    return; // Power-ups removed
     A.unlock();
     const pu = SAK.POWERUPS[id];
     if (!F || ['over', 'done'].includes(F.turn)) return;
