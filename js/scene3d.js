@@ -705,18 +705,24 @@ SAK.Scene3D = (function () {
         };
         switch (gloveType) {
           case 'wrap': {
-            // Cloth hand wraps — bands around palm and wrist
+            // Cloth hand wraps — smooth rounded bands around palm and wrist, no boxes
             const wrapMat = gm('#e8e0d0');
-            add(new T.BoxGeometry(0.22, 0.06, 0.11), wrapMat, 0, -0.02, 0);
-            add(new T.BoxGeometry(0.22, 0.05, 0.11), wrapMat, 0, -0.08, 0);
-            add(new T.CylinderGeometry(0.07, 0.075, 0.12, 8), wrapMat, 0, 0.06, 0); // wrist wrap
+            const band1 = new T.TorusGeometry(0.09, 0.028, 10, 20);
+            band1.rotateX(Math.PI / 2);
+            add(band1, wrapMat, 0, -0.02, 0);
+            const band2 = new T.TorusGeometry(0.085, 0.025, 10, 20);
+            band2.rotateX(Math.PI / 2);
+            add(band2, wrapMat, 0, -0.08, 0);
+            add(new T.CylinderGeometry(0.07, 0.075, 0.12, 16), wrapMat, 0, 0.06, 0); // wrist wrap
             break;
           }
           case 'mma': {
-            // MMA gloves — padded knuckles, open fingers
+            // MMA gloves — padded knuckles, open fingers, smooth
             const mmaMat = gm('#2a2a35');
-            add(new T.BoxGeometry(0.23, 0.1, 0.12), mmaMat, 0, -0.04, 0); // knuckle pad
-            add(new T.CylinderGeometry(0.07, 0.075, 0.14, 8), mmaMat, 0, 0.05, 0); // wrist strap
+            const padGeo = new T.CapsuleGeometry(0.05, 0.16, 6, 16);
+            padGeo.rotateZ(Math.PI / 2);
+            add(padGeo, mmaMat, 0, -0.04, 0); // knuckle pad
+            add(new T.CylinderGeometry(0.07, 0.075, 0.14, 16), mmaMat, 0, 0.05, 0); // wrist strap
             break;
           }
           case 'boxing': {
@@ -732,14 +738,18 @@ SAK.Scene3D = (function () {
           case 'gold': {
             // Golden fists — metallic gold material on knuckles
             const goldMat = new T.MeshStandardMaterial({ color: '#ffd23f', metalness: 0.85, roughness: 0.25 });
-            add(new T.BoxGeometry(0.22, 0.09, 0.11), goldMat, 0, -0.03, 0);
+            const goldGeo = new T.CapsuleGeometry(0.045, 0.15, 6, 16);
+            goldGeo.rotateZ(Math.PI / 2);
+            add(goldGeo, goldMat, 0, -0.03, 0);
             const g = gm('#ffd23f'); g.metalness = 0.7; g.roughness = 0.3;
             break;
           }
           case 'spike': {
             // Spiked knuckles — metal band with spikes
             const spikeMat = gm('#3a3a45');
-            add(new T.BoxGeometry(0.23, 0.07, 0.11), spikeMat, 0, -0.04, 0);
+            const spikeBandGeo = new T.CapsuleGeometry(0.04, 0.17, 6, 16);
+            spikeBandGeo.rotateZ(Math.PI / 2);
+            add(spikeBandGeo, spikeMat, 0, -0.04, 0);
             for (let s = 0; s < 4; s++) {
               const spike = add(new T.ConeGeometry(0.025, 0.07, 6), gm('#c0c0d0'), (s - 1.5) * 0.055, -0.1, 0.02);
               spike.rotation.x = Math.PI; // point outward
