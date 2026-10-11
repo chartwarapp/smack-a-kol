@@ -864,3 +864,13 @@ h2, h3, .prompt, .vs, .level, .fc-name, .banner, .float-text, .result-title {
   background: #7b2ff755; border: 1px solid #7b2ff7; color: #d0b3ff;
   padding: 2px 8px; border-radius: 8px; margin-left: 6px;
 }
+
+/* PvP challenge status badge */
+.pvp-badge {
+  display: inline-block; font-size: 11px; font-weight: 800; padding: 3px 10px;
+  border-radius: 12px; margin-left: 8px; vertical-align: middle;
+  letter-spacing: 0.5px; text-transform: uppercase;
+}
+.pvp-badge.awaiting { background: #ffd23f; color: #000; animation: pulse 1.5s ease-in-out infinite; }
+.pvp-badge.accepted { background: #39ff88; color: #000; animation: pulse 1s ease-in-out infinite; }
+.pvp-badge.hidden { display: none; }

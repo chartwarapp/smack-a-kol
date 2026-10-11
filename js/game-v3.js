@@ -1600,6 +1600,8 @@
   }
 
   function endFight(win, draw) {
+    // Stop PvP sync heartbeats
+    if (SAK.PvpSync) SAK.PvpSync.stopFight();
     const k = F.kol, st = S.stats, R = SAK.REWARDS, PR = SAK.POINT_REWARDS;
     // Challenge match: record + resolve on the backend (v1: winner by local result).
     if (F.opts && F.opts.challengeId && W.address) {
@@ -1982,6 +1984,22 @@
   async function openPvp() {
     A.unlock();
     $('#pvp-lobby').classList.remove('hidden'); $('#pvp-search').classList.add('hidden');
+    // Start challenge status polling for menu badge
+    if (SAK.PvpSync && W.address) {
+      SAK.PvpSync.startStatusPolling(W.address, ({ awaiting, accepted }) => {
+        const badge = $('#pvp-badge');
+        if (!badge) return;
+        if (accepted.length > 0) {
+          badge.textContent = `⚔ ${accepted.length} ACCEPTED`;
+          badge.className = 'pvp-badge accepted';
+        } else if (awaiting.length > 0) {
+          badge.textContent = `⏳ ${awaiting.length} AWAITING`;
+          badge.className = 'pvp-badge awaiting';
+        } else {
+          badge.className = 'pvp-badge hidden';
+        }
+      });
+    }
     renderModes($('#pvp-modes'), pvpMode, m => { pvpMode = m; openPvp(); });
     renderSolBets();
     renderChainBets();
@@ -2153,6 +2171,8 @@
       const lamports = Math.round(chainWager * 1e9);
       const res = await SAK.SolanaEscrow.createChallenge(lamports, chainTtlHours);
       activeChainChallenge = { address: res.challenge, wagerSol: chainWager };
+      // Track for menu badge + realtime sync
+      if (SAK.PvpSync) SAK.PvpSync.trackChallenge(res.challenge, W.address, null);
       const url = SAK.SolanaEscrow.challengeUrl(res.challenge);
       $('#pvp-chain-link').textContent = url;
       $('#pvp-chain-share').classList.remove('hidden');
@@ -2257,6 +2277,11 @@
       }
       // Challenger fights; winner settles via SETTLE & CLAIM
       startFight(shadow, 0, { mode: 'classic', pvp: true, chainChallenge: ch.address, chainWagerSol: wagerSol, chainRole: 'challenger', chainOpponentWallet: ch.opponent });
+      // Start disconnect detection
+      if (SAK.PvpSync) SAK.PvpSync.startFight(ch.address, W.address, ch.opponent, () => {
+        toast('🏆 Opponent disconnected — you win by forfeit!', 4000);
+        // TODO: trigger win flow
+      });
     };
   }
 
@@ -2334,6 +2359,7 @@
         toast('Accepting — approve the matching deposit…', 2400);
         await SAK.SolanaEscrow.acceptChallenge(ch.address);
         toast(`Accepted! ${sol} SOL each on the line \u2694\uFE0F`, 2600);
+        if (SAK.PvpSync) SAK.PvpSync.updateChallengeStatus(ch.address, 'accepted');
         const shadow = Object.assign({}, roster()[0], { name: 'Challenger ' + ch.challenger.slice(0, 4), pvp: true });
         // Look up the challenger's real fighter name AND look
       if (SAK.Api && SAK.Api.getProfile) {
@@ -2344,6 +2370,11 @@
         } catch (e) {}
       }
       startFight(shadow, 0, { mode: 'classic', pvp: true, chainChallenge: ch.address, chainWagerSol: sol, chainOpponentWallet: ch.challenger });
+      // Start disconnect detection
+      if (SAK.PvpSync) SAK.PvpSync.startFight(ch.address, W.address, ch.challenger, () => {
+        toast('🏆 Opponent disconnected — you win by forfeit!', 4000);
+        // TODO: trigger win flow
+      });
       } catch (e) { toast('Accept failed: ' + (e.message || e), 2600); }
     };
     const closeChainModal = () => {

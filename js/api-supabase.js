@@ -30,6 +30,7 @@ SAK.Api.SupabaseBackend = function (url, anonKey) {
 
   return {
     name: 'supabase',
+    _req: req, // exposed for PvpSync heartbeats
 
     async getProfile(wallet) {
       const rows = await req('GET', `/profiles?wallet=eq.${encodeURIComponent(wallet)}&select=*`);
