@@ -813,11 +813,11 @@ h2, h3, .prompt, .vs, .level, .fc-name, .banner, .float-text, .result-title {
   .hp-txt { font-size: 12px; line-height: 13px; }
   .vs { font-size: 26px; }
   .level { font-size: 12px; padding: 2px 8px; }
-  .stake-tag { top: calc(170px + var(--safe-top)); font-size: 14px; max-width: 92vw; overflow: hidden; text-overflow: ellipsis; }
-  .arena-label { top: calc(144px + var(--safe-top)); font-size: 11px; }
-  .taunt { top: calc(218px + var(--safe-top)); max-width: 58%; font-size: 12px; padding: 6px 10px; }
-  .taunt.left { left: 10px; top: calc(218px + var(--safe-top)); }
-  .round-score { top: calc(178px + var(--safe-top)); font-size: 18px; padding: 2px 10px; }
+  .stake-tag { top: calc(158px + var(--safe-top)); font-size: 14px; max-width: 92vw; overflow: hidden; text-overflow: ellipsis; }
+  .arena-label { top: calc(132px + var(--safe-top)); font-size: 11px; }
+  .taunt { top: calc(226px + var(--safe-top)); max-width: 58%; font-size: 12px; padding: 6px 10px; }
+  .taunt.left { left: 10px; top: calc(226px + var(--safe-top)); }
+  .round-score { top: calc(190px + var(--safe-top)); font-size: 18px; padding: 2px 10px; }
 }
 
 /* ---- Fighter picker (starters + custom) ---- */
