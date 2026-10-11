@@ -1970,6 +1970,55 @@
   // Lists fake online players; "challenging" anyone (or Quick Match) shows a
   // searching state and then falls back to an AI stand-in. See matchmaking.js.
   let pvpMode = 'classic', pvpWager = 0, pvpTimer = 0, pvpT0 = 0;
+  let pendingBarTimer = null;
+  function updatePendingBar() {
+    const bar = $('#pvp-pending-bar');
+    if (!bar) return;
+    // Show if we have an active challenge (from this session or from polling)
+    const ch = activeChainChallenge;
+    if (ch && ch.address) {
+      bar.classList.remove('hidden');
+      $('#ppb-wager').textContent = `💰 ${ch.wagerSol} SOL`;
+      $('#ppb-addr').textContent = ch.address.slice(0, 4) + '…' + ch.address.slice(-4);
+      // Countdown timer
+      if (pendingBarTimer) clearInterval(pendingBarTimer);
+      const updateTimer = () => {
+        // TODO: fetch actual expiry from chain; estimate from creation
+        $('#ppb-timer').textContent = '⏳ Awaiting opponent…';
+      };
+      updateTimer();
+      pendingBarTimer = setInterval(updateTimer, 30000);
+      // Wire buttons (once)
+      const copyBtn = $('#ppb-copy');
+      if (copyBtn && !copyBtn.dataset.wired) {
+        copyBtn.dataset.wired = '1';
+        copyBtn.onclick = async () => {
+          const url = SAK.SolanaEscrow.challengeUrl(activeChainChallenge.address);
+          try { await navigator.clipboard.writeText(url); toast('Link copied 📋', 1600); }
+          catch (e) { toast('Copy failed', 1600); }
+        };
+      }
+      const cancelBtn = $('#ppb-cancel');
+      if (cancelBtn && !cancelBtn.dataset.wired) {
+        cancelBtn.dataset.wired = '1';
+        cancelBtn.onclick = async () => {
+          if (!activeChainChallenge) return;
+          try {
+            toast('Cancelling…', 2000);
+            await SAK.SolanaEscrow.cancelChallenge(activeChainChallenge.address);
+            if (SAK.PvpSync) SAK.PvpSync.updateChallengeStatus(activeChainChallenge.address, 'cancelled');
+            activeChainChallenge = null;
+            updatePendingBar();
+            toast('Challenge cancelled & refunded ✓', 2600);
+          } catch (e) { toast('Cancel failed: ' + (e.message || e), 2600); }
+        };
+      }
+    } else {
+      bar.classList.add('hidden');
+      if (pendingBarTimer) { clearInterval(pendingBarTimer); pendingBarTimer = null; }
+    }
+  }
+
   async function openPvp() {
     A.unlock();
     $('#pvp-lobby').classList.remove('hidden'); $('#pvp-search').classList.add('hidden');
@@ -1996,6 +2045,7 @@
     renderSoloBets();
     const _ps = $('#pvp-share'); if (_ps) _ps.classList.add('hidden');
     $('#pvp-chain-share').classList.add('hidden');
+    updatePendingBar();
     const pcs = $('#pvp-chain-status'); if (pcs) pcs.classList.add('hidden');
     const wagers = [0, 100, 250, 500, 1000];
     if (!P.canAfford(pvpWager)) pvpWager = 0;
@@ -2162,6 +2212,7 @@
       activeChainChallenge = { address: res.challenge, wagerSol: chainWager };
       // Track for menu badge + realtime sync
       if (SAK.PvpSync) SAK.PvpSync.trackChallenge(res.challenge, W.address, null);
+      updatePendingBar();
       const url = SAK.SolanaEscrow.challengeUrl(res.challenge);
       $('#pvp-chain-link').textContent = url;
       $('#pvp-chain-share').classList.remove('hidden');
@@ -2184,6 +2235,7 @@
           activeChainChallenge = null;
           stopChainWatch();
           $('#pvp-chain-share').classList.add('hidden');
+    updatePendingBar();
         } catch (e) { chainStatus('Cancel failed: ' + (e.message || e)); }
       };
       chainStatus('Challenge live! Share the link. ' + res.signature.slice(0, 12) + '…', true);
@@ -2266,6 +2318,7 @@
       }
       // Challenger fights; winner settles via SETTLE & CLAIM
       startFight(shadow, 0, { mode: 'classic', pvp: true, chainChallenge: ch.address, chainWagerSol: wagerSol, chainRole: 'challenger', chainOpponentWallet: ch.opponent });
+      activeChainChallenge = null; updatePendingBar();
       // Start disconnect detection
       if (SAK.PvpSync) SAK.PvpSync.startFight(ch.address, W.address, ch.opponent, () => {
         toast('🏆 Opponent disconnected — you win by forfeit!', 4000);
