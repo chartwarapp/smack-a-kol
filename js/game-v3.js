@@ -1220,8 +1220,8 @@
     // Degen play-by-play: random commentary so rounds never feel the same
     if (Math.random() < 0.4) setTimeout(() => { if (F && F.started) say(pick(SAK.COPY.fightCommentary)); }, 1400);
     const roleEl = $('#role-label');
-    roleEl.textContent = isAtk ? '🥊 ATTACK' : '🛡 BRACE';
-    roleEl.className = 'meter-role ' + (isAtk ? 'atk-role' : 'def-role');
+    roleEl.textContent = isAtk ? '🖐 SMACK' : '🛡 BRACE';
+    roleEl.className = 'meter-role ' + (isAtk ? 'atk-role smack-label' : 'def-role');
     const panel = $('#panel-local');
     panel.classList.remove('locked');
     panel.classList.add('you-control');
@@ -2412,6 +2412,13 @@
     meterLocal.addEventListener('pointerdown', onMeterTap);
     meterLocal.style.cursor = 'pointer';
     meterLocal.style.touchAction = 'manipulation';
+    // Press glow: board lights up with a wider outline while pressed
+    const panelLocal = $('#panel-local');
+    const pressOn = () => { if (panelLocal) panelLocal.classList.add('meter-pressed'); };
+    const pressOff = () => { if (panelLocal) panelLocal.classList.remove('meter-pressed'); };
+    meterLocal.addEventListener('pointerdown', pressOn);
+    window.addEventListener('pointerup', pressOff);
+    window.addEventListener('pointercancel', pressOff);
   }
   window.addEventListener('keydown', e => {
     if (e.target && /input|textarea/i.test(e.target.tagName)) return;

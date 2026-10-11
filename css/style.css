@@ -265,13 +265,28 @@ h2, h3, .prompt, .vs, .level, .fc-name, .banner, .float-text, .result-title {
 }
 .meter-panel {
   background: #1a0b3a88; border: 2px solid #ffffff33; border-radius: 14px;
-  padding: 4px 6px 3px; position: relative; z-index: 1;
+  padding: 8px 6px 6px; position: relative; z-index: 1;
   transition: box-shadow .15s, border-color .15s, transform .15s;
 }
 .meter-panel.you-control { border-color: #ffd23f; box-shadow: 0 0 0 2px #ffd23f88, 0 0 14px #ffd23f44; }
 .meter-panel.role-atk { border-color: #ff7a9a; box-shadow: 0 0 0 2px #ff7a9a66, 0 0 12px #ff3b5c33; }
 .meter-panel.role-def { border-color: #7dffc8; box-shadow: 0 0 0 2px #7dffc866, 0 0 12px #2ee66b33; }
 .meter-panel.locked { opacity: .92; filter: saturate(1.1); }
+/* Press feedback: board glows with a wider outline */
+.meter-panel.meter-pressed { border-width: 4px; transform: scale(1.02); }
+.meter-panel.meter-pressed.role-atk { box-shadow: 0 0 0 4px #ff7a9aaa, 0 0 28px #ff3b5c88; }
+.meter-panel.meter-pressed.role-def { box-shadow: 0 0 0 4px #7dffc8aa, 0 0 28px #2ee66b88; }
+.meter-panel.meter-pressed.you-control { box-shadow: 0 0 0 4px #ffd23faa, 0 0 28px #ffd23f88; }
+/* SMACK label: big, glowing, pulsing */
+.meter-role.smack-label {
+  font-size: 26px; font-weight: 900; letter-spacing: 3px; color: #a7f3d0;
+  text-shadow: 0 0 12px #4ade80, 0 0 24px #4ade8088, 0 3px 0 #000;
+  animation: smackPulse 1s ease-in-out infinite;
+}
+@keyframes smackPulse {
+  0%, 100% { transform: scale(1); text-shadow: 0 0 12px #4ade80, 0 0 24px #4ade8088, 0 3px 0 #000; }
+  50% { transform: scale(1.08); text-shadow: 0 0 20px #4ade80, 0 0 40px #4ade80cc, 0 3px 0 #000; }
+}
 .meter-panel.locked .meter { filter: brightness(.85); }
 .meter-panel .meter { width: 100%; margin: 0; max-width: none; }
 .meter-role {
@@ -823,21 +838,8 @@ h2, h3, .prompt, .vs, .level, .fc-name, .banner, .float-text, .result-title {
   margin: 8px 0; padding: 10px; background: rgba(0,0,0,.25); border-radius: 10px; color: #fff;
 }
 
-/* Meter is the attack button — pulsing TAP cue */
+/* Meter is the attack button — press feedback handled via .meter-pressed */
 #meter-local { position: relative; }
-#meter-local::after {
-  content: 'TAP!';
-  position: absolute; left: 50%; bottom: -8px; transform: translateX(-50%);
-  font-size: 13px; font-weight: 900; color: #ffd23f; letter-spacing: 2px;
-  text-shadow: 0 0 8px #ffd23f88; pointer-events: none;
-  animation: tapPulse 0.8s ease-in-out infinite;
-  opacity: 0;
-}
-#meter-local.attack-ready::after { opacity: 1; }
-@keyframes tapPulse {
-  0%, 100% { transform: translateX(-50%) scale(1); }
-  50% { transform: translateX(-50%) scale(1.25); }
-}
 
 /* On-chain escrow PvP section */
 .tag-devnet {
