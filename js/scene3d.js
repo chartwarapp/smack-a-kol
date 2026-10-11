@@ -2463,17 +2463,22 @@ SAK.Scene3D = (function () {
       torso.position.y = 0.12; g.add(torso);
       const shoulders = new T.Mesh(new T.SphereGeometry(0.3, 8, 6), mat(shirt));
       shoulders.position.y = 0.42; shoulders.scale.set(1.25, 0.55, 0.85); g.add(shoulders);
-      // arms: ~1/3 of the crowd throws both arms up cheering
+      // arms: attached at the shoulders with joint spheres, ~1/3 throw both arms up cheering
       const armsUp = !mascot && srand(i * 47 + 23) > 0.66;
       for (const sx of [-1, 1]) {
-        const arm = new T.Mesh(new T.CylinderGeometry(0.07, 0.06, 0.5, 6), mat(shirt));
-        const hand = new T.Mesh(new T.SphereGeometry(0.075, 6, 5), mat(skin));
+        const shirtMat = mat(shirt);
+        // shoulder joint — connects arm to torso so nothing floats
+        const joint = new T.Mesh(new T.SphereGeometry(0.11, 8, 6), shirtMat);
+        joint.position.set(sx * 0.34, 0.42, 0); g.add(joint);
+        // thicker upper arm starting inside the joint
+        const arm = new T.Mesh(new T.CylinderGeometry(0.09, 0.075, 0.55, 8), shirtMat);
+        const hand = new T.Mesh(new T.SphereGeometry(0.085, 8, 6), mat(skin));
         if (armsUp) {
-          arm.position.set(sx * 0.42, 0.72, 0); arm.rotation.z = sx * -2.5; g.add(arm);
-          hand.position.set(sx * 0.52, 0.98, 0); g.add(hand);
+          arm.position.set(sx * 0.40, 0.68, 0); arm.rotation.z = sx * -2.35; g.add(arm);
+          hand.position.set(sx * 0.50, 0.96, 0); g.add(hand);
         } else {
-          arm.position.set(sx * 0.4, 0.22, 0); arm.rotation.z = sx * -0.3; g.add(arm);
-          hand.position.set(sx * 0.48, -0.02, 0); g.add(hand);
+          arm.position.set(sx * 0.38, 0.18, 0); arm.rotation.z = sx * -0.25; g.add(arm);
+          hand.position.set(sx * 0.45, -0.08, 0); g.add(hand);
         }
       }
       // head: big and high-contrast so faces read on phone screens.
