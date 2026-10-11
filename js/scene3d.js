@@ -600,11 +600,11 @@ SAK.Scene3D = (function () {
         const lid = mesh(new T.BoxGeometry(0.24, 0.02, 0.08), skin, sx * 0.18, 0.62, 0.47);
         lid.visible = false; this.head.add(lid); this.lids.push(lid);
       }
-      // cheeks: blush grows with damage taken (both cheeks so it reads from any angle)
+      // cheeks: blush grows with damage taken — flat decals flush on the face, never 3D balls
       this.blushMat = new T.MeshBasicMaterial({ color: '#ff2a2a', transparent: true, opacity: 0, depthWrite: false });
       for (const sx of [-1, 1]) {
-        const c = new T.Mesh(new T.SphereGeometry(0.13, 12, 10), this.blushMat);
-        c.position.set(sx * 0.33, 0.3, 0.36); c.scale.set(1, 0.7, 0.4); this.head.add(c);
+        const c = new T.Mesh(new T.CircleGeometry(0.11, 16), this.blushMat);
+        c.position.set(sx * 0.31, 0.3, 0.47); c.rotation.y = sx * 0.5; this.head.add(c);
       }
       // Progressive battle damage: black-eye ring + cheek scratch, revealed as hits land (cartoon, no gore).
       // Sized to read clearly in face close-ups (hit-cam + loser-face zoom).
@@ -613,8 +613,8 @@ SAK.Scene3D = (function () {
       this.maxDamageVariant = -1; // 0..4 once applyMaxDamageFace() runs
       this._boggling = false;     // double-windup head-boggle lock
       this.bruiseMat = new T.MeshBasicMaterial({ color: '#3d1d55', transparent: true, opacity: 0, depthWrite: false });
-      const bruise = new T.Mesh(new T.SphereGeometry(0.185, 10, 8), this.bruiseMat);
-      bruise.position.set(0.18, 0.5, 0.44); bruise.scale.set(1, 0.9, 0.45); this.head.add(bruise);
+      const bruise = new T.Mesh(new T.CircleGeometry(0.14, 16), this.bruiseMat);
+      bruise.position.set(0.17, 0.5, 0.475); bruise.rotation.y = 0.35; this.head.add(bruise);
       this.cutMat = new T.MeshBasicMaterial({ color: '#d42a2a', transparent: true, opacity: 0, depthWrite: false });
       const cut1 = new T.Mesh(new T.BoxGeometry(0.05, 0.21, 0.02), this.cutMat);
       cut1.position.set(-0.3, 0.26, 0.44); cut1.rotation.z = 0.45; this.head.add(cut1);
