@@ -1746,12 +1746,17 @@
       if (sb) sb.onclick = async () => {
         sb.disabled = true; sb.textContent = 'SETTLING…';
         try {
+          if (!F.opts || !F.opts.chainChallenge) throw new Error('No challenge found — try rejoining from the lobby');
           const res = await SAK.SolanaEscrow.resolveChallenge(F.opts.chainChallenge, W.address);
           toast('Winnings claimed! ' + res.signature.slice(0, 12) + '…', 2600);
           sb.textContent = '✅ CLAIMED';
         } catch (e) {
-          if (e.code === 'NOT_RESOLVER') toast('Only the resolver wallet can settle on devnet', 2600);
-          else toast('Settle failed: ' + (e.message || e), 2600);
+          console.error('[SAK] settle failed', e);
+          if (e.code === 'NOT_RESOLVER') {
+            const short = (e.resolver || '').slice(0, 4) + '…' + (e.resolver || '').slice(-4);
+            toast('Switch to resolver wallet ' + short + ' to settle', 3200);
+          }
+          else toast('Settle failed: ' + (e.message || e), 3200);
           sb.disabled = false; sb.textContent = '💰 SETTLE & CLAIM';
         }
       };
