@@ -651,34 +651,34 @@ SAK.Scene3D = (function () {
         const handMat = mat(L.skin, {}); // own material so it can turn golden
         // Open palm with individual fingers (Slap Kings-style readability) —
         // a Group so the slap squash-scale still flattens the whole hand.
-        const hand = new T.Group(); hand.position.set(0, -0.46, 0); hand.scale.setScalar(2.34); elbow.add(hand); // HUGE cartoon slap hands — the money maker, reads at any distance
-        const palm = mesh(new T.SphereGeometry(0.13, 14, 10), handMat, 0, -0.02, 0);
-        palm.scale.set(1.05, 0.85, 0.55); hand.add(palm); // big meaty palm
-        outline(palm, 1.14); // V5: bold comic outline on the slap hand
-        // Knuckle ridge — thick and defined
-        hand.add(mesh(new T.BoxGeometry(0.24, 0.06, 0.1), handMat, 0, -0.1, 0.01));
-        // Palm heel pad
-        const heel = mesh(new T.SphereGeometry(0.08, 10, 8), handMat, 0, -0.07, -0.03);
+        const hand = new T.Group(); hand.position.set(0, -0.46, 0); hand.scale.setScalar(2.34); elbow.add(hand); // big smooth cartoon slap hands — no boxes, no Minecraft
+        const palm = mesh(new T.SphereGeometry(0.13, 24, 18), handMat, 0, -0.02, 0);
+        palm.scale.set(1.05, 0.85, 0.55); hand.add(palm); // big meaty palm, smooth
+        outline(palm, 1.14);
+        // Knuckle ridge — smooth rounded capsule, not a box
+        const knuckleGeo = new T.CapsuleGeometry(0.035, 0.18, 6, 16);
+        knuckleGeo.rotateZ(Math.PI / 2);
+        hand.add(mesh(knuckleGeo, handMat, 0, -0.1, 0.01));
+        // Palm heel pad — smooth
+        const heel = mesh(new T.SphereGeometry(0.08, 18, 14), handMat, 0, -0.07, -0.03);
         heel.scale.set(1.15, 0.75, 0.65); hand.add(heel);
-        const fingerLen = [0.15, 0.175, 0.17, 0.14]; // index..pinky, middle longest — thicker now
+        const fingerLen = [0.15, 0.175, 0.17, 0.14]; // index..pinky, middle longest
         for (let f = 0; f < 4; f++) {
           const fg = new T.Group();
           fg.position.set((f - 1.5) * 0.055, -0.11, 0);
           fg.rotation.z = (f - 1.5) * 0.1; // fan out
           fg.rotation.x = -0.15; // slight natural curl
           hand.add(fg);
-          // Two-segment fingers for a more natural look
-          fg.add(mesh(new T.CylinderGeometry(0.034, 0.038, fingerLen[f] * 0.6, 8), handMat, 0, -fingerLen[f] * 0.3, 0));
-          const tip = new T.Group(); tip.position.set(0, -fingerLen[f] * 0.6, 0); tip.rotation.x = -0.2; fg.add(tip);
-          tip.add(mesh(new T.CylinderGeometry(0.03, 0.034, fingerLen[f] * 0.45, 8), handMat, 0, -fingerLen[f] * 0.22, 0));
-          tip.add(mesh(new T.SphereGeometry(0.032, 10, 8), handMat, 0, -fingerLen[f] * 0.45, 0)); // fingertip
+          // Smooth capsule fingers — rounded, no hard edges
+          fg.add(mesh(new T.CapsuleGeometry(0.036, fingerLen[f] * 0.55, 6, 16), handMat, 0, -fingerLen[f] * 0.28, 0));
+          const tip = new T.Group(); tip.position.set(0, -fingerLen[f] * 0.55, 0); tip.rotation.x = -0.2; fg.add(tip);
+          tip.add(mesh(new T.CapsuleGeometry(0.032, fingerLen[f] * 0.4, 6, 16), handMat, 0, -fingerLen[f] * 0.2, 0));
         }
-        const th = new T.Group(); // thumb on the outer side
+        const th = new T.Group(); // thumb on the outer side — smooth capsule
         th.position.set(side * 0.1, -0.03, 0.01);
         th.rotation.z = side * 0.85; th.rotation.x = -0.2;
         hand.add(th);
-        th.add(mesh(new T.CylinderGeometry(0.032, 0.037, 0.13, 8), handMat, 0, -0.065, 0));
-        th.add(mesh(new T.SphereGeometry(0.032, 8, 6), handMat, 0, -0.13, 0));
+        th.add(mesh(new T.CapsuleGeometry(0.034, 0.1, 6, 16), handMat, 0, -0.06, 0));
         this.arms[side] = { shoulder, elbow, hand, handMat, side };
       }
       this.buildGloves();
