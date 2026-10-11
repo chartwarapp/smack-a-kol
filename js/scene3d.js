@@ -576,14 +576,6 @@ SAK.Scene3D = (function () {
       this.head.add(this.mouth);
       const lip = mesh(new T.SphereGeometry(0.055, 10, 8), mat(shade(L.skin || '#ffe0c4', -0.12)), 0, 0.145, 0.45);
       lip.scale.set(1.6, 0.5, 0.6); this.head.add(lip);
-      // chin/jaw definition — subtle chin bump for a more sculpted face
-      const chin = mesh(new T.SphereGeometry(0.09, 12, 10), skin, 0, 0.02, 0.42);
-      chin.scale.set(1.1, 0.7, 0.8); this.head.add(chin);
-      // cheekbones — subtle definition on both sides
-      for (const sx of [-1, 1]) {
-        const cheek = mesh(new T.SphereGeometry(0.07, 10, 8), skin, sx * 0.3, 0.28, 0.38);
-        cheek.scale.set(0.8, 1.0, 0.6); this.head.add(cheek);
-      }
       // V3: upper teeth — visible when mouth opens (grin/grimace/shock). V4: rounded.
       this.teeth = new T.Group(); this.head.add(this.teeth);
       const teethMat = mat('#ffffff');
