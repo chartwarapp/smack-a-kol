@@ -549,6 +549,16 @@ h2, h3, .prompt, .vs, .level, .fc-name, .banner, .float-text, .result-title {
 .dark-lbl { color: var(--ink); }
 .pvp-card { background: linear-gradient(#ff4fd8, #fff 28%); max-height: 94%; overflow-y: auto; }
 .pvp-head { display: flex; justify-content: space-between; font-size: 14px; margin-top: 4px; }
+/* Wager section cards — one glance per section */
+.pvp-card { border-radius: 18px; padding: 14px 12px; margin: 14px 0; border: 2px solid; }
+.pvp-card-link { background: #fdf2f8; border-color: #f9a8d4; }
+.pvp-card-chain { background: #f5f3ff; border-color: #c4b5fd; }
+.pvp-card-solo { background: #f0fdf4; border-color: #86efac; }
+.pvp-card-head { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.pvp-card-icon { font-size: 28px; line-height: 1; }
+.pvp-card-title { font: 800 16px system-ui, sans-serif; color: var(--ink); letter-spacing: .5px; }
+.pvp-card-sub { font: 600 11px system-ui, sans-serif; color: #666; margin-top: 2px; }
+.pvp-card-head .tag-devnet { margin-left: auto; }
 .pvp-list { display: grid; gap: 6px; max-height: 260px; overflow-y: auto; }
 .pvp-row { display: grid; grid-template-columns: 40px 1fr auto; gap: 8px; align-items: center; background: #f1edff; border-radius: 12px; padding: 5px 8px; }
 .pvp-row .avatar-svg { width: 40px; height: 40px; border-radius: 10px; display: block; }

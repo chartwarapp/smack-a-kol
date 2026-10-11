@@ -246,8 +246,8 @@
         <div class="pvp-head"><span>🟢 ONLINE DEGENS</span><span id="pvp-count"></span></div>
         <div id="pvp-list" class="pvp-list"></div>
         <button class="btn btn-yellow" id="pvp-quick">⚡ QUICK MATCH (AI)</button>
-        <div class="pvp-head"><span>🔗 CHALLENGE LINK</span><span>wager SOL · share on X</span></div>
-        <div id="pvp-challenge">
+        <div class="pvp-card pvp-card-link">
+          <div class="pvp-card-head"><span class="pvp-card-icon">🔗</span><div><div class="pvp-card-title">CHALLENGE LINK</div><div class="pvp-card-sub">wager SOL · share on X</div></div></div>
           <div class="bet-label dark-lbl">WAGER (SOL)</div>
           <div id="pvp-sol-bets" class="bet-chips light"></div>
           <button class="btn btn-purple" id="pvp-create-link">CREATE CHALLENGE LINK</button>
@@ -260,9 +260,9 @@
             <p class="fine dark" id="pvp-share-hint">Anyone with the link can accept. Wager locks on-chain when contracts deploy — off-chain for now.</p>
           </div>
         </div>
-        <div class="pvp-head"><span>⛓ ON-CHAIN ESCROW</span><span>devnet · SOL locked in contract</span></div>
-        <div id="pvp-onchain">
-          <div class="bet-label dark-lbl">WAGER (SOL) <span class="tag-devnet">DEVNET</span></div>
+        <div class="pvp-card pvp-card-chain">
+          <div class="pvp-card-head"><span class="pvp-card-icon">⛓️</span><div><div class="pvp-card-title">ON-CHAIN ESCROW</div><div class="pvp-card-sub">SOL locked in contract</div></div><span class="tag-devnet">DEVNET</span></div>
+          <div class="bet-label dark-lbl">WAGER (SOL)</div>
           <div id="pvp-sol-bets-chain" class="bet-chips light"></div>
           <div class="bet-label dark-lbl">EXPIRES IN</div>
           <div id="pvp-expiry-chain" class="bet-chips light"></div>
@@ -280,9 +280,9 @@
           </div>
           <div id="pvp-chain-status" class="pvp-status hidden"></div>
         </div>
-        <div class="pvp-head"><span>🏠 SOLO VS HOUSE</span><span>devnet · 45% win · 1.9× payout</span></div>
-        <div id="pvp-solo">
-          <div class="bet-label dark-lbl">BET (SOL) <span class="tag-devnet">DEVNET</span></div>
+        <div class="pvp-card pvp-card-solo">
+          <div class="pvp-card-head"><span class="pvp-card-icon">🏠</span><div><div class="pvp-card-title">SOLO VS HOUSE</div><div class="pvp-card-sub">45% win · 1.9× payout</div></div><span class="tag-devnet">DEVNET</span></div>
+          <div class="bet-label dark-lbl">BET (SOL)</div>
           <div id="pvp-solo-bets" class="bet-chips light"></div>
           <button class="btn btn-yellow" id="pvp-solo-bet">🏠 BET VS HOUSE</button>
           <div id="pvp-solo-status" class="pvp-status hidden"></div>
