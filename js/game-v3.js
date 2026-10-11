@@ -1982,7 +1982,7 @@
     renderChainBets();
     renderChainExpiry();
     renderSoloBets();
-    $('#pvp-share').classList.add('hidden');
+    const _ps = $('#pvp-share'); if (_ps) _ps.classList.add('hidden');
     $('#pvp-chain-share').classList.add('hidden');
     const pcs = $('#pvp-chain-status'); if (pcs) pcs.classList.add('hidden');
     const wagers = [0, 100, 250, 500, 1000];
@@ -2043,14 +2043,16 @@
   let solWager = 0.1;
   const SOL_PRESETS = [0.01, 0.05, 0.1, 0.5, 1];
   function renderSolBets() {
-    $('#pvp-sol-bets').innerHTML = SOL_PRESETS.map(s =>
+    const _el = $('#pvp-sol-bets'); if (!_el) return; // off-chain challenge link removed
+    _el.innerHTML = SOL_PRESETS.map(s =>
       `<button class="bet-chip ${s === solWager ? 'selected' : ''}" data-sol="${s}">${s} SOL</button>`).join('');
     $$('#pvp-sol-bets .bet-chip').forEach(c => c.onclick = () => { solWager = +c.dataset.sol; A.click(); renderSolBets(); });
   }
   function challengeUrl(code) {
     return `https://chartwarapp.github.io/smack-a-kol/?challenge=${code}`;
   }
-  $('#pvp-create-link').addEventListener('click', async () => {
+  const _clBtn = $('#pvp-create-link');
+  if (_clBtn) _clBtn.addEventListener('click', async () => {
     if (!W.isConnected) { toast('Connect your wallet first 👛', 2200); openWalletModal(); return; }
     const btn = $('#pvp-create-link'); btn.disabled = true; btn.textContent = 'CREATING…';
     try {
