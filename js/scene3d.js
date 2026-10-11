@@ -689,6 +689,7 @@ SAK.Scene3D = (function () {
 
     /** NFT trait: glove variants. Each wraps the hand with distinct geometry. */
     buildGloves() {
+      return; // Glove wraps removed — bare hands only, no boxes or bands
       const gloveType = (this.look && this.look.gloves) || 'wrap';
       const gm = (c, opts) => mat(c, opts);
       for (const side of [-1, 1]) {
