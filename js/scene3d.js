@@ -1901,7 +1901,8 @@ SAK.Scene3D = (function () {
       const m = this.arms[this.armSide].handMat;
       if (on) { m.color.set('#ffc21a'); m.emissive.set('#ff6a00'); m.emissiveIntensity = 0.9; }
       else { m.color.set(this.look.skin); m.emissive.set('#000000'); }
-      this.slapHand.scale.set(on ? 1.1 : 1, on ? 1.5 : 1, on ? 1.6 : 1);
+      const HS = 3.12; // base hand scale — both hands match
+      this.slapHand.scale.set(on ? HS * 1.1 : HS, on ? HS * 1.5 : HS, on ? HS * 1.6 : HS);
     }
 
     /** Snap into a slapstick KO landing pose (root + torso/head/arms). */
