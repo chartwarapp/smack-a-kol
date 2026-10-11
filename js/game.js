@@ -2236,11 +2236,12 @@
       if (m) m.remove();
       chainStatus('Fighting!', true);
       const shadow = Object.assign({}, roster()[0], { name: 'Opponent ' + (ch.opponent || '').slice(0, 4), pvp: true });
-      // Look up the opponent's real fighter name
+      // Look up the opponent's real fighter name AND look
       if (SAK.Api && SAK.Api.getProfile && ch.opponent) {
         try {
           const op = await SAK.Api.getProfile(ch.opponent);
           if (op && op.name) shadow.name = op.name;
+          if (op && op.fighter_look) shadow.look = op.fighter_look;
         } catch (e) {}
       }
       // Challenger fights; winner settles via SETTLE & CLAIM
@@ -2323,11 +2324,12 @@
         await SAK.SolanaEscrow.acceptChallenge(ch.address);
         toast(`Accepted! ${sol} SOL each on the line \u2694\uFE0F`, 2600);
         const shadow = Object.assign({}, roster()[0], { name: 'Challenger ' + ch.challenger.slice(0, 4), pvp: true });
-        // Look up the challenger's real fighter name
+        // Look up the challenger's real fighter name AND look
       if (SAK.Api && SAK.Api.getProfile) {
         try {
           const cp = await SAK.Api.getProfile(ch.challenger);
           if (cp && cp.name) shadow.name = cp.name;
+          if (cp && cp.fighter_look) shadow.look = cp.fighter_look;
         } catch (e) {}
       }
       startFight(shadow, 0, { mode: 'classic', pvp: true, chainChallenge: ch.address, chainWagerSol: sol, chainOpponentWallet: ch.challenger });
