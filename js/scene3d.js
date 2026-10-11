@@ -576,6 +576,14 @@ SAK.Scene3D = (function () {
       this.head.add(this.mouth);
       const lip = mesh(new T.SphereGeometry(0.055, 10, 8), mat(shade(L.skin || '#ffe0c4', -0.12)), 0, 0.145, 0.45);
       lip.scale.set(1.6, 0.5, 0.6); this.head.add(lip);
+      // chin/jaw definition — subtle chin bump for a more sculpted face
+      const chin = mesh(new T.SphereGeometry(0.09, 12, 10), skin, 0, 0.02, 0.42);
+      chin.scale.set(1.1, 0.7, 0.8); this.head.add(chin);
+      // cheekbones — subtle definition on both sides
+      for (const sx of [-1, 1]) {
+        const cheek = mesh(new T.SphereGeometry(0.07, 10, 8), skin, sx * 0.3, 0.28, 0.38);
+        cheek.scale.set(0.8, 1.0, 0.6); this.head.add(cheek);
+      }
       // V3: upper teeth — visible when mouth opens (grin/grimace/shock). V4: rounded.
       this.teeth = new T.Group(); this.head.add(this.teeth);
       const teethMat = mat('#ffffff');
@@ -651,12 +659,15 @@ SAK.Scene3D = (function () {
         const handMat = mat(L.skin, {}); // own material so it can turn golden
         // Open palm with individual fingers (Slap Kings-style readability) —
         // a Group so the slap squash-scale still flattens the whole hand.
-        const hand = new T.Group(); hand.position.set(0, -0.46, 0); hand.scale.setScalar(1.5); elbow.add(hand); // +25% hand size — it's a slap game, big cartoon hands read better
+        const hand = new T.Group(); hand.position.set(0, -0.46, 0); hand.scale.setScalar(1.7); elbow.add(hand); // big cartoon slap hands — the money maker
         const palm = mesh(new T.SphereGeometry(0.11, 14, 10), handMat, 0, -0.02, 0);
-        palm.scale.set(0.95, 0.75, 0.45); hand.add(palm); // rounded palm
+        palm.scale.set(1.0, 0.8, 0.5); hand.add(palm); // fuller rounded palm
         outline(palm, 1.14); // V5: bold comic outline on the slap hand
-        // Knuckle ridge for definition
-        hand.add(mesh(new T.BoxGeometry(0.19, 0.04, 0.08), handMat, 0, -0.09, 0.01));
+        // Knuckle ridge for definition — thicker now
+        hand.add(mesh(new T.BoxGeometry(0.2, 0.05, 0.09), handMat, 0, -0.09, 0.01));
+        // Palm heel pad for extra definition
+        const heel = mesh(new T.SphereGeometry(0.07, 10, 8), handMat, 0, -0.06, -0.03);
+        heel.scale.set(1.1, 0.7, 0.6); hand.add(heel);
         const fingerLen = [0.13, 0.155, 0.15, 0.12]; // index..pinky, middle longest
         for (let f = 0; f < 4; f++) {
           const fg = new T.Group();
@@ -2511,18 +2522,44 @@ SAK.Scene3D = (function () {
           const hair = new T.Mesh(new T.SphereGeometry(0.32, 12, 8, 0, Math.PI * 2, 0, Math.PI * 0.5), mat(hairCols[Math.floor(srand(i * 41 + 19) * hairCols.length)]));
           hair.position.set(0, 0.9, -0.03); g.add(hair);
         }
-        // face: big unlit eyes + smile or cheering "O" mouth
-        const eyeMat = new T.MeshBasicMaterial({ color: '#0a0a0a' });
+        // face: proper eyes (sclera + pupil + highlight), brows, expressive mouths
+        const scleraMat = new T.MeshBasicMaterial({ color: '#ffffff' });
+        const pupilMat = new T.MeshBasicMaterial({ color: '#0a0a0a' });
+        const hlMat = new T.MeshBasicMaterial({ color: '#ffffff' });
         for (const sx of [-1, 1]) {
-          const eye = new T.Mesh(new T.SphereGeometry(0.045, 8, 6), eyeMat);
-          eye.position.set(sx * 0.11, 0.85, 0.285); g.add(eye);
+          const ex = sx * 0.11, ey = 0.85;
+          // sclera — white of the eye
+          const sclera = new T.Mesh(new T.SphereGeometry(0.055, 10, 8), scleraMat);
+          sclera.position.set(ex, ey, 0.28); sclera.scale.set(1, 1.15, 0.6); g.add(sclera);
+          // pupil
+          const pupil = new T.Mesh(new T.SphereGeometry(0.028, 8, 6), pupilMat);
+          pupil.position.set(ex, ey, 0.315); g.add(pupil);
+          // highlight sparkle
+          const hl = new T.Mesh(new T.SphereGeometry(0.012, 6, 4), hlMat);
+          hl.position.set(ex - 0.015, ey + 0.018, 0.325); g.add(hl);
+          // brow — angled for excitement
+          const brow = new T.Mesh(new T.BoxGeometry(0.09, 0.025, 0.02), pupilMat);
+          brow.position.set(ex, ey + 0.09, 0.29); brow.rotation.z = sx * -0.25; g.add(brow);
         }
-        if (i % 2) {
+        // nose — tiny bump so faces aren't flat
+        const cnose = new T.Mesh(new T.SphereGeometry(0.03, 8, 6), mat(skin));
+        cnose.position.set(0, 0.79, 0.30); cnose.scale.set(1, 0.8, 0.7); g.add(cnose);
+        if (i % 3 === 0) {
+          // big cheering grin with teeth
+          const grin = new T.Mesh(new T.TorusGeometry(0.08, 0.022, 4, 12, Math.PI), new T.MeshBasicMaterial({ color: '#5a1a1a' }));
+          grin.position.set(0, 0.74, 0.29); grin.rotation.z = Math.PI; g.add(grin);
+          const teeth = new T.Mesh(new T.BoxGeometry(0.11, 0.03, 0.01), scleraMat);
+          teeth.position.set(0, 0.745, 0.295); g.add(teeth);
+        } else if (i % 3 === 1) {
+          // smile
           const smile = new T.Mesh(new T.TorusGeometry(0.07, 0.018, 4, 10, Math.PI), new T.MeshBasicMaterial({ color: '#5a1a1a' }));
           smile.position.set(0, 0.76, 0.29); smile.rotation.z = Math.PI; g.add(smile);
         } else {
-          const ooh = new T.Mesh(new T.CircleGeometry(0.04, 10), new T.MeshBasicMaterial({ color: '#4a1414' }));
+          // cheering "O" mouth
+          const ooh = new T.Mesh(new T.CircleGeometry(0.045, 12), new T.MeshBasicMaterial({ color: '#4a1414' }));
           ooh.position.set(0, 0.74, 0.292); g.add(ooh);
+          const lipRing = new T.Mesh(new T.TorusGeometry(0.045, 0.012, 4, 12), mat(skin));
+          lipRing.position.set(0, 0.74, 0.29); g.add(lipRing);
         }
       }
       // glow stick waved in the right hand (skipped for raised-arm cheerers — hands are up)
