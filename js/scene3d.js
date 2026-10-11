@@ -646,21 +646,21 @@ SAK.Scene3D = (function () {
         const upper = mesh(new T.CylinderGeometry(0.13 * B.arm, 0.11 * B.arm, 0.48, 12), shirt, 0, -0.24, 0);
         shoulder.add(upper); outline(upper, 1.075);
         const elbow = new T.Group(); elbow.position.y = -0.48; shoulder.add(elbow);
-        const fore = mesh(new T.CylinderGeometry(0.105 * B.arm, 0.09 * B.arm, 0.4, 12), skin, 0, -0.2, 0);
+        const fore = mesh(new T.CylinderGeometry(0.13 * B.arm, 0.11 * B.arm, 0.4, 12), skin, 0, -0.2, 0);
         elbow.add(fore); outline(fore, 1.075);
         const handMat = mat(L.skin, {}); // own material so it can turn golden
         // Open palm with individual fingers (Slap Kings-style readability) —
         // a Group so the slap squash-scale still flattens the whole hand.
-        const hand = new T.Group(); hand.position.set(0, -0.46, 0); hand.scale.setScalar(1.7); elbow.add(hand); // big cartoon slap hands — the money maker
-        const palm = mesh(new T.SphereGeometry(0.11, 14, 10), handMat, 0, -0.02, 0);
-        palm.scale.set(1.0, 0.8, 0.5); hand.add(palm); // fuller rounded palm
+        const hand = new T.Group(); hand.position.set(0, -0.46, 0); hand.scale.setScalar(2.4); elbow.add(hand); // HUGE cartoon slap hands — the money maker, reads at any distance
+        const palm = mesh(new T.SphereGeometry(0.13, 14, 10), handMat, 0, -0.02, 0);
+        palm.scale.set(1.05, 0.85, 0.55); hand.add(palm); // big meaty palm
         outline(palm, 1.14); // V5: bold comic outline on the slap hand
-        // Knuckle ridge for definition — thicker now
-        hand.add(mesh(new T.BoxGeometry(0.2, 0.05, 0.09), handMat, 0, -0.09, 0.01));
-        // Palm heel pad for extra definition
-        const heel = mesh(new T.SphereGeometry(0.07, 10, 8), handMat, 0, -0.06, -0.03);
-        heel.scale.set(1.1, 0.7, 0.6); hand.add(heel);
-        const fingerLen = [0.13, 0.155, 0.15, 0.12]; // index..pinky, middle longest
+        // Knuckle ridge — thick and defined
+        hand.add(mesh(new T.BoxGeometry(0.24, 0.06, 0.1), handMat, 0, -0.1, 0.01));
+        // Palm heel pad
+        const heel = mesh(new T.SphereGeometry(0.08, 10, 8), handMat, 0, -0.07, -0.03);
+        heel.scale.set(1.15, 0.75, 0.65); hand.add(heel);
+        const fingerLen = [0.15, 0.175, 0.17, 0.14]; // index..pinky, middle longest — thicker now
         for (let f = 0; f < 4; f++) {
           const fg = new T.Group();
           fg.position.set((f - 1.5) * 0.055, -0.11, 0);
@@ -668,17 +668,17 @@ SAK.Scene3D = (function () {
           fg.rotation.x = -0.15; // slight natural curl
           hand.add(fg);
           // Two-segment fingers for a more natural look
-          fg.add(mesh(new T.CylinderGeometry(0.026, 0.03, fingerLen[f] * 0.6, 8), handMat, 0, -fingerLen[f] * 0.3, 0));
+          fg.add(mesh(new T.CylinderGeometry(0.034, 0.038, fingerLen[f] * 0.6, 8), handMat, 0, -fingerLen[f] * 0.3, 0));
           const tip = new T.Group(); tip.position.set(0, -fingerLen[f] * 0.6, 0); tip.rotation.x = -0.2; fg.add(tip);
-          tip.add(mesh(new T.CylinderGeometry(0.022, 0.026, fingerLen[f] * 0.45, 8), handMat, 0, -fingerLen[f] * 0.22, 0));
-          tip.add(mesh(new T.SphereGeometry(0.024, 10, 8), handMat, 0, -fingerLen[f] * 0.45, 0)); // fingertip
+          tip.add(mesh(new T.CylinderGeometry(0.03, 0.034, fingerLen[f] * 0.45, 8), handMat, 0, -fingerLen[f] * 0.22, 0));
+          tip.add(mesh(new T.SphereGeometry(0.032, 10, 8), handMat, 0, -fingerLen[f] * 0.45, 0)); // fingertip
         }
         const th = new T.Group(); // thumb on the outer side
         th.position.set(side * 0.1, -0.03, 0.01);
         th.rotation.z = side * 0.85; th.rotation.x = -0.2;
         hand.add(th);
-        th.add(mesh(new T.CylinderGeometry(0.023, 0.028, 0.11, 8), handMat, 0, -0.055, 0));
-        th.add(mesh(new T.SphereGeometry(0.023, 8, 6), handMat, 0, -0.11, 0));
+        th.add(mesh(new T.CylinderGeometry(0.032, 0.037, 0.13, 8), handMat, 0, -0.065, 0));
+        th.add(mesh(new T.SphereGeometry(0.032, 8, 6), handMat, 0, -0.13, 0));
         this.arms[side] = { shoulder, elbow, hand, handMat, side };
       }
       this.buildGloves();
