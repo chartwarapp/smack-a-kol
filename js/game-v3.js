@@ -602,6 +602,12 @@
     A.click();
     pkCustomLook = SAK.Account.randomAvatar();
     pkLocked = false;
+    // Switch to custom tab so preview and traits stay in sync
+    pkTab = 'custom';
+    $$('#cr-step-look [data-ptab]').forEach(x => x.classList.toggle('on', x.dataset.ptab === 'custom'));
+    $('#pk-starters').classList.add('hidden');
+    $('#pk-custom').classList.remove('hidden');
+    $('#cr-save').style.display = 'none';
     updateLockButton();
     renderCustomTraits();
     renderCreatorPreview();
@@ -667,6 +673,13 @@
     });
     else S.profile = Object.assign(SAK.Account.create(v.ok, cleanAvatar, ph.ok), { x_handle: xh, starter_id: starterId || null });
     SAK.Storage.save();
+    // Verify the save worked
+    const verify = SAK.Storage.load();
+    if (!verify || !verify.profile || !verify.profile.avatar) {
+      console.error('[SAK] profile save verification failed');
+      toast('Save failed — try again', 2600);
+      return false;
+    }
     if (W.isConnected && W.address) {
       SAK.Api.saveProfile(W.address, {
         name: S.profile.name, phrase: S.profile.phrase, fighter_look: S.profile.avatar, x_handle: xh,
