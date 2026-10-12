@@ -174,8 +174,10 @@ SAK.PvpSync = (function () {
 
   async function getMyChallenges(wallet) {
     try {
+      // Only consider challenges from the last 24h (max expiry); older ones are stale
+      const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
       const rows = await api()._req('GET',
-        `/pvp_challenges?or=(challenger.eq.${encodeURIComponent(wallet)},opponent.eq.${encodeURIComponent(wallet)})&status=in.(open,accepted)&select=*&order=created_at.desc`);
+        `/pvp_challenges?or=(challenger.eq.${encodeURIComponent(wallet)},opponent.eq.${encodeURIComponent(wallet)})&status=in.(open,accepted)&created_at=gte.${encodeURIComponent(dayAgo)}&select=*&order=created_at.desc`);
       const awaiting = (rows || []).filter(c => c.status === 'open' && c.challenger === wallet);
       const accepted = (rows || []).filter(c => c.status === 'accepted');
       return { awaiting, accepted };
