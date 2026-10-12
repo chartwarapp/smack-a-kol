@@ -275,6 +275,11 @@
     $('#btn-disconnect').classList.toggle('hidden', !on);
     renderShopStats();
     updateMenuPendingBar();
+    // Keep badge fresh while on menu (poll every 10s)
+    if (window._pvpBadgeTimer) clearInterval(window._pvpBadgeTimer);
+    window._pvpBadgeTimer = setInterval(() => {
+      if (screen === 'menu') updateMenuPendingBar();
+    }, 10000);
   }
 
   async function updateMenuPendingBar() {
