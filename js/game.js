@@ -1745,6 +1745,10 @@
   function endFight(win, draw) {
     // Stop PvP sync heartbeats and round polls
     if (SAK.PvpSync) { SAK.PvpSync.stopFight(); SAK.PvpSync.stopRoundPoll(); }
+    // Mark chain challenge as completed so the menu badge clears
+    if (F && F.opts && F.opts.chainChallenge && SAK.PvpSync) {
+      SAK.PvpSync.updateChallengeStatus(F.opts.chainChallenge, 'completed').catch(() => {});
+    }
     const k = F.kol, st = S.stats, R = SAK.REWARDS, PR = SAK.POINT_REWARDS;
     // Challenge match: record + resolve on the backend (v1: winner by local result).
     if (F.opts && F.opts.challengeId && W.address) {
