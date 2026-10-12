@@ -345,6 +345,14 @@
         if (Scene) { try { Scene.setPlayer(playerAvatar()); } catch (e) {} }
         renderMenu();
         toast(`Welcome back, ${p.name} 🫡`, 2200);
+      } else if (p && S.profile && S.profile.avatar) {
+        // Supabase missing fighter look, but we have it locally — sync it up
+        SAK.Api.saveProfile(addr, {
+          name: S.profile.name || p.name, phrase: S.profile.phrase || p.phrase || '',
+          fighter_look: S.profile.avatar, x_handle: S.profile.x_handle || '',
+        }).catch(e => console.warn('[SAK] fighter sync failed', e));
+        renderMenu();
+        toast(`Welcome back, ${p.name || S.profile.name}`, 2200);
       } else {
         toast('New wallet — build your fighter 👤', 2200);
         setTimeout(() => openFighter(false), 400);
