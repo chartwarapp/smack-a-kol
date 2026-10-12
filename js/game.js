@@ -1446,7 +1446,7 @@
     clearTimeout(aiLockTimer);
     if (!F) return;
     const CH = SAK.CHALLENGE;
-    const [d0, d1] = CH.aiLockDelay || [0.55, 1.35];
+    const [d0, d1] = CH.aiLockDelay || [0.3, 0.7]; // snappier: AI locks faster
     const delay = (d0 + Math.random() * (d1 - d0)) * 1000;
     const aiIsAttacker = F.challenge.attacker !== 'player';
     aiLockTimer = setTimeout(() => {
