@@ -218,6 +218,7 @@ SAK.PvpSync = (function () {
           {
             [`${field_prefix}_dist`]: lock.dist,
             [`${field_prefix}_zone`]: lock.zone,
+            [`${field_prefix}_angle`]: lock.angle || 0,
           },
           'return=minimal');
       } else {
@@ -230,6 +231,7 @@ SAK.PvpSync = (function () {
             defender_wallet: defenderWallet,
             [`${field_prefix}_dist`]: lock.dist,
             [`${field_prefix}_zone`]: lock.zone,
+            [`${field_prefix}_angle`]: lock.angle || 0,
           },
           'return=minimal');
       }

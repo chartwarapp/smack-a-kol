@@ -1458,8 +1458,8 @@
         (atkLock, defLock) => {
           // Reconstruct zone objects from IDs
           const zoneById = id => SAK.METER.zones.find(z => z.id === id) || SAK.METER.zones[SAK.METER.zones.length - 1];
-          C.locks.atk = { zone: zoneById(atkLock.zone), angle: 0, dist: atkLock.dist, already: false };
-          C.locks.def = { zone: zoneById(defLock.zone), angle: 0, dist: defLock.dist, already: false };
+          C.locks.atk = { zone: zoneById(atkLock.zone), angle: atkLock.angle || 0, dist: atkLock.dist, already: false };
+          C.locks.def = { zone: zoneById(defLock.zone), angle: defLock.angle || 0, dist: defLock.dist, already: false };
           if (C.locks[C.localSide]) {
             setWaitUI(true, 'OPPONENT LOCKED · REVEALING…');
             resolveChallengeRound();
@@ -1533,7 +1533,7 @@
   }
 
 
-  const REVEAL_MS = 1200;
+  const REVEAL_MS = 4000; // 4s so players can actually see the YOU vs THEM dial
 
   function hideLockReveal() {
     if (revealDismiss) {
