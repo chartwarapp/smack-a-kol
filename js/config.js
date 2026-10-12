@@ -147,7 +147,7 @@ SAK.COPY = {
   winTitles: ['BASED!', 'WAGMI!', 'GIGA PUMP!', 'NUMBER GO UP!'],
   loseTitles: ['NGMI…', 'REKT!', 'RUGGED!', 'LIQUIDATED!'],
   winSubs: ['{k} got slapped straight into the bear market. 📉', '{k} is now exit liquidity. 💀', 'Chart says: {k} DUMPED. 📉', '{k} has been sent to zero. Few understand.', '{k} just got margin-called by your palm. 🖐', 'Slapped {k} so hard their bags went to zero.'],
-  loseSubs: ['{k}: “{t}”', 'You got farmed by {k}. Cope & seethe.', 'Down bad. {k} ate your cheeks.', 'Your portfolio and your face: both red. 📕', 'Cheeks rugged. Have fun staying poor (jk, run it back).'],
+  loseSubs: ['{k}: “{t}”', 'You got farmed by {k}. Cope & seethe.', 'Down bad. {k} ate your cheeks.', 'Your portfolio and your face: both red. 📕 {k} did that.', '{k} rugged your cheeks. Have fun staying poor (jk, run it back).'],
   missTaunts: ['NGMI with that aim 😜', 'Paper-handed swing, ser.', 'Was that a slap or a gm?', 'Skill issue. 📉'],
   /* Degen fight commentary: attack hype, smack reactions, play-by-play.
    * Picked at random during fights so the banter never repeats. */
