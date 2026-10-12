@@ -325,6 +325,11 @@
   async function updateMenuPendingBar() {
     const badge = $('#pvp-btn-badge');
     if (!badge) return;
+    // Hide badge if wallet not connected
+    if (!W.address || !W.isConnected) {
+      badge.className = 'pvp-btn-badge hidden';
+      return;
+    }
     // Check in-memory first, then Supabase
     let hasPending = !!(activeChainChallenge && activeChainChallenge.address);
     let hasAccepted = false;
@@ -2755,7 +2760,12 @@
     if (F && !['over', 'done', 'busy'].includes(F.turn)) { stopMeters(); F.challenge.kWins = F.challenge.winsNeeded; renderRoundScore(); knockout('player'); }
   });
   $('#btn-disconnect').addEventListener('click', () => {
-    W.disconnect(); $('#modal-settings').classList.add('hidden'); toast('Wallet disconnected'); renderMenu();
+    W.disconnect();
+    // Clear stale pending challenge state
+    activeChainChallenge = null;
+    const badge = $('#pvp-btn-badge');
+    if (badge) badge.className = 'pvp-btn-badge hidden';
+    $('#modal-settings').classList.add('hidden'); toast('Wallet disconnected'); renderMenu();
   });
   $('#btn-reset').addEventListener('click', () => {
     if (!confirm('Reset points, upgrades, fan KOLs and stats?')) return;
