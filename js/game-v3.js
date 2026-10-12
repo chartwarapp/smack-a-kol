@@ -278,44 +278,26 @@
   }
 
   async function updateMenuPendingBar() {
-    const bar = $('#menu-pending-bar');
-    if (!bar) return;
+    const badge = $('#pvp-btn-badge');
+    if (!badge) return;
     // Check in-memory first, then Supabase
-    let ch = activeChainChallenge;
-    if (!ch && SAK.PvpSync && W.address) {
+    let hasPending = !!(activeChainChallenge && activeChainChallenge.address);
+    let hasAccepted = false;
+    if (!hasPending && SAK.PvpSync && W.address) {
       try {
-        const { awaiting } = await SAK.PvpSync.getMyChallenges(W.address);
-        if (awaiting.length > 0) {
-          const a = awaiting[0];
-          // Fetch wager from chain or use placeholder
-          ch = { address: a.challenge_addr, wagerSol: '?' };
-        }
+        const { awaiting, accepted } = await SAK.PvpSync.getMyChallenges(W.address);
+        hasPending = awaiting.length > 0;
+        hasAccepted = accepted.length > 0;
       } catch (e) {}
     }
-    if (ch && ch.address) {
-      bar.classList.remove('hidden');
-      $('#mpb-wager').textContent = `\u{1F4B0} ${ch.wagerSol} SOL`;
-      $('#mpb-addr').textContent = ch.address.slice(0, 4) + '…' + ch.address.slice(-4);
-      $('#mpb-timer').textContent = '\u23F3 Awaiting opponent…';
-      // Wire buttons once
-      const copyBtn = $('#mpb-copy');
-      if (copyBtn && !copyBtn.dataset.wired) {
-        copyBtn.dataset.wired = '1';
-        copyBtn.onclick = async (e) => {
-          e.stopPropagation();
-          const addr = (activeChainChallenge || ch).address;
-          const url = SAK.SolanaEscrow.challengeUrl(addr);
-          try { await navigator.clipboard.writeText(url); toast('Link copied \u{1F4CB}', 1600); }
-          catch (err) { toast('Copy failed', 1600); }
-        };
-      }
-      const lobbyBtn = $('#mpb-lobby');
-      if (lobbyBtn && !lobbyBtn.dataset.wired) {
-        lobbyBtn.dataset.wired = '1';
-        lobbyBtn.onclick = (e) => { e.stopPropagation(); openPvp(); };
-      }
+    if (hasAccepted) {
+      badge.textContent = '⚔ ACCEPTED';
+      badge.className = 'pvp-btn-badge accepted';
+    } else if (hasPending) {
+      badge.textContent = '⏳ PENDING';
+      badge.className = 'pvp-btn-badge';
     } else {
-      bar.classList.add('hidden');
+      badge.className = 'pvp-btn-badge hidden';
     }
   }
 
