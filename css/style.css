@@ -910,3 +910,92 @@ h2, h3, .prompt, .vs, .level, .fc-name, .banner, .float-text, .result-title {
 .pvp-btn-badge.accepted { background: #39ff88; }
 .pvp-btn-badge.hidden { display: none; }
 #btn-pvp { position: relative; }
+
+/* ============ B1 Main Menu Redesign ============ */
+.menu-b1 {
+  font-family: 'Titan One', 'Luckiest Guy', 'Baloo 2', system-ui, sans-serif;
+  padding-bottom: 20px;
+}
+/* Top status bar */
+.m1-topbar {
+  display: flex; align-items: center; gap: 8px;
+  background: #2a1545; border: 2px solid #39ff88; border-radius: 16px;
+  padding: 8px 12px; margin-bottom: 10px;
+  font-size: 14px; font-weight: 700; color: #fff;
+}
+.m1-topbar .m1-stat b { color: #39ff88; }
+.m1-topbar .m1-icon {
+  background: none; border: none; font-size: 18px; cursor: pointer;
+  padding: 2px 4px; filter: saturate(1.2);
+}
+.m1-topbar .m1-wallet {
+  margin-left: auto; display: flex; align-items: center; gap: 6px;
+  font-size: 12px; color: #b9a8d9;
+}
+.m1-topbar .m1-wallet .dot {
+  width: 8px; height: 8px; border-radius: 50%; background: #39ff88;
+  box-shadow: 0 0 6px #39ff88;
+}
+/* 2x2 stat grid */
+.m1-stats {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+  margin-bottom: 12px;
+}
+.m1-tile {
+  display: flex; align-items: center; gap: 10px;
+  background: linear-gradient(135deg, #2a1545, #1a0b2e);
+  border: 2px solid #7b5cff; border-radius: 14px;
+  padding: 10px 12px; color: #fff;
+}
+.m1-tile-icon { font-size: 26px; }
+.m1-tile b { display: block; font-size: 16px; color: #ffd23f; letter-spacing: 0.5px; }
+.m1-tile small { font-size: 10px; color: #b9a8d9; letter-spacing: 1px; }
+/* Tall logo hero */
+.m1-hero {
+  margin: 6px 0 12px; text-align: center;
+  min-height: 210px; display: flex; align-items: center; justify-content: center;
+  background: radial-gradient(ellipse at center, #2a154555 0%, transparent 70%);
+  border-radius: 20px;
+}
+.m1-hero .m1-logo {
+  width: 100%; max-width: 340px; height: auto;
+  border-radius: 16px;
+  filter: drop-shadow(0 4px 12px #39ff8844);
+}
+/* Fighter chip */
+.m1-fighter { margin-bottom: 12px; }
+/* Buttons */
+.m1-buttons .btn { margin-bottom: 10px; }
+.m1-enter {
+  font-size: 22px !important; padding: 18px !important;
+  text-shadow: 0 2px 0 #1a7a3a;
+  box-shadow: 0 4px 0 #1a7a3a, 0 6px 16px #39ff8866 !important;
+}
+.m1-pvp-card { position: relative; }
+.m1-practice { }
+.m1-refer {
+  background: linear-gradient(135deg, #ff6bd6, #7b5cff) !important;
+  border-color: #ff6bd6 !important;
+}
+/* Bottom dock */
+.m1-dock {
+  display: flex; gap: 6px; margin: 14px 0 10px;
+  background: #1a0b2e; border: 2px solid #7b5cff; border-radius: 18px;
+  padding: 10px 6px;
+}
+.m1-dock-btn {
+  flex: 1; background: none; border: none; cursor: pointer;
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  color: #fff; font-family: inherit; padding: 6px 2px;
+  border-radius: 12px;
+}
+.m1-dock-btn:active { background: #2a1545; }
+.m1-dock-btn span:first-child { font-size: 26px; }
+.m1-dock-btn small { font-size: 11px; color: #b9a8d9; }
+.m1-dock-btn .m1-lv { font-size: 9px; color: #ffd23f; }
+.m1-tagline {
+  text-align: center; background: #1a0b2e; color: #fff;
+  border: 2px solid #39ff88; border-radius: 14px;
+  padding: 10px; margin: 10px 0; font-size: 15px;
+}
+.m1-tagline b { color: #39ff88; }

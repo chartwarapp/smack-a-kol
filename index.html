@@ -32,27 +32,57 @@
   <!-- Pump/dump ticker scrolling across the top -->
   <div id="ticker" class="ticker"><div id="ticker-track" class="ticker-track"></div></div>
 
-  <!-- ================= MENU ================= -->
+  <!-- ================= MENU (B1 redesign) ================= -->
   <section id="screen-menu" class="screen active">
-    <h1 class="logo logo-splash">
-      <img class="logo-title" src="assets/smack-a-kol-logo-title.jpg" alt="Smack-a-KOL" width="720" height="360" decoding="async" />
-    </h1>
-    <div class="menu-inner">
-      <p class="tagline">Slap the shillers. Stack the <b>points</b>.</p>
-      <button id="btn-fighter" class="fighter-chip"><span id="fighter-chip-av"></span><span><b id="fighter-chip-name">YOU</b><small>EDIT MY FIGHTER</small></span></button>
+    <div class="menu-inner menu-b1">
+      <!-- B1 top status bar -->
+      <div class="m1-topbar">
+        <span class="m1-stat">⭐ <b id="m1-pts">0</b></span>
+        <span class="m1-stat">🔥 x<b id="m1-streak">0</b></span>
+        <button id="m1-ach" class="m1-icon" aria-label="Achievements">🏆</button>
+        <button id="m1-refer-icon" class="m1-icon" aria-label="Refer">🎁</button>
+        <button id="m1-leader-icon" class="m1-icon" aria-label="Leaderboard">📊</button>
+        <span class="m1-wallet"><span class="dot"></span><span id="m1-wallet-addr">—</span></span>
+      </div>
+      <!-- B1 2x2 stat grid -->
+      <div class="m1-stats">
+        <div class="m1-tile"><span class="m1-tile-icon">⭐</span><div><b id="m1-pts2">0</b><small>PTS BALANCE</small></div></div>
+        <div class="m1-tile"><span class="m1-tile-icon">🔥</span><div><b>STREAK x<span id="m1-streak2">0</span></b><small>COMBO</small></div></div>
+        <div class="m1-tile"><span class="m1-tile-icon">🛡</span><div><b id="m1-tier">BRONZE</b><small>TIER RANK</small></div></div>
+        <div class="m1-tile"><span class="m1-tile-icon">📈</span><div><b id="m1-winrate">—</b><small>WIN RATE</small></div></div>
+      </div>
+      <!-- B1 tall logo hero -->
+      <div class="m1-hero">
+        <img class="m1-logo" src="assets/smack-a-kol-logo-title.jpg" alt="SMACK-A-KOL" decoding="async" />
+      </div>
+      <!-- Fighter chip (existing IDs preserved) -->
+      <button id="btn-fighter" class="fighter-chip m1-fighter"><span id="fighter-chip-av"></span><span><b id="fighter-chip-name">YOU</b><small>EDIT MY FIGHTER</small></span></button>
 
-      <div class="menu-buttons">
-        <button id="btn-play" class="btn btn-yellow btn-xl pulse">🖐 SEND IT · FREE PLAY</button>
-        <button id="btn-pvp" class="btn btn-red">⚔ PVP LOBBY<span id="pvp-btn-badge" class="pvp-btn-badge hidden"></span><small class="btn-sub">Private meter · AI stand-in · Bo3/Bo5</small></button>
+      <div class="menu-buttons m1-buttons">
+        <!-- ENTER THE RING → Solo battle -->
+        <button id="btn-enter-ring" class="btn btn-green btn-xl m1-enter">🥊 ENTER THE RING<small class="btn-sub">Solo vs House · wager SOL</small></button>
+        <!-- PVP LOBBY card with pending badge (existing IDs preserved) -->
+        <button id="btn-pvp" class="btn btn-red m1-pvp-card">⚔ PVP LOBBY<span id="pvp-btn-badge" class="pvp-btn-badge hidden"></span><small class="btn-sub">Challenge a player · Bo3/Bo5</small></button>
+        <!-- PRACTICE → free play (existing ID preserved) -->
+        <button id="btn-play" class="btn btn-yellow m1-practice">🎮 PRACTICE<small class="btn-sub">Simulated fights · just for fun</small></button>
+        <!-- Referral card (existing ID preserved) -->
+        <button id="btn-refer" class="btn btn-purple m1-refer">🎁 REFER & EARN<small class="btn-sub">Give 250 PTS · Get 250 PTS</small></button>
         <div class="row">
           <button id="btn-connect" class="btn btn-purple">👛 CONNECT WALLET<small class="btn-sub">Phantom · Solflare</small></button>
           <button id="btn-vault" class="btn btn-green">🏦 STAKE PTS<small class="btn-sub" id="vault-sub">earn yield + boost</small></button>
         </div>
         <button id="btn-shop" class="btn btn-yellow">🛒 SHOP / UPGRADES<small class="btn-sub" id="shop-sub">❤ HEALTH · ✊ POWER</small></button>
-        <button id="btn-refer" class="btn btn-purple">🎁 REFER & EARN<small class="btn-sub">250 PTS per friend</small></button>
         <button id="btn-rescue" class="btn btn-grey hidden">🛟 BROKE? CLAIM FREE PTS</button>
       </div>
       <div id="menu-stats" class="menu-stats"></div>
+      <!-- B1 bottom dock -->
+      <nav class="m1-dock">
+        <button id="m1-dock-shop" class="m1-dock-btn"><span>🛒</span><small>Shop</small><small class="m1-lv" id="m1-shop-lv">Lv0 · Lv0</small></button>
+        <button id="m1-dock-stake" class="m1-dock-btn"><span>🏦</span><small>Stake</small></button>
+        <button id="m1-dock-wallet" class="m1-dock-btn"><span>👛</span><small>Wallet</small></button>
+        <button id="m1-dock-settings" class="m1-dock-btn"><span>⚙️</span><small>Settings</small></button>
+      </nav>
+      <p class="tagline m1-tagline">Slap the shillers. Stack the <b>points</b>.</p>
       <p class="fine">Free to play · earn PTS · bet &amp; stake PTS · wallet is a mock Solana placeholder<br>All KOLs are fictional parody cartoons — not affiliated with or depicting real people.</p>
     </div>
   </section>

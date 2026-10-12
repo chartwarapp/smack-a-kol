@@ -275,6 +275,16 @@
     $('#btn-disconnect').classList.toggle('hidden', !on);
     renderShopStats();
     updateMenuPendingBar();
+    // B1 stats
+    const setText = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+    setText('m1-pts', fmt(S.points)); setText('m1-pts2', fmt(S.points));
+    setText('m1-streak', S.stats.streak); setText('m1-streak2', S.stats.streak);
+    setText('m1-wallet-addr', on ? W.shortAddress() : '—');
+    const tier2 = SAK.playerTier ? SAK.playerTier() : SAK.TIERS[0];
+    setText('m1-tier', tier2.name.toUpperCase());
+    const wr = (S.stats.wins + S.stats.losses) > 0 ? Math.round(S.stats.wins / (S.stats.wins + S.stats.losses) * 100) + '%' : '—';
+    setText('m1-winrate', wr);
+    setText('m1-shop-lv', `Lv${S.upgrades.health} · Lv${S.upgrades.power}`);
     // Ensure fighter is synced to Supabase (for PvP opponent visibility)
     if (on && W.address && S.profile && S.profile.avatar && SAK.Api) {
       SAK.Api.getProfile(W.address).then(p => {
@@ -2220,6 +2230,29 @@
     startFight(res.opponent, pvpWager, { mode: pvpMode, pvp: true });
   }
   $('#btn-pvp').addEventListener('click', () => { A.click(); openPvp(); });
+  // B1: ENTER THE RING → Solo vs House (open lobby scrolled to solo)
+  const enterRing = $('#btn-enter-ring');
+  if (enterRing) enterRing.addEventListener('click', () => {
+    A.click(); openPvp();
+    setTimeout(() => {
+      const solo = document.querySelector('.pvp-card-solo');
+      if (solo) solo.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 300);
+  });
+  // B1 dock buttons → existing flows
+  const dockShop = $('#m1-dock-shop'); if (dockShop) dockShop.onclick = () => { A.click(); $('#btn-shop').click(); };
+  const dockStake = $('#m1-dock-stake'); if (dockStake) dockStake.onclick = () => { A.click(); $('#btn-vault').click(); };
+  const dockWallet = $('#m1-dock-wallet'); if (dockWallet) dockWallet.onclick = () => { A.click(); $('#btn-connect').click(); };
+  const dockSettings = $('#m1-dock-settings'); if (dockSettings) dockSettings.onclick = () => { A.click(); $('#btn-settings').click(); };
+  // B1 top bar icons
+  const mAch = $('#m1-ach'); if (mAch) mAch.onclick = () => {
+    A.click();
+    const unlocked = Object.keys(S.achievements || {}).length;
+    const total = Object.keys(ACHIEVEMENTS).length;
+    toast(`🏆 ${unlocked}/${total} achievements unlocked`, 2200);
+  };
+  const mRefer = $('#m1-refer-icon'); if (mRefer) mRefer.onclick = () => { A.click(); $('#btn-refer').click(); };
+  const mLeader = $('#m1-leader-icon'); if (mLeader) mLeader.onclick = () => { A.click(); $('#btn-leaderboard').click(); };
   $('#pvp-quick').addEventListener('click', () => startPvpSearch(null));
   $('#pvp-cancel').addEventListener('click', () => {
     SAK.Matchmaking.cancel(); clearInterval(pvpTimer);
