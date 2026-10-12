@@ -492,11 +492,28 @@
     crIsNew = !S.profile;
     const p = profile();
     // Always start from the current fighter when editing (not blank)
-    crDraft = Object.assign({}, p.avatar || SAK.Account.randomAvatar());
-    // If editing and avatar was missing, save the fallback so it persists
-    if (!crIsNew && !p.avatar) {
-      S.profile.avatar = Object.assign({}, crDraft);
-      try { SAK.Storage.save(); } catch (_) {}
+    crDraft = Object.assign({}, p.avatar || {});
+    // If local avatar is missing, try to recover from Supabase
+    if (!crIsNew && !p.avatar && W.address && SAK.Api && SAK.Api.getProfile) {
+      SAK.Api.getProfile(W.address).then(sp => {
+        if (sp && sp.fighter_look) {
+          crDraft = Object.assign({}, sp.fighter_look);
+          S.profile.avatar = Object.assign({}, sp.fighter_look);
+          try { SAK.Storage.save(); } catch (_) {}
+          renderCreatorPreview();
+          // Update trait display
+          if (typeof updateTraitDisplay === 'function') updateTraitDisplay();
+        } else {
+          // No cloud backup either, use random
+          crDraft = Object.assign({}, SAK.Account.randomAvatar());
+          renderCreatorPreview();
+        }
+      }).catch(() => {
+        crDraft = Object.assign({}, SAK.Account.randomAvatar());
+        renderCreatorPreview();
+      });
+    } else if (!p.avatar) {
+      crDraft = Object.assign({}, SAK.Account.randomAvatar());
     }
     $('#fit-name').value = S.profile ? p.name : '';
     $('#fit-x').value = S.profile ? (p.x_handle || '') : '';
