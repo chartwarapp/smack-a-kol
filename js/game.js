@@ -286,6 +286,25 @@
     setText('m1-winrate', wr);
     setText('m1-shop-lv', `Lv${S.upgrades.health} · Lv${S.upgrades.power}`);
     // Ensure fighter is synced to Supabase (for PvP opponent visibility)
+    // Expose manual sync for debugging
+    window.syncFighterNow = async () => {
+      if (!W.address || !S.profile || !S.profile.avatar) {
+        console.warn('[SAK] syncFighterNow: missing wallet or local fighter');
+        return false;
+      }
+      try {
+        await SAK.Api.saveProfile(W.address, {
+          name: S.profile.name, phrase: S.profile.phrase || '',
+          fighter_look: S.profile.avatar, x_handle: S.profile.x_handle || '',
+        });
+        console.log('[SAK] Fighter synced to Supabase!');
+        toast('Fighter synced ✓', 2000);
+        return true;
+      } catch (e) {
+        console.error('[SAK] syncFighterNow failed', e);
+        return false;
+      }
+    };
     if (on && W.address && S.profile && S.profile.avatar && SAK.Api) {
       SAK.Api.getProfile(W.address).then(p => {
         if (p && !p.fighter_look) {
@@ -1274,8 +1293,18 @@
     C.round++;
     C.locks = { atk: null, def: null };
     C.resolving = false;
-    // Alternate attacker: round 1 player, round 2 opponent, …
-    C.attacker = (C.round % 2 === 1) ? 'player' : 'kol';
+    // Alternate attacker: for chain PvP, challenger attacks odd rounds, acceptor attacks even rounds.
+    // For local/AI fights, player attacks odd rounds.
+    const isChainPvp = F.opts && F.opts.chainChallenge;
+    const iAmChallenger = F.opts && F.opts.chainRole === 'challenger';
+    const oddRound = (C.round % 2 === 1);
+    if (isChainPvp) {
+      // Challenger attacks odd rounds; acceptor attacks even rounds
+      const iAttack = (oddRound && iAmChallenger) || (!oddRound && !iAmChallenger);
+      C.attacker = iAttack ? 'player' : 'kol';
+    } else {
+      C.attacker = oddRound ? 'player' : 'kol';
+    }
     C.localSide = C.attacker === 'player' ? 'atk' : 'def';
     F.turn = 'challenge';
     F.started = true;
@@ -2559,7 +2588,7 @@
           if (cp && cp.fighter_look) shadow.look = cp.fighter_look;
         } catch (e) {}
       }
-      startFight(shadow, 0, { mode: 'classic', pvp: true, chainChallenge: ch.address, chainWagerSol: sol, chainOpponentWallet: ch.challenger });
+      startFight(shadow, 0, { mode: 'classic', pvp: true, chainChallenge: ch.address, chainWagerSol: sol, chainRole: 'acceptor', chainOpponentWallet: ch.challenger });
       // Start disconnect detection
       if (SAK.PvpSync) SAK.PvpSync.startFight(ch.address, W.address, ch.challenger, () => {
         toast('🏆 Opponent disconnected — you win by forfeit!', 4000);
