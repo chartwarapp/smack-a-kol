@@ -95,9 +95,10 @@ SAK.FighterLock = (() => {
     try {
       const W = SAK.Wallet;
       if (W && W.isConnected && W.address && SAK.Api && SAK.Api.saveProfile) {
+        // NOTE: no locked_fighter_tx column in profiles table (PostgREST rejects
+        // unknown columns) — tx stays local in S.profile.locked_fighter.tx
         await SAK.Api.saveProfile(W.address, {
           fighter_look: SAK.Account.sanitize(fighterLook),
-          locked_fighter_tx: signature,
         });
       }
     } catch (e) { console.warn('[SAK] lock profile sync failed', e); }
@@ -128,9 +129,9 @@ SAK.FighterLock.lockFighterFree = async function (fighterLook) {
   try {
     const W = SAK.Wallet;
     if (W && W.isConnected && W.address && SAK.Api && SAK.Api.saveProfile) {
+      // NOTE: no locked_fighter_tx column (see above)
       await SAK.Api.saveProfile(W.address, {
         fighter_look: clean,
-        locked_fighter_tx: 'ADMIN_FREE_LOCK',
       });
     }
   } catch (e) { console.warn('[SAK] admin free lock profile sync failed', e); }
