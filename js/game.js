@@ -685,16 +685,23 @@
       if (W.isConnected && W.address && SAK.Api) {
         btn.textContent = '🔄 Syncing…';
         try {
-          await SAK.Api.saveProfile(W.address, {
+          // Timeout after 10s so the button doesn't hang forever
+          const syncPromise = SAK.Api.saveProfile(W.address, {
             name: S.profile.name,
             fighter_look: S.profile.avatar, x_handle: S.profile.x_handle || '',
           });
+          const timeoutPromise = new Promise((_, reject) =>
+            setTimeout(() => reject(new Error('Sync timed out')), 10000));
+          await Promise.race([syncPromise, timeoutPromise]);
+          btn.textContent = '✅ LOCKED!';
           toast('🔒 Fighter locked & synced ✓', 2600);
         } catch (e) {
           console.warn('[SAK] auto-sync after lock failed', e);
-          toast('🔒 Locked! (sync failed — tap SYNC)', 2600);
+          btn.textContent = '✅ LOCKED!';
+          toast('🔒 Locked! (sync failed — tap SYNC to retry)', 2600);
         }
       } else {
+        btn.textContent = '✅ LOCKED!';
         toast('🔒 Fighter locked!', 2400);
       }
       showFighterCardButton();
