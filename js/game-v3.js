@@ -1533,7 +1533,7 @@
   }
 
 
-  const REVEAL_MS = 4000; // 4s so players can actually see the YOU vs THEM dial
+  const REVEAL_MS = 2000; // 2s: visible but doesn't drag; tap to skip
 
   function hideLockReveal() {
     if (revealDismiss) {
