@@ -294,7 +294,7 @@
       }
       try {
         await SAK.Api.saveProfile(W.address, {
-          name: S.profile.name, phrase: S.profile.phrase || '',
+          name: S.profile.name,
           fighter_look: S.profile.avatar, x_handle: S.profile.x_handle || '',
         });
         console.log('[SAK] Fighter synced to Supabase!');
@@ -309,7 +309,7 @@
       SAK.Api.getProfile(W.address).then(p => {
         if (p && !p.fighter_look) {
           SAK.Api.saveProfile(W.address, {
-            name: S.profile.name, phrase: S.profile.phrase || '',
+            name: S.profile.name,
             fighter_look: S.profile.avatar, x_handle: S.profile.x_handle || '',
           }).catch(e => console.warn('[SAK] menu fighter sync failed', e));
         }
@@ -699,7 +699,7 @@
     syncBtn.disabled = true; syncBtn.textContent = '⏳ Syncing…';
     try {
       await SAK.Api.saveProfile(W.address, {
-        name: S.profile.name, phrase: S.profile.phrase || '',
+        name: S.profile.name,
         fighter_look: S.profile.avatar, x_handle: S.profile.x_handle || '',
       });
       toast('Fighter synced ✓ — visible in PvP', 2600);
@@ -754,7 +754,7 @@
     }
     if (W.isConnected && W.address) {
       SAK.Api.saveProfile(W.address, {
-        name: S.profile.name, phrase: S.profile.phrase, fighter_look: S.profile.avatar, x_handle: xh,
+        name: S.profile.name, fighter_look: S.profile.avatar, x_handle: xh,
       }).catch(e => console.warn('[SAK] profile save failed', e));
     }
     if (Scene) Scene.setPlayer(playerAvatar());
