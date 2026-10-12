@@ -685,6 +685,26 @@
   });
   $('#cr-later').addEventListener('click', () => { closeCreator(); if (playAfterFighter) setTimeout(openPicker, 50); });   // play as guest
   $('#cr-cancel').addEventListener('click', () => { if (crIsNew) showCreatorStep('name'); else closeCreator(); });
+  // Manual fighter sync to Supabase for PvP visibility
+  const syncBtn = $('#cr-sync');
+  if (syncBtn) syncBtn.addEventListener('click', async () => {
+    if (!W.address || !W.isConnected) { toast('Connect wallet first', 2000); return; }
+    if (!S.profile || !S.profile.avatar) { toast('No fighter to sync', 2000); return; }
+    syncBtn.disabled = true; syncBtn.textContent = '⏳ Syncing…';
+    try {
+      await SAK.Api.saveProfile(W.address, {
+        name: S.profile.name, phrase: S.profile.phrase || '',
+        fighter_look: S.profile.avatar, x_handle: S.profile.x_handle || '',
+      });
+      toast('Fighter synced ✓ — visible in PvP', 2600);
+      syncBtn.textContent = '✅ SYNCED';
+    } catch (e) {
+      toast('Sync failed: ' + (e.message || e), 2600);
+      syncBtn.textContent = '🔄 SYNC';
+    }
+    syncBtn.disabled = false;
+    setTimeout(() => { syncBtn.textContent = '🔄 SYNC'; }, 3000);
+  });
   /**
    * Shared save: writes name/phrase/avatar to the profile (local + backend),
    * updates the 3D player, and shows the fighter-card share button.

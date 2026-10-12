@@ -279,7 +279,7 @@ SAK.PvpSync = (function () {
       } catch (e) {
         console.warn('[PvpSync] round poll failed', e.message);
       }
-    }, 2000); // poll every 2s
+    }, 1000); // poll every 1s
   }
 
   function stopRoundPoll() {
