@@ -681,7 +681,22 @@
       await saveFighterProfile(nm || undefined, q || undefined, { starter_id: null, custom: true });
       btn.textContent = '✅ LOCKED!';
       A.perfect();
-      toast('🔒 Fighter locked!', 2400);
+      // Auto-sync to Supabase when wallet is connected (for PvP visibility)
+      if (W.isConnected && W.address && SAK.Api) {
+        btn.textContent = '🔄 Syncing…';
+        try {
+          await SAK.Api.saveProfile(W.address, {
+            name: S.profile.name,
+            fighter_look: S.profile.avatar, x_handle: S.profile.x_handle || '',
+          });
+          toast('🔒 Fighter locked & synced ✓', 2600);
+        } catch (e) {
+          console.warn('[SAK] auto-sync after lock failed', e);
+          toast('🔒 Locked! (sync failed — tap SYNC)', 2600);
+        }
+      } else {
+        toast('🔒 Fighter locked!', 2400);
+      }
       showFighterCardButton();
     } catch (e) {
       console.warn('[SAK] lock failed', e);
