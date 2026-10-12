@@ -332,6 +332,7 @@
   function show(name) {
     screen = name;
     $$('.screen').forEach(s => s.classList.toggle('active', s.id === 'screen-' + name));
+    document.body.classList.toggle('on-menu', name === 'menu');
     if (Scene) Scene.setMode(name === 'result' ? 'fight' : name);
     if (name === 'menu') renderMenu();
   }
