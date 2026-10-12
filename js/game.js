@@ -491,7 +491,13 @@
     playAfterFighter = !!thenPlay;
     crIsNew = !S.profile;
     const p = profile();
-    crDraft = Object.assign({}, p.avatar);
+    // Always start from the current fighter when editing (not blank)
+    crDraft = Object.assign({}, p.avatar || SAK.Account.randomAvatar());
+    // If editing and avatar was missing, save the fallback so it persists
+    if (!crIsNew && !p.avatar) {
+      S.profile.avatar = Object.assign({}, crDraft);
+      try { SAK.Storage.save(); } catch (_) {}
+    }
     $('#fit-name').value = S.profile ? p.name : '';
     $('#fit-x').value = S.profile ? (p.x_handle || '') : '';
     $('#cr-name').value = S.profile ? p.name : '';
