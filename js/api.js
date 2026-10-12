@@ -41,6 +41,7 @@ SAK.Api = (function () {
     recordMatch(d, ...a) { return backend.recordMatch(d, ...a); },
     audit(w, act, det, ...a) { return backend.audit(w, act, det, ...a); },
     recordReferral(d, ...a) { return backend.recordReferral ? backend.recordReferral(d, ...a) : Promise.resolve(null); },
+    _req(...a) { return backend._req ? backend._req(...a) : Promise.reject(new Error('Backend does not support _req')); },
   };
 })();
 

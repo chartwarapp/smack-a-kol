@@ -275,6 +275,17 @@
     $('#btn-disconnect').classList.toggle('hidden', !on);
     renderShopStats();
     updateMenuPendingBar();
+    // Ensure fighter is synced to Supabase (for PvP opponent visibility)
+    if (on && W.address && S.profile && S.profile.avatar && SAK.Api) {
+      SAK.Api.getProfile(W.address).then(p => {
+        if (p && !p.fighter_look) {
+          SAK.Api.saveProfile(W.address, {
+            name: S.profile.name, phrase: S.profile.phrase || '',
+            fighter_look: S.profile.avatar, x_handle: S.profile.x_handle || '',
+          }).catch(e => console.warn('[SAK] menu fighter sync failed', e));
+        }
+      }).catch(() => {});
+    }
     // Keep badge fresh while on menu (poll every 10s)
     if (window._pvpBadgeTimer) clearInterval(window._pvpBadgeTimer);
     window._pvpBadgeTimer = setInterval(() => {
