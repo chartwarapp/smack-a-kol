@@ -155,7 +155,7 @@ h2, h3, .prompt, .vs, .level, .fc-name, .banner, .float-text, .result-title {
 .menu-buttons { display: grid; gap: 14px; }
 .menu-stats { margin-top: 14px; display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; font-size: 15px; }
 .menu-stats span { background: #1a0b3a88; padding: 5px 10px; border-radius: 10px; }
-.fine { font-family: system-ui, sans-serif; font-size: 11px; opacity: .8; margin: 10px 0 0; text-shadow: none; }
+.fine { font-family: var(--font); font-size: 11px; opacity: .8; margin: 10px 0 0; text-shadow: none; }
 
 /* ---------------------------------------------------------------- picker */
 .pick-header { position: absolute; top: calc(62px + var(--safe-top)); left: 10px; right: 10px; display: flex; align-items: center; gap: 10px; }
@@ -166,8 +166,8 @@ h2, h3, .prompt, .vs, .level, .fc-name, .banner, .float-text, .result-title {
 }
 .kol-detail { display: grid; grid-template-columns: 1fr auto; gap: 4px 10px; margin-bottom: 10px; }
 .kol-detail .kd-name { font-size: 30px; line-height: 1; }
-.kol-detail .kd-handle { font-family: system-ui; font-size: 13px; opacity: .75; }
-.kol-detail .kd-tag { grid-column: 1 / -1; font-family: system-ui, sans-serif; font-size: 14px; font-style: italic; opacity: .95; }
+.kol-detail .kd-handle { font-family: var(--font); font-size: 13px; opacity: .75; }
+.kol-detail .kd-tag { grid-column: 1 / -1; font-family: var(--font); font-size: 14px; font-style: italic; opacity: .95; }
 .kol-detail .kd-stars { font-size: 20px; color: var(--yellow); text-align: right; }
 .kd-stats { grid-column: 1 / -1; display: grid; grid-template-columns: auto 1fr auto; gap: 4px 8px; align-items: center; font-size: 14px; }
 .stat-bar { height: 10px; background: #ffffff22; border-radius: 6px; overflow: hidden; }
@@ -380,7 +380,7 @@ h2, h3, .prompt, .vs, .level, .fc-name, .banner, .float-text, .result-title {
 .result-card.win .result-title { color: var(--yellow); }
 .result-card.lose .result-title { color: var(--red); }
 .result-card .avatar-svg { width: 96px; height: 96px; border-radius: 18px; border: 4px solid #fff; margin: 6px auto; display: block; }
-.result-sub { font-family: system-ui; font-size: 14px; opacity: .9; margin-bottom: 10px; }
+.result-sub { font-family: var(--font); font-size: 14px; opacity: .9; margin-bottom: 10px; }
 .breakdown { background: #0003; border-radius: 14px; padding: 8px 12px; margin-bottom: 14px; font-size: 15px; }
 .breakdown div { display: flex; justify-content: space-between; padding: 3px 0; }
 .breakdown .total { border-top: 2px dashed #fff5; margin-top: 4px; padding-top: 6px; font-size: 20px; color: var(--yellow); }
@@ -396,7 +396,7 @@ h2, h3, .prompt, .vs, .level, .fc-name, .banner, .float-text, .result-title {
 .wallet-card h3, .vault-card h3, .pvp-card h3, .submit-card h3, .lb-card h3 {
   color: #fff; text-shadow: var(--outline-soft);
 }
-.modal-card p, .modal-card li { font-family: system-ui, sans-serif; margin: 0; }
+.modal-card p, .modal-card li { font-family: var(--font); margin: 0; }
 .wallet-card { text-align: center; background: linear-gradient(#ab9bff, #fff 45%); }
 .wallet-logo { font-size: 52px; }
 .perm { list-style: none; padding: 0; margin: 0; text-align: left; display: grid; gap: 4px; background: #f1edff; padding: 10px; border-radius: 12px; font-size: 14px; }
@@ -469,11 +469,11 @@ h2, h3, .prompt, .vs, .level, .fc-name, .banner, .float-text, .result-title {
   border: 2px solid #0b5a40; text-shadow: 0 1px 0 #0b5a40;
 }
 .pts.sm { width: 18px; height: 18px; font-size: 11px; border-width: 1.5px; }
-.btn-sub { display: block; font-size: 12px; opacity: .9; margin-top: 2px; font-family: system-ui, sans-serif; font-weight: 700; text-shadow: none; }
+.btn-sub { display: block; font-size: 12px; opacity: .9; margin-top: 2px; font-family: var(--font); font-weight: 400; text-shadow: none; letter-spacing: .5px; }
 .row .btn { font-size: 17px; padding: 10px 8px; }
 .bet-row { margin: 0 0 10px; }
 .bet-label { font-size: 14px; margin-bottom: 6px; display: flex; justify-content: space-between; gap: 8px; }
-.bet-label span { font-family: system-ui, sans-serif; font-size: 12px; opacity: .85; text-align: right; }
+.bet-label span { font-family: var(--font); font-size: 12px; opacity: .85; text-align: right; }
 .bet-chips { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; }
 .bet-chip {
   flex: none; min-width: 64px; padding: 6px 10px; border-radius: 12px; background: #ffffff1c; border: 2px solid #ffffff33; font-size: 14px;
@@ -489,7 +489,7 @@ h2, h3, .prompt, .vs, .level, .fc-name, .banner, .float-text, .result-title {
 .vault-stats small { display: block; font-size: 11px; opacity: .7; }
 .vault-stats b { font-size: 18px; font-variant-numeric: tabular-nums; }
 .vault-tier { text-align: center; font-size: 18px; padding: 6px; border-radius: 12px; background: var(--ink); color: #fff; }
-.tier-list { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; font-size: 11px; text-align: center; font-family: system-ui; font-weight: 800; }
+.tier-list { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; font-size: 12px; text-align: center; font-family: var(--font); }
 .tier-list div { border-radius: 8px; padding: 4px 2px; background: #eee; opacity: .55; }
 .tier-list div.on { opacity: 1; outline: 2px solid var(--ink); }
 .vault-amounts { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; }
@@ -580,7 +580,7 @@ h2, h3, .prompt, .vs, .level, .fc-name, .banner, .float-text, .result-title {
 .pvp-card-solo { background: #f0fdf4; border-color: #86efac; }
 .pvp-card-head { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
 .pvp-card-icon { font-size: 28px; line-height: 1; }
-.pvp-card-title { font: 800 16px system-ui, sans-serif; color: var(--ink); letter-spacing: .5px; }
+.pvp-card-title { font-family: var(--font); font-size: 18px; color: var(--ink); letter-spacing: .5px; }
 .pvp-card-sub { font: 600 11px system-ui, sans-serif; color: #666; margin-top: 2px; }
 .pvp-card-head .tag-devnet { margin-left: auto; }
 .pvp-list { display: grid; gap: 6px; max-height: 260px; overflow-y: auto; }
