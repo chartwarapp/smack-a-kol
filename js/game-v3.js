@@ -1314,6 +1314,38 @@
     const C = F.challenge;
     const aiSide = C.localSide === 'atk' ? 'def' : 'atk';
     if (C.locks[aiSide]) return;
+    // Chain PvP: wait for the real opponent's lock via Supabase (no AI)
+    const isChainPvp = F.opts && F.opts.chainChallenge && SAK.PvpSync;
+    if (isChainPvp) {
+      const challengeAddr = F.opts.chainChallenge;
+      const roundNum = C.round;
+      const myRole = C.localSide;
+      setWaitUI(true, 'WAITING FOR OPPONENT…');
+      SAK.PvpSync.pollForOpponentLock(challengeAddr, roundNum, myRole,
+        (atkLock, defLock) => {
+          // Reconstruct zone objects from IDs
+          const zoneById = id => SAK.METER.zones.find(z => z.id === id) || SAK.METER.zones[SAK.METER.zones.length - 1];
+          C.locks.atk = { zone: zoneById(atkLock.zone), angle: 0, dist: atkLock.dist, already: false };
+          C.locks.def = { zone: zoneById(defLock.zone), angle: 0, dist: defLock.dist, already: false };
+          if (C.locks[C.localSide]) {
+            setWaitUI(true, 'OPPONENT LOCKED · REVEALING…');
+            resolveChallengeRound();
+          }
+        },
+        () => {
+          // Timeout: opponent didn't lock in 30s, use a miss
+          toast('Opponent timed out — round forfeited', 2600);
+          const missZone = SAK.METER.zones.find(z => z.id === 'miss');
+          C.locks[aiSide] = { zone: missZone, angle: 90, dist: 90, already: false };
+          if (C.locks[C.localSide]) {
+            setWaitUI(true, 'OPPONENT TIMED OUT · REVEALING…');
+            resolveChallengeRound();
+          }
+        }
+      );
+      return;
+    }
+    // Non-chain (vs AI): use AI simulation
     C.locks[aiSide] = makeLockResult(forcedAngle);
     // Never reveal opponent needle — only a private status ping if local already locked
     if (C.locks[C.localSide]) {
@@ -1340,10 +1372,28 @@
     A.click();
     haptic(18);
 
+    // Chain PvP: submit my lock to Supabase for the opponent to see
+    const isChainPvp = F.opts && F.opts.chainChallenge && SAK.PvpSync;
+    if (isChainPvp) {
+      const challengeAddr = F.opts.chainChallenge;
+      const roundNum = C.round;
+      // Determine attacker/defender wallets for this round
+      const playerIsAtk = C.attacker === 'player';
+      const attackerWallet = playerIsAtk ? W.address : F.opts.chainOpponentWallet;
+      const defenderWallet = playerIsAtk ? F.opts.chainOpponentWallet : W.address;
+      SAK.PvpSync.submitLock(challengeAddr, roundNum, W.address, side,
+        { dist: result.dist, zone: result.zone.id },
+        attackerWallet, defenderWallet);
+    }
+
     const aiSide = side === 'atk' ? 'def' : 'atk';
     if (C.locks[aiSide]) {
       setWaitUI(true, 'BOTH LOCKED · REVEALING…');
       resolveChallengeRound();
+    } else if (isChainPvp) {
+      // Chain PvP: trigger the opponent poll (don't use AI)
+      setWaitUI(true, 'LOCKED · WAITING FOR OPPONENT…');
+      lockOpponentPrivate();
     } else {
       setWaitUI(true, 'LOCKED · OPPONENT LOCKING PRIVATELY…');
     }
@@ -1436,6 +1486,8 @@
 
   async function resolveChallengeRound() {
     if (!F || F.challenge.resolving) return;
+    // Stop any active round poll
+    if (SAK.PvpSync) SAK.PvpSync.stopRoundPoll();
     F.challenge.resolving = true;
     F.turn = 'busy';
     clearTimeout(aiLockTimer);
@@ -1600,8 +1652,8 @@
   }
 
   function endFight(win, draw) {
-    // Stop PvP sync heartbeats
-    if (SAK.PvpSync) SAK.PvpSync.stopFight();
+    // Stop PvP sync heartbeats and round polls
+    if (SAK.PvpSync) { SAK.PvpSync.stopFight(); SAK.PvpSync.stopRoundPoll(); }
     const k = F.kol, st = S.stats, R = SAK.REWARDS, PR = SAK.POINT_REWARDS;
     // Challenge match: record + resolve on the backend (v1: winner by local result).
     if (F.opts && F.opts.challengeId && W.address) {

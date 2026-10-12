@@ -185,6 +185,105 @@ SAK.PvpSync = (function () {
     }
   }
 
+  /* --- Round sync ------------------------------------------------------- */
+  // Table: pvp_rounds (challenge_addr TEXT, round_num INT, attacker_wallet TEXT,
+  //                    defender_wallet TEXT, atk_dist FLOAT, atk_zone TEXT,
+  //                    def_dist FLOAT, def_zone TEXT, created_at TIMESTAMPTZ)
+  // Primary key: (challenge_addr, round_num)
+
+  let roundPollTimer = null;
+
+  /**
+   * Submit my lock for the current round.
+   * @param {string} challengeAddr
+   * @param {number} roundNum
+   * @param {string} wallet - my wallet
+   * @param {string} role - 'atk' or 'def'
+   * @param {object} lock - { dist, zone }
+   * @param {string} attackerWallet - who's attacking this round
+   * @param {string} defenderWallet - who's defending this round
+   */
+  async function submitLock(challengeAddr, roundNum, wallet, role, lock, attackerWallet, defenderWallet) {
+    const field_prefix = role === 'atk' ? 'atk' : 'def';
+    try {
+      // Try to update existing row first
+      const existing = await api()._req('GET',
+        `/pvp_rounds?challenge_addr=eq.${encodeURIComponent(challengeAddr)}&round_num=eq.${roundNum}&select=*`);
+      if (existing && existing.length > 0) {
+        // Update with my lock
+        await api()._req('PATCH',
+          `/pvp_rounds?challenge_addr=eq.${encodeURIComponent(challengeAddr)}&round_num=eq.${roundNum}`,
+          {
+            [`${field_prefix}_dist`]: lock.dist,
+            [`${field_prefix}_zone`]: lock.zone,
+          },
+          'return=minimal');
+      } else {
+        // Create new row with my lock
+        await api()._req('POST', '/pvp_rounds',
+          {
+            challenge_addr: challengeAddr,
+            round_num: roundNum,
+            attacker_wallet: attackerWallet,
+            defender_wallet: defenderWallet,
+            [`${field_prefix}_dist`]: lock.dist,
+            [`${field_prefix}_zone`]: lock.zone,
+          },
+          'return=minimal');
+      }
+    } catch (e) {
+      console.warn('[PvpSync] submitLock failed', e.message);
+    }
+  }
+
+  /**
+   * Poll for the opponent's lock. Calls onBothLocks(atkLock, defLock) when both are available.
+   */
+  function pollForOpponentLock(challengeAddr, roundNum, myRole, onBothLocks, onTimeout) {
+    stopRoundPoll();
+    const startTime = Date.now();
+    const TIMEOUT = 30000; // 30s per round
+
+    roundPollTimer = setInterval(async () => {
+      // Check timeout
+      if (Date.now() - startTime > TIMEOUT) {
+        stopRoundPoll();
+        if (onTimeout) onTimeout();
+        return;
+      }
+
+      try {
+        const rows = await api()._req('GET',
+          `/pvp_rounds?challenge_addr=eq.${encodeURIComponent(challengeAddr)}&round_num=eq.${roundNum}&select=*`);
+        const row = rows && rows[0];
+        if (!row) return;
+
+        const oppRole = myRole === 'atk' ? 'def' : 'atk';
+        const oppDist = row[`${oppRole}_dist`];
+        const oppZone = row[`${oppRole}_zone`];
+
+        if (oppDist != null && oppZone != null) {
+          stopRoundPoll();
+          const atkLock = myRole === 'atk'
+            ? { dist: row.atk_dist, zone: row.atk_zone }
+            : { dist: oppDist, zone: oppZone };
+          const defLock = myRole === 'def'
+            ? { dist: row.def_dist, zone: row.def_zone }
+            : { dist: oppDist, zone: oppZone };
+          // Reconstruct full lock objects (need grade for damage calc)
+          // For now, pass dist/zone; game.js will handle the rest
+          if (onBothLocks) onBothLocks(atkLock, defLock);
+        }
+      } catch (e) {
+        console.warn('[PvpSync] round poll failed', e.message);
+      }
+    }, 2000); // poll every 2s
+  }
+
+  function stopRoundPoll() {
+    if (roundPollTimer) { clearInterval(roundPollTimer); roundPollTimer = null; }
+  }
+
   /* --- SQL for the tables (run once in Supabase) ------------------------ */
   const HEARTBEAT_TABLE_SQL = `
 -- Run this once in your Supabase SQL editor:
@@ -199,6 +298,22 @@ CREATE TABLE IF NOT EXISTS pvp_challenges (
 ALTER TABLE pvp_challenges ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "open_challenges" ON pvp_challenges FOR ALL USING (true) WITH CHECK (true);
 CREATE INDEX IF NOT EXISTS idx_challenges_wallets ON pvp_challenges (challenger, opponent);
+
+CREATE TABLE IF NOT EXISTS pvp_rounds (
+  challenge_addr TEXT NOT NULL,
+  round_num INT NOT NULL,
+  attacker_wallet TEXT NOT NULL,
+  defender_wallet TEXT NOT NULL,
+  atk_dist FLOAT,
+  atk_zone TEXT,
+  def_dist FLOAT,
+  def_zone TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  PRIMARY KEY (challenge_addr, round_num)
+);
+ALTER TABLE pvp_rounds ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "open_rounds" ON pvp_rounds FOR ALL USING (true) WITH CHECK (true);
+CREATE INDEX IF NOT EXISTS idx_rounds_challenge ON pvp_rounds (challenge_addr);
 
 CREATE TABLE IF NOT EXISTS pvp_heartbeats (
   challenge_addr TEXT NOT NULL,
@@ -222,6 +337,9 @@ CREATE INDEX IF NOT EXISTS idx_heartbeats_seen ON pvp_heartbeats (last_seen);
     getMyChallenges,
     trackChallenge,
     updateChallengeStatus,
+    submitLock,
+    pollForOpponentLock,
+    stopRoundPoll,
     HEARTBEAT_TABLE_SQL,
     DISCONNECT_TIMEOUT,
   };
