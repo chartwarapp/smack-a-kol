@@ -362,7 +362,19 @@ SAK.Audio = (function () {
     coin() { if (!ready()) return; tone(988, 0.08, 'square', 0.12); tone(1318, 0.25, 'square', 0.12, 0.08); },
     click() { if (!ready()) return; tone(660, 0.05, 'square', 0.08); },
     fire() { if (!ready()) return; noise(0.5, 900, 0.6, 0.4, 'lowpass'); tone(220, 0.5, 'sawtooth', 0.15, 0, 880); },
-    ko() { if (!ready()) return; tone(520, 0.7, 'sawtooth', 0.2, 0, 90); noise(0.4, 300, 0.7, 0.6, 'lowpass'); },
+    ko() {
+      if (!ready()) return;
+      // Funny painful KO: heaviest real slap layered with cartoon explosion (no synth)
+      const playBuf = (id, vol, delay) => {
+        const buf = slapBufs[id] || crowdBufs[id];
+        if (!buf) return;
+        const src = ctx.createBufferSource(); src.buffer = buf;
+        const g = ctx.createGain(); g.gain.value = vol;
+        src.connect(g); g.connect(master); src.start(ctx.currentTime + (delay || 0));
+      };
+      playBuf('monster', 1.0, 0);          // heavy real slap impact
+      playBuf('defeat_silly', 0.55, 0.08);  // cartoon explosion right after
+    },
     win() { if (!ready()) return; [523, 659, 784, 1046].forEach((f, i) => tone(f, 0.35, 'triangle', 0.2, i * 0.11)); crowdWin(); },
     realCheer() { playRealCheer(); }, // real victory recording only, no synth
     lose() { if (!ready()) return; [392, 330, 262].forEach((f, i) => tone(f, 0.45, 'sine', 0.2, i * 0.18)); crowdLose(); },
