@@ -1554,7 +1554,7 @@
       const attackerWallet = playerIsAtk ? W.address : F.opts.chainOpponentWallet;
       const defenderWallet = playerIsAtk ? F.opts.chainOpponentWallet : W.address;
       SAK.PvpSync.submitLock(challengeAddr, roundNum, W.address, side,
-        { dist: result.dist, zone: result.zone.id },
+        { dist: result.dist, zone: result.zone.id, angle: result.angle },
         attackerWallet, defenderWallet);
     }
 
