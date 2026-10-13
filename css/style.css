@@ -1010,3 +1010,14 @@ h2, h3, .prompt, .vs, .level, .fc-name, .banner, .float-text, .result-title {
 body.on-menu #topbar { display: none; }
 body.on-menu #ticker { display: none; }
 .menu-b1 #menu-stats { display: none !important; }
+
+/* Admin sound effects section */
+.snd-row { display: flex; align-items: center; gap: 10px; margin: 8px 0; }
+.snd-row label { flex: 1; font-size: 13px; font-weight: 700; color: #fff; }
+.snd-row input[type=range] { flex: 2; }
+.snd-row span { min-width: 42px; text-align: right; font-size: 12px; color: #ffd23f; font-weight: 700; }
+.snd-toggle .btn { min-width: 60px; }
+.snd-preview { margin-top: 12px; }
+.snd-preview h5 { font-size: 11px; color: #aaa; margin: 0 0 8px; letter-spacing: 1px; }
+.snd-btns { display: flex; flex-wrap: wrap; gap: 6px; }
+.snd-btns .btn { font-size: 12px; padding: 6px 10px; }

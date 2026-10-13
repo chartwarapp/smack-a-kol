@@ -2903,6 +2903,38 @@
       $('#admin-edge').textContent = `House edge: ${edge.toFixed(2)}%`;
     };
     $('#admin-house').oninput = paintEdge; paintEdge();
+    // Sound effects controls
+    const scfg = SAK.Audio.soundCfg || {};
+    const bindVol = (id, key) => {
+      const el = $('#snd-' + id), lbl = $('#snd-' + id + '-lbl');
+      if (!el) return;
+      // master: 0-100%, others: 0-150% (stored as 0-1.5 multiplier)
+      const toSlider = v => key === 'master' ? Math.round(v * 100) : Math.round(v / 1.5 * 100);
+      const fromSlider = s => key === 'master' ? s / 100 : (s / 100) * 1.5;
+      el.value = toSlider(scfg[key] ?? (key === 'master' ? 0.5 : 1));
+      const paint = () => { lbl.textContent = el.value + '%'; };
+      el.oninput = () => { paint(); scfg[key] = fromSlider(+el.value); SAK.Audio.saveSoundCfg(); };
+      paint();
+    };
+    bindVol('master', 'master'); bindVol('slap', 'slap'); bindVol('crowd', 'crowd'); bindVol('react', 'react');
+    const bindToggle = (id, key) => {
+      const el = $('#snd-' + id + '-toggle');
+      if (!el) return;
+      const paint = () => { el.textContent = scfg[key] ? 'ON' : 'OFF'; el.classList.toggle('btn-grey', !scfg[key]); };
+      el.onclick = () => { scfg[key] = !scfg[key]; SAK.Audio.saveSoundCfg(); paint(); };
+      paint();
+    };
+    bindToggle('react', 'reactOn'); bindToggle('defeat', 'defeatOn');
+    // Preview buttons
+    document.querySelectorAll('[data-preview]').forEach(btn => {
+      btn.onclick = () => {
+        SAK.Audio.unlock();
+        const id = btn.dataset.preview;
+        if (id === 'slap') SAK.Audio.slap(1.0);
+        else if (id === 'ko') SAK.Audio.ko();
+        else SAK.Audio.previewSlap(id) || SAK.Audio.previewCrowd?.(id);
+      };
+    });
     // Overview stats
     try {
       const open = await SAK.Api.listChallenges('open');

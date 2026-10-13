@@ -5,6 +5,19 @@ window.SAK = window.SAK || {};
 
 SAK.Audio = (function () {
   let ctx = null, master = null, noiseBuf = null;
+  // Admin sound controls (LT 2026-10-13) — defined early so all functions can use it
+  const soundCfg = {
+    master: 0.5, slap: 1.0, crowd: 1.0, react: 1.0,
+    reactOn: true, defeatOn: true,
+  };
+  try {
+    const saved = JSON.parse(localStorage.getItem('sak_sound_cfg') || '{}');
+    Object.assign(soundCfg, saved);
+  } catch (e) {}
+  function saveSoundCfg() {
+    try { localStorage.setItem('sak_sound_cfg', JSON.stringify(soundCfg)); } catch (e) {}
+    if (master) master.gain.value = soundCfg.master;
+  }
 
   /* ---- Real recorded slap SFX bank (Pixabay Content License — free for use) ---- */
   const CROWD_BANK = [
@@ -174,7 +187,7 @@ SAK.Audio = (function () {
     if (!AC) return;
     ctx = new AC();
     master = ctx.createGain();
-    master.gain.value = 0.5;
+    master.gain.value = soundCfg.master; // apply saved admin volume
     master.connect(ctx.destination);
     noiseBuf = ctx.createBuffer(1, ctx.sampleRate * 0.6, ctx.sampleRate);
     const d = noiseBuf.getChannelData(0);
@@ -309,7 +322,7 @@ SAK.Audio = (function () {
   // Defeat: random funny KO sound (real recordings, never synthesized)
   const DEFEAT_SOUNDS = ['defeat_dizzy', 'defeat_trombone', 'defeat_silly'];
   function crowdLose() {
-    if (!ready()) return;
+    if (!ready() || !soundCfg.defeatOn) return;
     const pick = DEFEAT_SOUNDS[Math.floor(Math.random() * DEFEAT_SOUNDS.length)];
     if (!playCrowdBuf(pick, 0.7)) {
       // Fallback: fetch and play if not yet loaded
@@ -336,7 +349,7 @@ SAK.Audio = (function () {
     }
     const src = ctx.createBufferSource(); src.buffer = buf;
     src.playbackRate.value = 0.95 + Math.random() * 0.1;
-    const g = ctx.createGain(); g.gain.value = 0.45;
+    const g = ctx.createGain(); g.gain.value = 0.45 * soundCfg.react;
     src.connect(g); g.connect(master);
     src.start(ctx.currentTime + 0.05); // slight delay so the slap crack hits first
   }
@@ -344,12 +357,21 @@ SAK.Audio = (function () {
   return {
     unlock,
     SLAP_BANK,
+    soundCfg, saveSoundCfg,
     slapStyle,
     /** Preview a bank sound in Settings (bypasses nothing — respects sound toggle). */
     previewSlap(id) {
       if (!ready()) return;
-      const buf = slapBufs[id];
-      if (!buf) return;
+      const buf = slapBufs[id] || crowdBufs[id];
+      if (!buf) {
+        // Try to load it first
+        const entry = CROWD_BANK.find(b => b.id === id) || SLAP_BANK.find(b => b.id === id);
+        if (entry) fetch(entry.file).then(r => r.arrayBuffer())
+          .then(ab => ctx.decodeAudioData(ab))
+          .then(b => { crowdBufs[id] = b; SAK.Audio.previewSlap(id); })
+          .catch(() => {});
+        return;
+      }
       const src = ctx.createBufferSource(); src.buffer = buf;
       const g = ctx.createGain(); g.gain.value = 0.9;
       src.connect(g); g.connect(master); src.start();
@@ -361,8 +383,16 @@ SAK.Audio = (function () {
     slapStyle,
     previewSlap(id) {
       if (!ready()) return;
-      const buf = slapBufs[id];
-      if (!buf) return;
+      const buf = slapBufs[id] || crowdBufs[id];
+      if (!buf) {
+        // Try to load it first
+        const entry = CROWD_BANK.find(b => b.id === id) || SLAP_BANK.find(b => b.id === id);
+        if (entry) fetch(entry.file).then(r => r.arrayBuffer())
+          .then(ab => ctx.decodeAudioData(ab))
+          .then(b => { crowdBufs[id] = b; SAK.Audio.previewSlap(id); })
+          .catch(() => {});
+        return;
+      }
       const src = ctx.createBufferSource(); src.buffer = buf;
       const g = ctx.createGain(); g.gain.value = 0.9;
       src.connect(g); g.connect(master); src.start();
@@ -371,8 +401,8 @@ SAK.Audio = (function () {
     stopMusic,
     slap(strength) {          // strength 0..1+
       if (!ready()) return;
-      crowdSlap(strength);  // crowd gasps/cheers on every slap
-      playSlapReact();      // funny cartoon reaction, layered over the slap
+      crowdSlap(strength * soundCfg.crowd);  // crowd gasps/cheers on every slap
+      if (soundCfg.reactOn) playSlapReact();      // funny cartoon reaction, layered over the slap
       if (playSlapBuf(strength)) return;   // real recorded slap
       // synth fallback (bank not loaded yet / fetch failed) — noise only, no tones
       const s = Math.min(1.5, strength);
