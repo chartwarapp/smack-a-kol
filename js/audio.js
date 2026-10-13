@@ -12,6 +12,9 @@ SAK.Audio = (function () {
     { id: 'cheer2', file: 'assets/sfx/crowd_crowd2.mp3' },
     { id: 'victory', file: 'assets/sfx/crowd_victory.mp3' },
     { id: 'bell', file: 'assets/sfx/bell_boxing.mp3' },
+    { id: 'defeat_dizzy', file: 'assets/sfx/defeat_dizzy.mp3' },
+    { id: 'defeat_trombone', file: 'assets/sfx/defeat_trombone.mp3' },
+    { id: 'defeat_silly', file: 'assets/sfx/defeat_silly.mp3' },
   ];
   const crowdBufs = {};
   function loadCrowdBank() {
@@ -300,11 +303,19 @@ SAK.Audio = (function () {
       crowdLayer({ freq: 1200, q: 0.4, dur: 2.5, gain: 0.5, attack: 0.12, strength: 1.3 });
     }
   }
-  // Defeat: crowd "oooh" — sympathetic groan
+  // Defeat: random funny KO sound (real recordings, never synthesized)
+  const DEFEAT_SOUNDS = ['defeat_dizzy', 'defeat_trombone', 'defeat_silly'];
   function crowdLose() {
     if (!ready()) return;
-    crowdLayer({ freq: 900, q: 0.5, dur: 1.2, gain: 0.2, attack: 0.2, strength: 1 });
-    crowdLayer({ freq: 600, q: 0.5, dur: 1.4, gain: 0.18, attack: 0.25, when: 0.1, strength: 1 });
+    const pick = DEFEAT_SOUNDS[Math.floor(Math.random() * DEFEAT_SOUNDS.length)];
+    if (!playCrowdBuf(pick, 0.7)) {
+      // Fallback: fetch and play if not yet loaded
+      const entry = CROWD_BANK.find(b => b.id === pick);
+      if (entry) fetch(entry.file).then(r => r.arrayBuffer())
+        .then(ab => ctx.decodeAudioData(ab))
+        .then(buf => { crowdBufs[pick] = buf; playCrowdBuf(pick, 0.7); })
+        .catch(() => {});
+    }
   }
 
   return {
