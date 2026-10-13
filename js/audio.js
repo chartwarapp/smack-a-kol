@@ -15,6 +15,9 @@ SAK.Audio = (function () {
     { id: 'defeat_dizzy', file: 'assets/sfx/defeat_dizzy.mp3' },
     { id: 'defeat_trombone', file: 'assets/sfx/defeat_trombone.mp3' },
     { id: 'defeat_silly', file: 'assets/sfx/defeat_silly.mp3' },
+    { id: 'react_boing', file: 'assets/sfx/react_boing.mp3' },
+    { id: 'react_whistle1', file: 'assets/sfx/react_whistle1.mp3' },
+    { id: 'react_whistle2', file: 'assets/sfx/react_whistle2.mp3' },
   ];
   const crowdBufs = {};
   function loadCrowdBank() {
@@ -318,6 +321,26 @@ SAK.Audio = (function () {
     }
   }
 
+  // Funny cartoon reaction on every face slap — random pick, layered OVER the hand slap (never replaces it)
+  function playSlapReact() {
+    const reacts = ['react_boing', 'react_whistle1', 'react_whistle2'];
+    const pick = reacts[Math.floor(Math.random() * reacts.length)];
+    const buf = crowdBufs[pick] || slapBufs[pick];
+    if (!buf) {
+      const entry = CROWD_BANK.find(b => b.id === pick);
+      if (entry) fetch(entry.file).then(r => r.arrayBuffer())
+        .then(ab => ctx.decodeAudioData(ab))
+        .then(b => { crowdBufs[pick] = b; playSlapReact(); })
+        .catch(() => {});
+      return;
+    }
+    const src = ctx.createBufferSource(); src.buffer = buf;
+    src.playbackRate.value = 0.95 + Math.random() * 0.1;
+    const g = ctx.createGain(); g.gain.value = 0.45;
+    src.connect(g); g.connect(master);
+    src.start(ctx.currentTime + 0.05); // slight delay so the slap crack hits first
+  }
+
   return {
     unlock,
     SLAP_BANK,
@@ -333,9 +356,23 @@ SAK.Audio = (function () {
     },
     startMusic,
     stopMusic,
+    unlock,
+    SLAP_BANK,
+    slapStyle,
+    previewSlap(id) {
+      if (!ready()) return;
+      const buf = slapBufs[id];
+      if (!buf) return;
+      const src = ctx.createBufferSource(); src.buffer = buf;
+      const g = ctx.createGain(); g.gain.value = 0.9;
+      src.connect(g); g.connect(master); src.start();
+    },
+    startMusic,
+    stopMusic,
     slap(strength) {          // strength 0..1+
       if (!ready()) return;
       crowdSlap(strength);  // crowd gasps/cheers on every slap
+      playSlapReact();      // funny cartoon reaction, layered over the slap
       if (playSlapBuf(strength)) return;   // real recorded slap
       // synth fallback (bank not loaded yet / fetch failed) — noise only, no tones
       const s = Math.min(1.5, strength);
