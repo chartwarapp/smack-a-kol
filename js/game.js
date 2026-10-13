@@ -1732,10 +1732,21 @@
     );
 
     // Play slap animation: landed hit, or miss/whiff so the defender dodges/blocks (not a fake hit-react)
+    // Brace rule (LT 2026-10-13): dodge ONLY when attacker hits red (miss).
+    // Orange/yellow/green always land on the face, even with brace advantage —
+    // orange = weak head-shake, yellow = head whip, green = full boggle.
     const slapWho = C.attacker === 'player' ? 'player' : 'kol';
-    const slapGrade = attackerWins ? (grade.id === 'miss' ? 'weak' : grade.id) : 'miss';
+    const atkZoneId = atk.zone.id;
+    let slapGrade, slapLands;
+    if (attackerWins) {
+      slapGrade = grade.id === 'miss' ? 'weak' : grade.id;
+      slapLands = true;
+    } else {
+      slapGrade = atkZoneId; // 'miss' → dodge; 'weak'/'good'/'perfect' → slap lands
+      slapLands = atkZoneId !== 'miss';
+    }
     const doImpact = () => {
-      if (attackerWins) {
+      if (slapLands) {
         A.slap(grade.mult * (fire ? 1.4 : 1));
         hapticSlap(slapGrade, fire, atk.dist);
         if (fire) flash('#ffb000'); else if (grade.id === 'perfect') flash('#39ff88');
@@ -1756,7 +1767,7 @@
       }
     };
 
-    if (Scene) await Scene.slap(slapWho, { grade: slapGrade, fire, dist: attackerWins ? atk.dist : def.dist, windup: 0.28, landed: attackerWins, dmg: attackerWins ? dmg : 0, onImpact: doImpact }); // V2: dmg -> 3D number
+    if (Scene) await Scene.slap(slapWho, { grade: slapGrade, fire, dist: attackerWins ? atk.dist : def.dist, windup: 0.28, landed: slapLands, dmg: slapLands ? dmg : 0, onImpact: doImpact }); // V2: dmg -> 3D number
     else { await wait(0.35); doImpact(); }
     renderMeterFaces(attackerWins ? (slapWho === 'player' ? 'kol' : 'player') : null); // evolve meter-face damage
 
