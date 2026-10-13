@@ -1379,7 +1379,7 @@
     F.turn = 'challenge';
     F.started = true;
     F.slaps++;
-    $('#upgrade-bar').classList.add('gone');
+    // Upgrade bar stays visible during the whole match (LT 2026-10-13)
     $('#brace').classList.add('hidden');
 
     const isAtk = C.localSide === 'atk';
