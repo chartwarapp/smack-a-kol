@@ -958,20 +958,20 @@ h2, h3, .prompt, .vs, .level, .fc-name, .banner, .float-text, .result-title {
 .m1-tile small { font-size: 10px; color: #b9a8d9; letter-spacing: 1px; }
 /* Tall logo hero */
 .m1-hero {
-  margin: 6px 0 12px; text-align: center;
+  margin: 6px 0 8px; text-align: center;
   min-height: 210px; display: flex; align-items: center; justify-content: center;
   background: radial-gradient(ellipse at center, #2a154555 0%, transparent 70%);
   border-radius: 20px;
 }
 .m1-hero .m1-logo {
-  width: 100%; max-width: 340px; height: auto;
+  width: 100%; max-width: 100%; height: auto;
   border-radius: 16px;
   filter: drop-shadow(0 4px 12px #39ff8844);
 }
 /* Fighter chip */
 .m1-fighter { margin-bottom: 12px; }
 /* Buttons */
-.m1-buttons .btn { margin-bottom: 10px; }
+.m1-buttons .btn { margin-bottom: 6px; }
 .m1-enter {
   font-size: 22px !important; padding: 18px !important;
   text-shadow: 0 2px 0 #1a7a3a;
