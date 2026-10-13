@@ -11,9 +11,55 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Lilita+One&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="css/style.css?v=admin-labels-1" />
+  <style>
+    #intro-overlay {
+      position: fixed; inset: 0; z-index: 9999;
+      background: #000; display: flex;
+      align-items: center; justify-content: center;
+      transition: opacity 0.6s ease;
+    }
+    #intro-overlay.hidden { opacity: 0; pointer-events: none; }
+    #intro-video { width: 100%; height: 100%; object-fit: cover; }
+    #intro-ui {
+      position: absolute; inset: 0;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: flex-end;
+      padding-bottom: 12vh; pointer-events: none;
+    }
+    .intro-btn {
+      pointer-events: auto;
+      font-family: 'Lilita One', cursive;
+      font-size: 28px; color: #fff;
+      background: linear-gradient(180deg, #22c55e, #15803d);
+      border: 4px solid #fff; border-radius: 20px;
+      padding: 18px 48px; cursor: pointer;
+      text-shadow: 2px 2px 0 rgba(0,0,0,0.3);
+      box-shadow: 0 8px 32px rgba(34,197,94,0.5);
+      animation: intro-pulse 1.2s ease-in-out infinite;
+    }
+    @keyframes intro-pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+    }
+    .intro-skip {
+      pointer-events: auto; margin-top: 16px;
+      background: rgba(255,255,255,0.15); color: #fff;
+      border: 1px solid rgba(255,255,255,0.3);
+      border-radius: 12px; padding: 8px 20px;
+      font-size: 14px; cursor: pointer;
+    }
+  </style>
 </head>
 <body>
 <div id="app">
+  <!-- Epic intro video overlay -->
+  <div id="intro-overlay">
+    <video id="intro-video" src="assets/intro/intro.mp4" playsinline preload="auto"></video>
+    <div id="intro-ui">
+      <button id="intro-play" class="intro-btn">▶ PLAY SMACK-A-KOL</button>
+      <button id="intro-skip" class="intro-skip">Skip →</button>
+    </div>
+  </div>
   <!-- 3D canvas lives here -->
   <div id="stage"></div>
   <div id="webgl-error" class="hidden">WebGL is not available in this browser 😢</div>
@@ -502,5 +548,48 @@
 <script src="js/pvp-sync.js?v=reveal-fix-1"></script>
 <script src="js/solana-house.js?v=1"></script>
 <script src="js/game-v3.js?v=reveal-fix-1"></script>
+  <script>
+    (function() {
+      var overlay = document.getElementById('intro-overlay');
+      var video = document.getElementById('intro-video');
+      var playBtn = document.getElementById('intro-play');
+      var skipBtn = document.getElementById('intro-skip');
+      var dismissed = false;
+
+      function dismiss() {
+        if (dismissed) return;
+        dismissed = true;
+        overlay.classList.add('hidden');
+        video.pause();
+        setTimeout(function() { overlay.remove(); }, 700);
+      }
+
+      // Show intro only on first visit (per session)
+      if (sessionStorage.getItem('sak_intro_seen')) {
+        overlay.remove();
+      } else {
+        sessionStorage.setItem('sak_intro_seen', '1');
+        // Try autoplay (muted failsafe for mobile)
+        video.muted = true;
+        var p = video.play();
+        if (p && p.catch) p.catch(function() { /* user must tap play */ });
+        // Unmute on first interaction
+        playBtn.addEventListener('click', function() {
+          video.muted = false;
+          video.currentTime = 0;
+          video.play();
+          dismiss();
+        }, { once: true });
+        skipBtn.addEventListener('click', dismiss);
+        video.addEventListener('ended', function() {
+          playBtn.textContent = '🥊 ENTER THE RING';
+        });
+        // Tap video to toggle play/pause
+        video.addEventListener('click', function() {
+          if (video.paused) video.play(); else video.pause();
+        });
+      }
+    })();
+  </script>
 </body>
 </html>
