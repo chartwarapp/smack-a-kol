@@ -871,8 +871,9 @@ h2, h3, .prompt, .vs, .level, .fc-name, .banner, .float-text, .result-title {
   border-radius: 12px; margin-left: 8px; vertical-align: middle;
   letter-spacing: 0.5px; text-transform: uppercase;
 }
-.pvp-badge.awaiting { background: #ffd23f; color: #000; animation: pulse 1.5s ease-in-out infinite; }
-.pvp-badge.accepted { background: #39ff88; color: #000; animation: pulse 1s ease-in-out infinite; }
+.pvp-badge.awaiting { background: #ffd23f; color: #000; text-shadow: none; -webkit-text-size-adjust: 100%; animation: badgePulse 1.5s ease-in-out infinite; }
+@keyframes badgePulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.75; } }
+.pvp-badge.accepted { background: #39ff88; color: #000; text-shadow: none; animation: badgePulse 1s ease-in-out infinite; }
 .pvp-badge.hidden { display: none; }
 
 /* Pending challenge bar */

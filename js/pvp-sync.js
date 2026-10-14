@@ -247,8 +247,9 @@ SAK.PvpSync = (function () {
     stopRoundPoll();
     const startTime = Date.now();
     const TIMEOUT = 30000; // 30s per round
+    const POLL_MS = 500; // faster round sync (was 1000ms)
 
-    roundPollTimer = setInterval(async () => {
+    const check = async () => {
       // Check timeout
       if (Date.now() - startTime > TIMEOUT) {
         stopRoundPoll();
@@ -265,23 +266,24 @@ SAK.PvpSync = (function () {
         const oppRole = myRole === 'atk' ? 'def' : 'atk';
         const oppDist = row[`${oppRole}_dist`];
         const oppZone = row[`${oppRole}_zone`];
+        const oppAngle = row[`${oppRole}_angle`];
 
         if (oppDist != null && oppZone != null) {
           stopRoundPoll();
           const atkLock = myRole === 'atk'
-            ? { dist: row.atk_dist, zone: row.atk_zone }
-            : { dist: oppDist, zone: oppZone };
+            ? { dist: row.atk_dist, zone: row.atk_zone, angle: row.atk_angle }
+            : { dist: oppDist, zone: oppZone, angle: oppAngle };
           const defLock = myRole === 'def'
-            ? { dist: row.def_dist, zone: row.def_zone }
-            : { dist: oppDist, zone: oppZone };
-          // Reconstruct full lock objects (need grade for damage calc)
-          // For now, pass dist/zone; game.js will handle the rest
+            ? { dist: row.def_dist, zone: row.def_zone, angle: row.def_angle }
+            : { dist: oppDist, zone: oppZone, angle: oppAngle };
           if (onBothLocks) onBothLocks(atkLock, defLock);
         }
       } catch (e) {
         console.warn('[PvpSync] round poll failed', e.message);
       }
-    }, 1000); // poll every 1s
+    };
+    check(); // immediate first check — don't wait for the first tick
+    roundPollTimer = setInterval(check, POLL_MS);
   }
 
   function stopRoundPoll() {
