@@ -2933,10 +2933,12 @@
         row.className = 'snd-item';
         row.innerHTML = `
           <div class="snd-info"><span class="snd-name">${name}</span><span class="snd-custom-tag hidden" data-custom-tag>custom</span><div class="snd-desc">${desc}</div></div>
-          <button class="btn btn-small" data-act="play" title="Preview">▶</button>
-          ${replaceable ? `<button class="btn btn-small" data-act="replace" title="Upload your own">📁</button>
-          <button class="btn btn-small hidden" data-act="reset" title="Back to default">↩</button>
-          <input type="file" accept="audio/*" data-file />` : ''}`;
+          <div class="snd-actions">
+            <button class="btn btn-small" data-act="play" title="Preview">▶</button>
+            ${replaceable ? `<button class="btn btn-small" data-act="replace" title="Upload your own">📁</button>
+            <button class="btn btn-small hidden" data-act="reset" title="Back to default">↩</button>` : ''}
+          </div>
+          ${replaceable ? `<input type="file" accept="audio/*" data-file />` : ''}`;
         const tag = row.querySelector('[data-custom-tag]');
         const resetBtn = row.querySelector('[data-act="reset"]');
         const paint = () => {
