@@ -3116,10 +3116,14 @@ SAK.Scene3D = (function () {
     billboardGroup.visible = roleCam.w < 0.5;
     if (roleCam.w <= 0.0001 || !player) { out.pos.copy(camFight.pos); out.look.copy(camFight.look); return out; }
     if (!player.restHead) player.restHead = new T.Vector3(player.root.position.x, 2.35, player.homeZ);
-    // Wide enough that BOTH fighters stay in frame — the brace view pulls
-    // back instead of a tight face close-up, so the incoming slap reads clearly.
-    // Uses the gentle player angle: slight rotate, not the full face-cam swing.
-    faceFraming(player, _brace, 2.8, player.restHead, PLAYER_FACE_ANG);
+    // LT 2026-10-15: brace framing matches the starting round — camera stays
+    // mostly frontal (small orbit) and looks at the midpoint between both
+    // fighters so they sit centered, not shoved to the right edge.
+    const midHead = kol ? new T.Vector3(
+      (player.root.position.x + kol.root.position.x) / 2, 2.1,
+      (player.root.position.z + kol.root.position.z) / 2)
+      : new T.Vector3(player.root.position.x, 2.1, 0);
+    faceFraming(player, _brace, 3.2, midHead, 0.35);
     orbitBlend(camFight, _brace, roleCam.w, out);
     return out;
   }
