@@ -4040,8 +4040,8 @@ SAK.Scene3D = (function () {
       // No faceplant — the loser's face must stay visible at the end (funny > hidden).
       // 'flatback': launched onto their back, dazed face looking up at the sky.
       const r = Math.random();
-      variant = r < 0.28 ? 'crumple' : r < 0.44 ? 'spinout' : r < 0.58 ? 'flatback'
-        : r < 0.7 ? 'backflip' : r < 0.8 ? 'bounce' : r < 0.9 ? 'spiral' : 'slowmo';
+      variant = r < 0.24 ? 'crumple' : r < 0.38 ? 'spinout' : r < 0.50 ? 'flatback'
+        : r < 0.62 ? 'wobble' : r < 0.72 ? 'backflip' : r < 0.81 ? 'bounce' : r < 0.90 ? 'spiral' : 'slowmo';
     }
 
     // Impact beat scaled to the variant (no gore)
@@ -4086,6 +4086,37 @@ SAK.Scene3D = (function () {
       burst(dust, ['#c4a574', '#e8d5a3', '#ffffff'], 16, 2.6);
       ring(dust, '#ffd23f');
       F.stampLandPose(pose);
+    } else if (variant === 'wobble') {
+      // NEW (LT 2026-10-14): dazed wobble — three drunken sways with buckling
+      // knees, then tips over flat onto the back. Face stays visible, looking
+      // up all dazed and bruised. Stays in the ring.
+      const dir = Math.random() > 0.5 ? 1 : -1;
+      const yBase = F.root.position.y;
+      // arms windmill as balance goes (pose-driven)
+      SAK.Tween.to(F.pose, { lift: 1.4, swing: 0.7, elbow: 0.5 }, 0.3, SAK.Ease.outCubic);
+      // sway 1: lean left, knees dip
+      await SAK.Tween.to(F.root.rotation, { z: dir * 0.35 }, 0.28, SAK.Ease.inOutQuad);
+      SAK.Tween.to(F.root.position, { y: yBase - 0.25 }, 0.28, SAK.Ease.inQuad);
+      // sway 2: overcorrect right, deeper dip
+      await SAK.Tween.to(F.root.rotation, { z: -dir * 0.45 }, 0.3, SAK.Ease.inOutQuad);
+      SAK.Tween.to(F.root.position, { y: yBase - 0.4 }, 0.3, SAK.Ease.inQuad);
+      // sway 3: last desperate lean — balance lost
+      await SAK.Tween.to(F.root.rotation, { z: dir * 0.55 }, 0.32, SAK.Ease.inQuad);
+      // tip over backward onto the back
+      SAK.Tween.to(F.root.position, { y: yBase + 0.5 }, 0.25, SAK.Ease.outCubic);
+      await SAK.Tween.to(F.root.rotation, { x: -Math.PI * 0.55, z: 0 }, 0.45, SAK.Ease.inCubic);
+      await SAK.Tween.to(F.root.position, { y: 0.35 }, 0.18, SAK.Ease.inCubic);
+      const dust = F.root.position.clone(); dust.y = 0.2;
+      burst(dust, ['#c4a574', '#e8d5a3', '#ffffff'], 18, 2.8);
+      ring(dust, '#ffd23f');
+      // dazed bounce-settle — the gag
+      await SAK.Tween.to(F.root.position, { y: 0.45 }, 0.14, SAK.Ease.outCubic);
+      await SAK.Tween.to(F.root.position, { y: 0.35 }, 0.22, SAK.Ease.inCubic);
+      // rest pose: flat on back, wrecked face looking up at the sky
+      const yEnd = F.root.rotation.y;
+      F.stampLandPose({ id: 'wobble-rest', rx: Math.PI * 1.5, ry: yEnd - faceY, rz: 0, y: 0.12,
+        tx: 0.85, ty: 0.05, tz: 0.1, hx: 1.15, hy: 0.1, hz: 0.25,
+        armL: [1.5, -0.7, 0.4], armR: [1.5, 0.7, 0.35] });
     } else if (variant === 'flatback') {
       // Smacked onto their back — dazed wrecked face looking up at the sky.
       // Funny and the face stays fully visible. Stays in the ring.
