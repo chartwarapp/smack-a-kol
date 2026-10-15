@@ -448,23 +448,23 @@
         <div class="admin-sec">
           <h4>🔊 SOUND EFFECTS</h4>
           <div id="admin-sounds">
-            <div class="snd-row"><label>Master Volume</label><input type="range" id="snd-master" min="0" max="100" value="50" /><span id="snd-master-lbl">50%</span></div>
-            <div class="snd-row"><label>Slap Volume</label><input type="range" id="snd-slap" min="0" max="150" value="100" /><span id="snd-slap-lbl">100%</span></div>
-            <div class="snd-row"><label>Crowd Volume</label><input type="range" id="snd-crowd" min="0" max="150" value="100" /><span id="snd-crowd-lbl">100%</span></div>
-            <div class="snd-row"><label>Funny Reactions</label><input type="range" id="snd-react" min="0" max="150" value="100" /><span id="snd-react-lbl">100%</span></div>
-            <div class="snd-row snd-toggle"><label>Funny reactions on slaps</label><button class="btn btn-small" id="snd-react-toggle">ON</button></div>
-            <div class="snd-row snd-toggle"><label>Defeat sounds on loss</label><button class="btn btn-small" id="snd-defeat-toggle">ON</button></div>
+            <div class="snd-row"><label>Master Volume<small>Overall game loudness</small></label><input type="range" id="snd-master" min="0" max="100" value="50" /><span id="snd-master-lbl">50%</span></div>
+            <div class="snd-row"><label>Slap Volume<small>Hand-on-face impact sounds</small></label><input type="range" id="snd-slap" min="0" max="150" value="100" /><span id="snd-slap-lbl">100%</span></div>
+            <div class="snd-row"><label>Crowd Volume<small>Cheers, gasps &amp; reactions</small></label><input type="range" id="snd-crowd" min="0" max="150" value="100" /><span id="snd-crowd-lbl">100%</span></div>
+            <div class="snd-row"><label>Funny Reactions<small>Cartoon boing/whistle layers</small></label><input type="range" id="snd-react" min="0" max="150" value="100" /><span id="snd-react-lbl">100%</span></div>
+            <div class="snd-row snd-toggle"><label>Funny reactions on slaps<small>Random boing/whistle over every face slap</small></label><button class="btn btn-small" id="snd-react-toggle">ON</button></div>
+            <div class="snd-row snd-toggle"><label>Defeat sounds on loss<small>Random dizzy/trombone/boom when you lose</small></label><button class="btn btn-small" id="snd-defeat-toggle">ON</button></div>
             <div class="snd-preview">
               <h5>PREVIEW SOUNDS</h5>
               <div class="snd-btns">
-                <button class="btn btn-small" data-preview="slap">👋 Slap</button>
-                <button class="btn btn-small" data-preview="react_boing">🌀 Boing</button>
-                <button class="btn btn-small" data-preview="react_whistle1">🎵 Whistle 1</button>
-                <button class="btn btn-small" data-preview="react_whistle2">🎵 Whistle 2</button>
-                <button class="btn btn-small" data-preview="defeat_dizzy">😵 Dizzy</button>
-                <button class="btn btn-small" data-preview="defeat_trombone">🎺 Trombone</button>
-                <button class="btn btn-small" data-preview="defeat_silly">💥 Silly Boom</button>
-                <button class="btn btn-small" data-preview="ko">🥊 KO Impact</button>
+                <button class="btn btn-small" data-preview="slap">👋 Slap<small>every face slap</small></button>
+                <button class="btn btn-small" data-preview="react_boing">🌀 Boing<small>random slap layer</small></button>
+                <button class="btn btn-small" data-preview="react_whistle1">🎵 Whistle 1<small>random slap layer</small></button>
+                <button class="btn btn-small" data-preview="react_whistle2">🎵 Whistle 2<small>random slap layer</small></button>
+                <button class="btn btn-small" data-preview="defeat_dizzy">😵 Dizzy<small>random on defeat</small></button>
+                <button class="btn btn-small" data-preview="defeat_trombone">🎺 Trombone<small>random on defeat</small></button>
+                <button class="btn btn-small" data-preview="defeat_silly">💥 Silly Boom<small>defeat + KO layer</small></button>
+                <button class="btn btn-small" data-preview="ko">🥊 KO Impact<small>final knockout hit</small></button>
               </div>
             </div>
           </div>
