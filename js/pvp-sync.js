@@ -207,36 +207,32 @@ SAK.PvpSync = (function () {
    */
   async function submitLock(challengeAddr, roundNum, wallet, role, lock, attackerWallet, defenderWallet) {
     const field_prefix = role === 'atk' ? 'atk' : 'def';
+    const payload = {
+      challenge_addr: challengeAddr,
+      round_num: roundNum,
+      attacker_wallet: attackerWallet,
+      defender_wallet: defenderWallet,
+      [`${field_prefix}_dist`]: lock.dist,
+      [`${field_prefix}_zone`]: lock.zone,
+      [`${field_prefix}_angle`]: lock.angle || 0,
+    };
+    const upsert = () => api()._req('POST', '/pvp_rounds?on_conflict=challenge_addr,round_num',
+      payload, 'return=minimal,resolution=merge-duplicates');
     try {
-      // Try to update existing row first
-      const existing = await api()._req('GET',
-        `/pvp_rounds?challenge_addr=eq.${encodeURIComponent(challengeAddr)}&round_num=eq.${roundNum}&select=*`);
-      if (existing && existing.length > 0) {
-        // Update with my lock
-        await api()._req('PATCH',
-          `/pvp_rounds?challenge_addr=eq.${encodeURIComponent(challengeAddr)}&round_num=eq.${roundNum}`,
-          {
-            [`${field_prefix}_dist`]: lock.dist,
-            [`${field_prefix}_zone`]: lock.zone,
-            [`${field_prefix}_angle`]: lock.angle || 0,
-          },
-          'return=minimal');
-      } else {
-        // Create new row with my lock
-        await api()._req('POST', '/pvp_rounds',
-          {
-            challenge_addr: challengeAddr,
-            round_num: roundNum,
-            attacker_wallet: attackerWallet,
-            defender_wallet: defenderWallet,
-            [`${field_prefix}_dist`]: lock.dist,
-            [`${field_prefix}_zone`]: lock.zone,
-            [`${field_prefix}_angle`]: lock.angle || 0,
-          },
-          'return=minimal');
-      }
+      // Single atomic upsert. Both phones submit at nearly the same instant,
+      // so the old read-then-write raced: both GETs saw no row, both POSTed
+      // the same PK, one got a 409 conflict and its lock was silently dropped —
+      // stalling the opponent in "waiting for opponent" until the 30s timeout.
+      await upsert();
     } catch (e) {
-      console.warn('[PvpSync] submitLock failed', e.message);
+      // One quick retry covers a transient network blip; after that the
+      // existing warn + 30s opponent-timeout path takes over.
+      try {
+        await new Promise(r => setTimeout(r, 700));
+        await upsert();
+      } catch (e2) {
+        console.warn('[PvpSync] submitLock failed', e2.message);
+      }
     }
   }
 
