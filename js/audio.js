@@ -19,6 +19,43 @@ SAK.Audio = (function () {
     if (master) master.gain.value = soundCfg.master;
   }
 
+  /* ---- Custom sound overrides (LT 2026-10-14): upload your own recordings
+     via the admin panel. Stored in IndexedDB as blobs, checked before the
+     default files on every load. ---- */
+  const CUSTOM_DB = 'sak_custom_sounds', CUSTOM_STORE = 'sounds';
+  let customDb = null, customIds = [];
+  try { customIds = JSON.parse(localStorage.getItem('sak_custom_ids') || '[]'); } catch (e) {}
+  function openCustomDb() {
+    return new Promise((resolve) => {
+      if (customDb) return resolve(customDb);
+      if (!window.indexedDB) return resolve(null);
+      const req = indexedDB.open(CUSTOM_DB, 1);
+      req.onupgradeneeded = () => req.result.createObjectStore(CUSTOM_STORE);
+      req.onsuccess = () => { customDb = req.result; resolve(customDb); };
+      req.onerror = () => resolve(null);
+    });
+  }
+  async function getCustomSound(id) {
+    const db = await openCustomDb();
+    if (!db) return null;
+    return new Promise((resolve) => {
+      const tx = db.transaction(CUSTOM_STORE, 'readonly');
+      const req = tx.objectStore(CUSTOM_STORE).get(id);
+      req.onsuccess = () => resolve(req.result || null);
+      req.onerror = () => resolve(null);
+    });
+  }
+  async function loadCustomInto(id, targetBufs) {
+    const blob = await getCustomSound(id);
+    if (!blob || !ctx) return false;
+    try {
+      const ab = await blob.arrayBuffer();
+      const buf = await ctx.decodeAudioData(ab);
+      targetBufs[id] = buf;
+      return true;
+    } catch (e) { return false; }
+  }
+
   /* ---- Real recorded slap SFX bank (Pixabay Content License — free for use) ---- */
   const CROWD_BANK = [
     { id: 'cheer1', file: 'assets/sfx/crowd_crowd1.mp3' },
@@ -36,10 +73,14 @@ SAK.Audio = (function () {
   function loadCrowdBank() {
     if (!ctx) return;
     CROWD_BANK.forEach(b => {
-      fetch(b.file).then(r => { if (!r.ok) throw 0; return r.arrayBuffer(); })
-        .then(ab => ctx.decodeAudioData(ab))
-        .then(buf => { crowdBufs[b.id] = buf; })
-        .catch(() => { /* silent */ });
+      // Custom override wins; fall back to the bundled file
+      loadCustomInto(b.id, crowdBufs).then(ok => {
+        if (ok) return;
+        fetch(b.file).then(r => { if (!r.ok) throw 0; return r.arrayBuffer(); })
+          .then(ab => ctx.decodeAudioData(ab))
+          .then(buf => { crowdBufs[b.id] = buf; })
+          .catch(() => { /* silent */ });
+      });
     });
   }
   function playCrowdBuf(id, gain, when) {
@@ -91,10 +132,17 @@ SAK.Audio = (function () {
 
   // Preload + decode all slap files once the context exists. Silent failure
   // falls back to the synth slap below.
+  let customSlapBuf = null;
   function loadSlapBank() {
     if (slapLoading || !ctx) return;
     slapLoading = true;
     loadCrowdBank();
+    // A custom slap replaces the entire random bank with the one upload
+    loadCustomInto('slap', {}).then(ok => {
+      if (ok) getCustomSound('slap').then(async (blob) => {
+        try { customSlapBuf = await ctx.decodeAudioData(await blob.arrayBuffer()); } catch (e) {}
+      });
+    });
     SLAP_BANK.forEach(b => {
       fetch(b.file).then(r => { if (!r.ok) throw 0; return r.arrayBuffer(); })
         .then(ab => ctx.decodeAudioData(ab))
@@ -159,6 +207,14 @@ SAK.Audio = (function () {
   const SLAP_POOL = ['monster', 'heavy', 'crack2', 'smack', 'cinema', 'face', 'clean'];
 
   function playSlapBuf(strength) {
+    // Custom uploaded slap replaces the whole bank
+    if (customSlapBuf && ctx) {
+      const src = ctx.createBufferSource(); src.buffer = customSlapBuf;
+      src.playbackRate.value = 0.94 + Math.random() * 0.12;
+      const g = ctx.createGain(); g.gain.value = 0.9 * soundCfg.slap;
+      src.connect(g); g.connect(master); src.start();
+      return true;
+    }
     const pick = SLAP_POOL[Math.floor(Math.random() * SLAP_POOL.length)];
     // Synth slaps first (always available, always full)
     if (SYNTH_SLAPS[pick]) { SYNTH_SLAPS[pick](strength); return true; }
@@ -358,6 +414,58 @@ SAK.Audio = (function () {
     unlock,
     SLAP_BANK,
     soundCfg, saveSoundCfg,
+    // Custom sound uploads
+    async setCustomSound(id, file) {
+      const db = await openCustomDb();
+      if (!db || !file) return false;
+      // Validate it's decodable audio before storing
+      try {
+        const ab = await file.arrayBuffer();
+        await ctx.decodeAudioData(ab.slice(0));
+      } catch (e) { return false; }
+      return new Promise((resolve) => {
+        const tx = db.transaction(CUSTOM_STORE, 'readwrite');
+        tx.objectStore(CUSTOM_STORE).put(file, id);
+        tx.oncomplete = () => {
+          if (!customIds.includes(id)) {
+            customIds.push(id);
+            try { localStorage.setItem('sak_custom_ids', JSON.stringify(customIds)); } catch (e) {}
+          }
+          // Hot-swap into the live buffers so it takes effect immediately
+          loadCustomInto(id, id === 'slap' ? {} : crowdBufs).then(() => {
+            if (id === 'slap') getCustomSound('slap').then(async (blob) => {
+              try { customSlapBuf = await ctx.decodeAudioData(await blob.arrayBuffer()); } catch (e) {}
+            });
+          });
+          resolve(true);
+        };
+        tx.onerror = () => resolve(false);
+      });
+    },
+    async clearCustomSound(id) {
+      const db = await openCustomDb();
+      if (!db) return;
+      return new Promise((resolve) => {
+        const tx = db.transaction(CUSTOM_STORE, 'readwrite');
+        tx.objectStore(CUSTOM_STORE).delete(id);
+        tx.oncomplete = () => {
+          customIds = customIds.filter(x => x !== id);
+          try { localStorage.setItem('sak_custom_ids', JSON.stringify(customIds)); } catch (e) {}
+          if (id === 'slap') customSlapBuf = null;
+          else delete crowdBufs[id];
+          // Reload the default file for this sound
+          if (id !== 'slap') {
+            const entry = CROWD_BANK.find(b => b.id === id);
+            if (entry && ctx) fetch(entry.file).then(r => r.arrayBuffer())
+              .then(ab => ctx.decodeAudioData(ab))
+              .then(buf => { crowdBufs[id] = buf; }).catch(() => {});
+          } else { slapLoading = false; loadSlapBank(); }
+          resolve();
+        };
+        tx.onerror = () => resolve();
+      });
+    },
+    hasCustomSound(id) { return customIds.includes(id); },
     slapStyle,
     /** Preview a bank sound in Settings (bypasses nothing — respects sound toggle). */
     previewSlap(id) {

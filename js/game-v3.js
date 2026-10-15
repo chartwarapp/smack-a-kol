@@ -2925,16 +2925,64 @@
       paint();
     };
     bindToggle('react', 'reactOn'); bindToggle('defeat', 'defeatOn');
-    // Preview buttons
-    document.querySelectorAll('[data-preview]').forEach(btn => {
-      btn.onclick = () => {
-        SAK.Audio.unlock();
-        const id = btn.dataset.preview;
-        if (id === 'slap') SAK.Audio.slap(1.0);
-        else if (id === 'ko') SAK.Audio.ko();
-        else SAK.Audio.previewSlap(id) || SAK.Audio.previewCrowd?.(id);
-      };
-    });
+    // Preview + replace + reset sounds (custom uploads via IndexedDB)
+    const SND_DEFS = [
+      ['slap', '👋 Slap', 'every face slap', true],
+      ['react_boing', '🌀 Boing', 'random layer on face slaps', true],
+      ['react_whistle1', '🎵 Whistle 1', 'random layer on face slaps', true],
+      ['react_whistle2', '🎵 Whistle 2', 'random layer on face slaps', true],
+      ['defeat_dizzy', '😵 Dizzy', 'random on defeat', true],
+      ['defeat_trombone', '🎺 Trombone', 'random on defeat', true],
+      ['defeat_silly', '💥 Silly Boom', 'defeat + KO layer', true],
+      ['ko', '🥊 KO Impact', 'final knockout hit (layered)', false],
+    ];
+    const sndList = $('#snd-list');
+    if (sndList && !sndList.dataset.built) {
+      sndList.dataset.built = '1';
+      SND_DEFS.forEach(([id, name, desc, replaceable]) => {
+        const row = document.createElement('div');
+        row.className = 'snd-item';
+        row.innerHTML = `
+          <div class="snd-info"><span class="snd-name">${name}</span><span class="snd-custom-tag hidden" data-custom-tag>custom</span><div class="snd-desc">${desc}</div></div>
+          <button class="btn btn-small" data-act="play" title="Preview">▶</button>
+          ${replaceable ? `<button class="btn btn-small" data-act="replace" title="Upload your own">📁</button>
+          <button class="btn btn-small hidden" data-act="reset" title="Back to default">↩</button>
+          <input type="file" accept="audio/*" data-file />` : ''}`;
+        const tag = row.querySelector('[data-custom-tag]');
+        const resetBtn = row.querySelector('[data-act="reset"]');
+        const paint = () => {
+          const isCustom = SAK.Audio.hasCustomSound(id);
+          if (tag) tag.classList.toggle('hidden', !isCustom);
+          if (resetBtn) resetBtn.classList.toggle('hidden', !isCustom);
+        };
+        row.querySelector('[data-act="play"]').onclick = () => {
+          SAK.Audio.unlock();
+          if (id === 'slap') SAK.Audio.slap(1.0);
+          else if (id === 'ko') SAK.Audio.ko();
+          else SAK.Audio.previewSlap(id);
+        };
+        const fileInput = row.querySelector('[data-file]');
+        if (fileInput) {
+          row.querySelector('[data-act="replace"]').onclick = () => fileInput.click();
+          fileInput.onchange = async () => {
+            const file = fileInput.files[0];
+            if (!file) return;
+            SAK.Audio.unlock();
+            const ok = await SAK.Audio.setCustomSound(id, file);
+            toast(ok ? `Custom ${name} saved` : `Couldn't use that file — try an MP3 or WAV`, 2200);
+            fileInput.value = '';
+            paint();
+          };
+          resetBtn.onclick = async () => {
+            await SAK.Audio.clearCustomSound(id);
+            toast(`${name} back to default`, 1800);
+            paint();
+          };
+        }
+        paint();
+        sndList.appendChild(row);
+      });
+    }
     // Overview stats
     try {
       const open = await SAK.Api.listChallenges('open');
