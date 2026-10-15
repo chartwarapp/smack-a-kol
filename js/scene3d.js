@@ -3123,7 +3123,7 @@ SAK.Scene3D = (function () {
       (player.root.position.x + kol.root.position.x) / 2, 2.1,
       (player.root.position.z + kol.root.position.z) / 2)
       : new T.Vector3(player.root.position.x, 2.1, 0);
-    faceFraming(player, _brace, 3.2, midHead, 0.35);
+    faceFraming(player, _brace, 3.4, midHead, 1.2);
     orbitBlend(camFight, _brace, roleCam.w, out);
     return out;
   }
