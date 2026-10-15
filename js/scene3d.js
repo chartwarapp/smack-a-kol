@@ -2930,6 +2930,21 @@ SAK.Scene3D = (function () {
       scene.add(m);
     }
   }
+  // Smoke plume: grey puffs that rise and expand (fire slap aftermath)
+  function smoke(pos, count) {
+    for (let i = 0; i < (count || 14); i++) {
+      const shade = ['#888888', '#666666', '#aaaaaa', '#555555'][i % 4];
+      const m = new T.Mesh(partGeo(), new T.MeshBasicMaterial({ color: shade, transparent: true, opacity: 0.75 }));
+      const s = 0.25 + Math.random() * 0.3;
+      m.scale.set(s, s, s);
+      m.position.copy(pos);
+      m.position.x += (Math.random() - 0.5) * 0.4;
+      m.position.z += (Math.random() - 0.5) * 0.4;
+      particles.push({ m, v: new T.Vector3((Math.random() - 0.5) * 0.5, 1.2 + Math.random() * 1.2, (Math.random() - 0.5) * 0.5),
+        life: 1.2 + Math.random() * 0.8, age: 0, spin: 2, grow: 0.55, noGrav: true });
+      scene.add(m);
+    }
+  }
   function ring(pos, color) {
     const m = new T.Mesh(new T.RingGeometry(0.15, 0.25, 20), new T.MeshBasicMaterial({ color, transparent: true, side: T.DoubleSide, depthWrite: false }));
     m.position.copy(pos); m.lookAt(camera.position);
@@ -2959,6 +2974,7 @@ SAK.Scene3D = (function () {
       p.m.position.addScaledVector(p.v, dt);
       p.m.rotation.x += p.spin * dt; p.m.rotation.y += p.spin * dt;
       p.m.material.opacity = 1 - p.age / p.life;
+      if (p.grow) { const s = 1 + p.grow * p.age; p.m.scale.set(s, s, s); }
       return true;
     });
     floaters = floaters.filter(f => {
@@ -2985,8 +3001,18 @@ SAK.Scene3D = (function () {
       f.light.intensity = 4 * f.big * (1 - k);
       return true;
     });
-    // golden fire fist trail
+    // golden fire fist trail (also used by the random fire-slap variant)
     for (const f of [player, kol]) {
+      if (f && f.fireSlapFx && Math.random() < 0.85) {
+        const p = f.slapHand.getWorldPosition(new T.Vector3());
+        p.x += (Math.random() - 0.5) * 0.3; p.z += (Math.random() - 0.5) * 0.3; p.y += Math.random() * 0.2;
+        const cols = ['#ffdd44', '#ff9a1f', '#ff4a00', '#ff2200'];
+        const m = new T.Mesh(partGeo(), new T.MeshBasicMaterial({ color: cols[Math.floor(Math.random() * cols.length)], transparent: true }));
+        m.position.copy(p);
+        const s = 0.18 + Math.random() * 0.22; m.scale.set(s, s, s);
+        particles.push({ m, v: new T.Vector3((Math.random() - 0.5) * 0.6, 1.8 + Math.random() * 1.5, (Math.random() - 0.5) * 0.6), life: 0.5, age: 0, spin: 8, grow: 0.3, noGrav: true });
+        scene.add(m);
+      }
       if (f && f.fire && Math.random() < 0.7) {
         const p = f.slapHand.getWorldPosition(new T.Vector3());
         p.x += (Math.random() - 0.5) * 0.2; p.z += (Math.random() - 0.5) * 0.2;
@@ -3714,6 +3740,10 @@ SAK.Scene3D = (function () {
     if (opts.landed === false && (styleId === 'heavy' || styleId === 'devastating')) styleId = 'standard';
     const ST = SLAP_STYLES[styleId];
     lastSlapTier = tier; // remembered for knockout() variant selection
+    // Fire slap (LT 2026-10-14): 35% of perfect green-center hits — the hand
+    // goes up in flames and the opponent's head smokes on impact.
+    const fireSlap = opts.grade === 'perfect' && opts.landed !== false && !!tier && Math.random() < 0.35 && !opts.fire;
+    if (fireSlap) { A.setFire(true); A.fireSlapFx = true; } // orange glowing hand + flame trail
 
     // Face-cam: gentle push toward the fighter about to be slapped so the hit
     // reaction reads on their FACE — kept shallow so the attacker's arm and
@@ -3824,6 +3854,16 @@ SAK.Scene3D = (function () {
         burst(hp, ['#ffffff', '#ffd23f', '#ff4fd8'], 26, 7);
         slowMo(0.25, 0.4);
       }
+      if (fireSlap) {
+        // Fire slap payoff: flame burst + the opponent's head goes up in smoke
+        burst(hp, ['#ffdd44', '#ff9a1f', '#ff4a00', '#ff2200', '#ffffff'], 30, 7.5);
+        ring(hp, '#ff6a00');
+        const smokePos = hp.clone(); smokePos.y += 0.3;
+        smoke(smokePos, 16);
+        // second wave of smoke as the head keeps smoldering
+        setTimeout(() => { try { smoke(hp.clone().add(new T.Vector3(0, 0.35, 0)), 10); } catch (e) {} }, 350);
+        shake = Math.max(shake, 0.9);
+      }
       if (opts.onImpact) opts.onImpact(hp);
       // Cartoon hit-stop — longer for heavier tiers, longest for devastating
       if (R.hitStop) await wait(R.hitStop * (styleId === 'devastating' ? 1.6 : 1));
@@ -3838,7 +3878,7 @@ SAK.Scene3D = (function () {
 
     // 3) recover — hold on the reaction face a beat, then ease back for next round
     if (opts.grade === 'miss') SAK.Tween.to(D.pose, { lean: 0 }, 0.3);
-    A.setFire(false);
+    A.setFire(false); A.fireSlapFx = false;
     // Attacker relaxes back to neutral (or grins on a big hit)
     try {
       if (tier === 'perfect' || tier === 'heavy') A.setExpression('grin', 0.3);
