@@ -192,7 +192,7 @@
     card.classList.remove('hidden');
     const inner = card.querySelector('.rc-inner');
     inner.style.animation = 'none'; void inner.offsetWidth; inner.style.animation = '';
-    await wait(1.8);
+    await wait(2.6); // LT 2026-10-14: linger a touch longer so the names read
     card.classList.add('hidden');
   }
   async function roundCardIntro(roundNum) {
