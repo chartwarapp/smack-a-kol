@@ -2046,6 +2046,7 @@ SAK.Scene3D = (function () {
     };
   }
 
+  const billboardGroup = new T.Group(); // background billboards — hidden during brace cam
   function billboard(tex, w, h, ang, r, y) {
     const g = new T.Group();
     const frame = mesh(new T.BoxGeometry(w + 0.25, h + 0.25, 0.15), mat('#1a0b3a'), 0, 0, -0.1); g.add(frame);
@@ -2057,7 +2058,8 @@ SAK.Scene3D = (function () {
     const rad = ang * Math.PI / 180;
     g.position.set(Math.cos(rad) * r, y, Math.sin(rad) * r);
     g.lookAt(0, y, 0);
-    (arenaGroup || scene).add(g);
+    billboardGroup.add(g);
+    (arenaGroup || scene).add(billboardGroup);
     return g;
   }
 
@@ -3110,6 +3112,8 @@ SAK.Scene3D = (function () {
   const _windup = { pos: new T.Vector3(), look: new T.Vector3() }; // wind-up stage framing temp
   const _qWob = new T.Quaternion(), _ZAXIS = new T.Vector3(0, 0, 1); // crowd wobble temps
   function restFraming(out) {
+    // Hide background billboards during brace cam so none can clip into the shot (red wall fix)
+    billboardGroup.visible = roleCam.w < 0.5;
     if (roleCam.w <= 0.0001 || !player) { out.pos.copy(camFight.pos); out.look.copy(camFight.look); return out; }
     if (!player.restHead) player.restHead = new T.Vector3(player.root.position.x, 2.35, player.homeZ);
     // Wide enough that BOTH fighters stay in frame — the brace view pulls
