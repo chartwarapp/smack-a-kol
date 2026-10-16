@@ -431,6 +431,98 @@ SAK.PvpSync = (function () {
     if (rtFallbackTimer) { clearTimeout(rtFallbackTimer); rtFallbackTimer = null; }
   }
 
+  /* --- Pre-fight lobby: both fighters must be online simultaneously ------ */
+  // Fixes the "accepted 10 min later, fight starts with nobody there" bug.
+  // Uses Supabase Realtime Presence: each phone tracks itself in a lobby
+  // channel. The fight only starts when BOTH wallets are present at the
+  // same time. If the other fighter never shows, the lobby times out
+  // instead of starting a ghost fight.
+
+  let lobbyChannel = null;
+  let lobbyTimeoutTimer = null;
+
+  /**
+   * Join the pre-fight lobby. Calls onBothReady() when both fighters are
+   * confirmed online simultaneously. Calls onTimeout() after 60s if the
+   * opponent never shows.
+   */
+  function joinLobby(challengeAddr, wallet, onBothReady, onTimeout) {
+    leaveLobby();
+    const LOBBY_TIMEOUT = 60000;
+    let done = false;
+
+    const finishReady = () => {
+      if (done) return;
+      done = true;
+      clearTimeout(lobbyTimeoutTimer);
+      console.log('[PvpSync] lobby: both fighters online — starting fight');
+      if (onBothReady) onBothReady();
+      // Keep the channel open briefly so the other side also sees us;
+      // the fight's startFight() heartbeat takes over from here.
+      setTimeout(() => leaveLobby(), 5000);
+    };
+    const finishTimeout = () => {
+      if (done) return;
+      done = true;
+      leaveLobby();
+      console.log('[PvpSync] lobby: opponent did not show up');
+      if (onTimeout) onTimeout();
+    };
+
+    lobbyTimeoutTimer = setTimeout(finishTimeout, LOBBY_TIMEOUT);
+
+    const sb = getSbClient();
+    if (!sb) {
+      console.warn('[PvpSync] lobby: no realtime client — cannot verify opponent online');
+      finishTimeout();
+      return;
+    }
+
+    const checkPresence = () => {
+      try {
+        const state = lobbyChannel.presenceState();
+        const wallets = new Set();
+        Object.values(state).forEach(presences => {
+          presences.forEach(p => { if (p.wallet) wallets.add(p.wallet); });
+        });
+        console.log('[PvpSync] lobby presence:', [...wallets]);
+        if (wallets.size >= 2) finishReady();
+      } catch (e) {}
+    };
+
+    try {
+      lobbyChannel = sb.channel(`pvp-lobby-${challengeAddr}`, {
+        config: { presence: { key: wallet } },
+      });
+      lobbyChannel
+        .on('presence', { event: 'sync' }, checkPresence)
+        .on('presence', { event: 'join' }, checkPresence)
+        .subscribe(async (status) => {
+          if (status === 'SUBSCRIBED') {
+            await lobbyChannel.track({ wallet, online: true, ts: Date.now() });
+            checkPresence();
+          } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+            console.warn('[PvpSync] lobby subscribe failed:', status);
+            finishTimeout();
+          }
+        });
+    } catch (e) {
+      console.warn('[PvpSync] lobby failed', e.message);
+      finishTimeout();
+    }
+  }
+
+  function leaveLobby() {
+    if (lobbyTimeoutTimer) { clearTimeout(lobbyTimeoutTimer); lobbyTimeoutTimer = null; }
+    if (lobbyChannel) {
+      try {
+        const sb = getSbClient();
+        if (sb) sb.removeChannel(lobbyChannel);
+      } catch (e) {}
+      lobbyChannel = null;
+    }
+  }
+
   /* --- Fighter snapshots -------------------------------------------------- */
   // Both fighters' looks stored on the challenge row at accept time.
   // This guarantees both phones render IDENTICAL fighters — no more
@@ -531,6 +623,8 @@ CREATE INDEX IF NOT EXISTS idx_heartbeats_seen ON pvp_heartbeats (last_seen);
     subscribeToRound,      // v2: websocket realtime (primary)
     unsubscribeRound,
     stopRoundPoll,
+    joinLobby,             // v2: pre-fight presence handshake
+    leaveLobby,
     publishFighterSnapshot,
     getFighterSnapshots,
     HEARTBEAT_TABLE_SQL,

@@ -1036,3 +1036,29 @@ body.on-menu #ticker { display: none; }
 .snd-item .snd-actions { flex: none; display: flex; gap: 4px; }
 .snd-item .snd-actions .btn { padding: 6px 9px; font-size: 14px; line-height: 1; min-width: 0; border-radius: 8px; }
 .snd-item input[type=file] { display: none; }
+
+/* PvP fight lobby — pre-fight presence handshake overlay */
+#pvp-lobby-overlay {
+  position: fixed; inset: 0; z-index: 9999;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(10, 4, 28, 0.88); backdrop-filter: blur(4px);
+}
+#pvp-lobby-overlay.hidden { display: none; }
+.pvp-lobby-card {
+  background: linear-gradient(180deg, #2a0a4a, #1a0630);
+  border: 3px solid #b44dff; border-radius: 20px;
+  padding: 32px 40px; text-align: center;
+  box-shadow: 0 0 40px #b44dff66;
+  max-width: 320px;
+}
+.pvp-lobby-title {
+  font-size: 24px; font-weight: 900; color: #fff;
+  text-shadow: 0 0 16px #b44dff; margin-bottom: 12px;
+}
+.pvp-lobby-status { font-size: 16px; color: #ffd23f; margin-bottom: 16px; }
+.pvp-lobby-spinner {
+  width: 44px; height: 44px; margin: 0 auto;
+  border: 4px solid #b44dff44; border-top-color: #b44dff;
+  border-radius: 50%; animation: pvp-spin 0.9s linear infinite;
+}
+@keyframes pvp-spin { to { transform: rotate(360deg); } }

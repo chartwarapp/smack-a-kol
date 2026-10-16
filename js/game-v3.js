@@ -2568,6 +2568,60 @@
     try { if (navigator.vibrate) navigator.vibrate([200, 100, 200]); } catch (e) {}
     A.perfect();
     const timerEl = document.getElementById('chain-join-timer');
+    // v2: Pre-fight lobby — both fighters must be confirmed online
+    // simultaneously before the fight starts. Fixes ghost fights when
+    // the acceptor joins minutes after the challenger left.
+    function startPvpFightWithLobby(shadow, fightOpts, challengeAddr, myWallet, opponentWallet) {
+      // Build lobby overlay
+      let overlay = document.getElementById('pvp-lobby-overlay');
+      if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.id = 'pvp-lobby-overlay';
+        overlay.innerHTML = `
+          <div class="pvp-lobby-card">
+            <div class="pvp-lobby-title">🥊 FIGHT LOBBY</div>
+            <div class="pvp-lobby-status" id="pvp-lobby-status">Waiting for opponent…</div>
+            <div class="pvp-lobby-spinner"></div>
+            <button class="btn btn-small" id="pvp-lobby-leave" style="margin-top:14px">LEAVE</button>
+          </div>`;
+        document.body.appendChild(overlay);
+      }
+      overlay.classList.remove('hidden');
+      const statusEl = document.getElementById('pvp-lobby-status');
+      const leaveBtn = document.getElementById('pvp-lobby-leave');
+
+      const cleanup = () => {
+        if (SAK.PvpSync) SAK.PvpSync.leaveLobby();
+        const o = document.getElementById('pvp-lobby-overlay');
+        if (o) o.classList.add('hidden');
+      };
+      leaveBtn.onclick = () => {
+        cleanup();
+        toast('Left the lobby', 2000);
+      };
+
+      if (statusEl) statusEl.textContent = 'Waiting for opponent to join…';
+
+      SAK.PvpSync.joinLobby(challengeAddr, myWallet,
+        () => {
+          // Both online — START THE FIGHT
+          if (statusEl) statusEl.textContent = 'Both fighters ready — FIGHT!';
+          setTimeout(() => {
+            cleanup();
+            startFight(shadow, 0, fightOpts);
+            if (SAK.PvpSync) SAK.PvpSync.startFight(challengeAddr, myWallet, opponentWallet, () => {
+              toast('🏆 Opponent disconnected — you win by forfeit!', 4000);
+            });
+          }, 800);
+        },
+        () => {
+          // Timeout — opponent never showed
+          cleanup();
+          toast('Opponent did not join — no fight started', 3000);
+        }
+      );
+    }
+
     const countdown = setInterval(() => {
       secs--;
       if (timerEl) timerEl.textContent = secs;
@@ -2599,13 +2653,11 @@
         } catch (e) {}
       }
       // Challenger fights; winner settles via SETTLE & CLAIM
-      startFight(shadow, 0, { mode: 'classic', pvp: true, chainChallenge: ch.address, chainWagerSol: wagerSol, chainRole: 'challenger', chainOpponentWallet: ch.opponent });
+      // v2: lobby handshake — wait until acceptor is confirmed online
       activeChainChallenge = null; updatePendingBar();
-      // Start disconnect detection
-      if (SAK.PvpSync) SAK.PvpSync.startFight(ch.address, W.address, ch.opponent, () => {
-        toast('🏆 Opponent disconnected — you win by forfeit!', 4000);
-        // TODO: trigger win flow
-      });
+      startPvpFightWithLobby(shadow,
+        { mode: 'classic', pvp: true, chainChallenge: ch.address, chainWagerSol: wagerSol, chainRole: 'challenger', chainOpponentWallet: ch.opponent },
+        ch.address, W.address, ch.opponent);
     };
   }
 
@@ -2704,12 +2756,11 @@
         } catch (e) {}
       }
       }
-      startFight(shadow, 0, { mode: 'classic', pvp: true, chainChallenge: ch.address, chainWagerSol: sol, chainRole: 'acceptor', chainOpponentWallet: ch.challenger });
-      // Start disconnect detection
-      if (SAK.PvpSync) SAK.PvpSync.startFight(ch.address, W.address, ch.challenger, () => {
-        toast('🏆 Opponent disconnected — you win by forfeit!', 4000);
-        // TODO: trigger win flow
-      });
+      // v2: lobby handshake — wait until challenger is confirmed online.
+      // No more ghost fights when accepting minutes after the challenge.
+      startPvpFightWithLobby(shadow,
+        { mode: 'classic', pvp: true, chainChallenge: ch.address, chainWagerSol: sol, chainRole: 'acceptor', chainOpponentWallet: ch.challenger },
+        ch.address, W.address, ch.challenger);
       } catch (e) { toast('Accept failed: ' + (e.message || e), 2600); }
     };
     const closeChainModal = () => {
