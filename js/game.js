@@ -1493,7 +1493,8 @@
       const roundNum = C.round;
       const myRole = C.localSide;
       setWaitUI(true, 'WAITING FOR OPPONENT…');
-      SAK.PvpSync.pollForOpponentLock(challengeAddr, roundNum, myRole,
+      // v2: websocket realtime — fires the instant the opponent's lock lands
+      SAK.PvpSync.subscribeToRound(challengeAddr, roundNum, myRole,
         (atkLock, defLock) => {
           // Reconstruct zone objects from IDs
           const zoneById = id => SAK.METER.zones.find(z => z.id === id) || SAK.METER.zones[SAK.METER.zones.length - 1];
@@ -1659,7 +1660,7 @@
   async function resolveChallengeRound() {
     if (!F || F.challenge.resolving) return;
     // Stop any active round poll
-    if (SAK.PvpSync) SAK.PvpSync.stopRoundPoll();
+    if (SAK.PvpSync) { SAK.PvpSync.stopRoundPoll(); SAK.PvpSync.unsubscribeRound(); }
     F.challenge.resolving = true;
     F.turn = 'busy';
     clearTimeout(aiLockTimer);
@@ -1825,7 +1826,7 @@
 
   function endFight(win, draw) {
     // Stop PvP sync heartbeats and round polls
-    if (SAK.PvpSync) { SAK.PvpSync.stopFight(); SAK.PvpSync.stopRoundPoll(); }
+    if (SAK.PvpSync) { SAK.PvpSync.stopFight(); SAK.PvpSync.stopRoundPoll(); SAK.PvpSync.unsubscribeRound(); }
     // Mark chain challenge as completed so the menu badge clears
     if (F && F.opts && F.opts.chainChallenge && SAK.PvpSync) {
       SAK.PvpSync.updateChallengeStatus(F.opts.chainChallenge, 'completed').catch(() => {});
@@ -2474,6 +2475,8 @@
       activeChainChallenge = { address: res.challenge, wagerSol: chainWager };
       // Track for menu badge + realtime sync
       if (SAK.PvpSync) SAK.PvpSync.trackChallenge(res.challenge, W.address, null);
+      // v2: publish my fighter look so both phones render identical fighters
+      if (SAK.PvpSync && S.profile && S.profile.avatar) SAK.PvpSync.publishFighterSnapshot(res.challenge, 'challenger', S.profile.avatar);
       updatePendingBar();
       const url = SAK.SolanaEscrow.challengeUrl(res.challenge);
       $('#pvp-chain-link').textContent = url;
@@ -2570,8 +2573,14 @@
       if (m) m.remove();
       chainStatus('Fighting!', true);
       const shadow = Object.assign({}, roster()[0], { name: 'Opponent ' + (ch.opponent || '').slice(0, 4), pvp: true });
-      // Look up the opponent's real fighter name AND look
-      if (SAK.Api && SAK.Api.getProfile && ch.opponent) {
+      // v2: prefer the acceptor's published snapshot (identical on both phones)
+      if (SAK.PvpSync && SAK.PvpSync.getFighterSnapshots) {
+        try {
+          const snaps = await SAK.PvpSync.getFighterSnapshots(ch.address);
+          if (snaps && snaps.acceptorLook) shadow.look = snaps.acceptorLook;
+        } catch (e) {}
+      }
+      if ((!shadow.look || !shadow.look.body) && SAK.Api && SAK.Api.getProfile && ch.opponent) {
         try {
           const op = await SAK.Api.getProfile(ch.opponent);
           if (op && op.name) shadow.name = op.name;
@@ -2664,14 +2673,25 @@
         await SAK.SolanaEscrow.acceptChallenge(ch.address);
         toast(`Accepted! ${sol} SOL each on the line \u2694\uFE0F`, 2600);
         if (SAK.PvpSync) SAK.PvpSync.updateChallengeStatus(ch.address, 'accepted');
+        // v2: publish my fighter look snapshot
+        if (SAK.PvpSync && S.profile && S.profile.avatar) SAK.PvpSync.publishFighterSnapshot(ch.address, 'acceptor', S.profile.avatar);
         const shadow = Object.assign({}, roster()[0], { name: 'Challenger ' + ch.challenger.slice(0, 4), pvp: true });
-        // Look up the challenger's real fighter name AND look
+        // v2: prefer the challenger's published snapshot (identical on both phones);
+        // fall back to the profile fetch only if no snapshot exists yet
+      if (SAK.PvpSync && SAK.PvpSync.getFighterSnapshots) {
+        try {
+          const snaps = await SAK.PvpSync.getFighterSnapshots(ch.address);
+          if (snaps && snaps.challengerLook) shadow.look = snaps.challengerLook;
+        } catch (e) {}
+      }
+      if (!shadow.look || !shadow.look.body) {
       if (SAK.Api && SAK.Api.getProfile) {
         try {
           const cp = await SAK.Api.getProfile(ch.challenger);
           if (cp && cp.name) shadow.name = cp.name;
           if (cp && cp.fighter_look) shadow.look = cp.fighter_look;
         } catch (e) {}
+      }
       }
       startFight(shadow, 0, { mode: 'classic', pvp: true, chainChallenge: ch.address, chainWagerSol: sol, chainRole: 'acceptor', chainOpponentWallet: ch.challenger });
       // Start disconnect detection

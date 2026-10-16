@@ -1,13 +1,18 @@
 /* =========================================================================
  * SAK.PvpSync — Realtime PvP coordination via Supabase
  *
- * Two features:
+ * v2 (2026-10-16): True realtime via supabase-js websocket subscriptions.
+ * Round locks propagate in ~50-100ms instead of 500ms+ REST polling.
+ * REST polling remains as automatic fallback if the socket fails.
+ *
  * 1. Challenge status indicators: poll for open challenges involving the
  *    player, show badges on the main menu (AWAITING / ACCEPTED).
  * 2. Disconnect detection: heartbeat during fights. If the opponent's
  *    heartbeat goes stale (>60s), they forfeit and the remaining player wins.
- *
- * Uses the existing SAK.Api Supabase backend (REST). No SDK needed.
+ * 3. Round sync: websocket subscription on pvp_rounds — fires the instant
+ *    the opponent's lock lands. No polling.
+ * 4. Fighter snapshots: both fighters' looks stored on the challenge row
+ *    at accept time, so both phones render IDENTICAL fighters.
  * ========================================================================= */
 window.SAK = window.SAK || {};
 
@@ -286,6 +291,185 @@ SAK.PvpSync = (function () {
     if (roundPollTimer) { clearInterval(roundPollTimer); roundPollTimer = null; }
   }
 
+  /* --- Realtime (websocket) round sync ---------------------------------- */
+  // Uses supabase-js (loaded via CDN in index.html) for true push-based sync.
+  // Falls back to REST polling if the socket can't connect.
+
+  let sbClient = null;
+  let rtChannel = null;
+  let rtFallbackTimer = null;
+
+  function getSbClient() {
+    if (sbClient) return sbClient;
+    try {
+      if (typeof window.supabase === 'undefined' || !window.supabase.createClient) {
+        console.warn('[PvpSync] supabase-js not loaded, realtime unavailable');
+        return null;
+      }
+      const cfg = (window.SAK && SAK.BACKEND) || {};
+      if (!cfg.url || !cfg.anonKey) {
+        console.warn('[PvpSync] no Supabase config, realtime unavailable');
+        return null;
+      }
+      sbClient = window.supabase.createClient(cfg.url, cfg.anonKey, {
+        realtime: { params: { eventsPerSecond: 20 } },
+      });
+      return sbClient;
+    } catch (e) {
+      console.warn('[PvpSync] realtime client init failed', e.message);
+      return null;
+    }
+  }
+
+  /**
+   * Subscribe to the opponent's lock via websocket. Fires onBothLocks the
+   * instant both locks are present — typically 50-100ms after the opponent
+   * taps, instead of up to 500ms+ with polling.
+   *
+   * Falls back to REST polling if the realtime channel fails.
+   */
+  function subscribeToRound(challengeAddr, roundNum, myRole, onBothLocks, onTimeout) {
+    stopRoundPoll();
+    unsubscribeRound();
+    const startTime = Date.now();
+    const TIMEOUT = 30000;
+
+    let resolved = false;
+    const finish = (atkLock, defLock) => {
+      if (resolved) return;
+      resolved = true;
+      unsubscribeRound();
+      if (onBothLocks) onBothLocks(atkLock, defLock);
+    };
+    const handleRow = (row) => {
+      if (!row || resolved) return;
+      const oppRole = myRole === 'atk' ? 'def' : 'atk';
+      const oppDist = row[`${oppRole}_dist`];
+      const oppZone = row[`${oppRole}_zone`];
+      if (oppDist == null || oppZone == null) return;
+      const oppAngle = row[`${oppRole}_angle`] || 0;
+      const atkLock = myRole === 'atk'
+        ? { dist: row.atk_dist, zone: row.atk_zone, angle: row.atk_angle || 0 }
+        : { dist: oppDist, zone: oppZone, angle: oppAngle };
+      const defLock = myRole === 'def'
+        ? { dist: row.def_dist, zone: row.def_zone, angle: row.def_angle || 0 }
+        : { dist: oppDist, zone: oppZone, angle: oppAngle };
+      // Both locks must be complete
+      if (atkLock.dist == null || defLock.dist == null) return;
+      finish(atkLock, defLock);
+    };
+
+    // Timeout guard (same 30s as before)
+    const timeoutTimer = setTimeout(() => {
+      if (!resolved) {
+        resolved = true;
+        unsubscribeRound();
+        if (onTimeout) onTimeout();
+      }
+    }, TIMEOUT);
+
+    const sb = getSbClient();
+    if (!sb) {
+      // No realtime — fall back to polling
+      clearTimeout(timeoutTimer);
+      console.log('[PvpSync] realtime unavailable, using REST poll fallback');
+      pollForOpponentLock(challengeAddr, roundNum, myRole, onBothLocks, onTimeout);
+      return;
+    }
+
+    const topic = `pvp-round-${challengeAddr}-${roundNum}`;
+    try {
+      rtChannel = sb.channel(topic)
+        .on('postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'pvp_rounds',
+            filter: `challenge_addr=eq.${challengeAddr}`,
+          },
+          (payload) => {
+            const row = payload.new || payload.old;
+            if (row && String(row.round_num) === String(roundNum)) handleRow(row);
+          })
+        .subscribe((status) => {
+          if (status === 'SUBSCRIBED') {
+            console.log('[PvpSync] realtime subscribed:', topic);
+            // Immediate REST check in case the opponent already locked
+            // before we subscribed (race between submit and subscribe)
+            api()._req('GET',
+              `/pvp_rounds?challenge_addr=eq.${encodeURIComponent(challengeAddr)}&round_num=eq.${roundNum}&select=*`)
+              .then(rows => { const row = rows && rows[0]; if (row) handleRow(row); })
+              .catch(() => {});
+          } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+            console.warn('[PvpSync] realtime subscribe failed:', status, '— falling back to poll');
+            clearTimeout(timeoutTimer);
+            unsubscribeRound();
+            pollForOpponentLock(challengeAddr, roundNum, myRole,
+              (a, d) => { if (!resolved) { resolved = true; if (onBothLocks) onBothLocks(a, d); } },
+              () => { if (!resolved) { resolved = true; if (onTimeout) onTimeout(); } });
+          }
+        });
+    } catch (e) {
+      console.warn('[PvpSync] realtime subscribe threw, falling back to poll', e.message);
+      clearTimeout(timeoutTimer);
+      pollForOpponentLock(challengeAddr, roundNum, myRole, onBothLocks, onTimeout);
+    }
+
+    // Store cleanup
+    rtChannel._pvpCleanup = () => clearTimeout(timeoutTimer);
+  }
+
+  function unsubscribeRound() {
+    if (rtChannel) {
+      try {
+        if (rtChannel._pvpCleanup) rtChannel._pvpCleanup();
+        const sb = getSbClient();
+        if (sb) sb.removeChannel(rtChannel);
+      } catch (e) {}
+      rtChannel = null;
+    }
+    if (rtFallbackTimer) { clearTimeout(rtFallbackTimer); rtFallbackTimer = null; }
+  }
+
+  /* --- Fighter snapshots -------------------------------------------------- */
+  // Both fighters' looks stored on the challenge row at accept time.
+  // This guarantees both phones render IDENTICAL fighters — no more
+  // "different color on each phone" desync from stale profile reads.
+  // Requires: ALTER TABLE pvp_challenges ADD COLUMN IF NOT EXISTS
+  //   challenger_look JSONB, acceptor_look JSONB;
+
+  async function publishFighterSnapshot(challengeAddr, role, fighterLook) {
+    // role: 'challenger' or 'acceptor'
+    const col = role === 'challenger' ? 'challenger_look' : 'acceptor_look';
+    try {
+      await api()._req('PATCH',
+        `/pvp_challenges?challenge_addr=eq.${encodeURIComponent(challengeAddr)}`,
+        { [col]: fighterLook, updated_at: new Date().toISOString() },
+        'return=minimal');
+      console.log('[PvpSync] fighter snapshot published:', role);
+    } catch (e) {
+      console.warn('[PvpSync] snapshot publish failed (column may not exist yet)', e.message);
+    }
+  }
+
+  async function getFighterSnapshots(challengeAddr) {
+    try {
+      const rows = await api()._req('GET',
+        `/pvp_challenges?challenge_addr=eq.${encodeURIComponent(challengeAddr)}&select=challenger_look,acceptor_look,challenger,opponent`);
+      const row = rows && rows[0];
+      if (!row) return null;
+      return {
+        challengerLook: row.challenger_look || null,
+        acceptorLook: row.acceptor_look || null,
+        challenger: row.challenger,
+        opponent: row.opponent,
+      };
+    } catch (e) {
+      console.warn('[PvpSync] snapshot read failed', e.message);
+      return null;
+    }
+  }
+
   /* --- SQL for the tables (run once in Supabase) ------------------------ */
   const HEARTBEAT_TABLE_SQL = `
 -- Run this once in your Supabase SQL editor:
@@ -297,6 +481,9 @@ CREATE TABLE IF NOT EXISTS pvp_challenges (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+-- v2: fighter snapshots so both phones render identical fighters
+ALTER TABLE pvp_challenges ADD COLUMN IF NOT EXISTS challenger_look JSONB;
+ALTER TABLE pvp_challenges ADD COLUMN IF NOT EXISTS acceptor_look JSONB;
 ALTER TABLE pvp_challenges ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "open_challenges" ON pvp_challenges FOR ALL USING (true) WITH CHECK (true);
 CREATE INDEX IF NOT EXISTS idx_challenges_wallets ON pvp_challenges (challenger, opponent);
@@ -340,8 +527,12 @@ CREATE INDEX IF NOT EXISTS idx_heartbeats_seen ON pvp_heartbeats (last_seen);
     trackChallenge,
     updateChallengeStatus,
     submitLock,
-    pollForOpponentLock,
+    pollForOpponentLock,   // legacy REST poll (fallback)
+    subscribeToRound,      // v2: websocket realtime (primary)
+    unsubscribeRound,
     stopRoundPoll,
+    publishFighterSnapshot,
+    getFighterSnapshots,
     HEARTBEAT_TABLE_SQL,
     DISCONNECT_TIMEOUT,
   };
