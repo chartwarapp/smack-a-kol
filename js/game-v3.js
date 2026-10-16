@@ -2580,8 +2580,19 @@
         overlay.innerHTML = `
           <div class="pvp-lobby-card">
             <div class="pvp-lobby-title">🥊 FIGHT LOBBY</div>
-            <div class="pvp-lobby-status" id="pvp-lobby-status">Waiting for opponent…</div>
-            <div class="pvp-lobby-spinner"></div>
+            <div class="pvp-lobby-players">
+              <div class="pvp-lobby-player" id="pvp-lobby-p1">
+                <span class="pvp-dot online"></span><span class="pvp-name">YOU</span>
+                <span class="pvp-state">online</span>
+              </div>
+              <div class="pvp-lobby-vs">VS</div>
+              <div class="pvp-lobby-player" id="pvp-lobby-p2">
+                <span class="pvp-dot"></span><span class="pvp-name">OPPONENT</span>
+                <span class="pvp-state">waiting…</span>
+              </div>
+            </div>
+            <div class="pvp-lobby-status" id="pvp-lobby-status">Waiting for opponent to join…</div>
+            <div class="pvp-lobby-spinner" id="pvp-lobby-spinner"></div>
             <button class="btn btn-small" id="pvp-lobby-leave" style="margin-top:14px">LEAVE</button>
           </div>`;
         document.body.appendChild(overlay);
@@ -2618,6 +2629,18 @@
           // Timeout — opponent never showed
           cleanup();
           toast('Opponent did not join — no fight started', 3000);
+        },
+        (wallets) => {
+          // Live presence: light up the opponent's dot when they're online
+          const p2 = document.getElementById('pvp-lobby-p2');
+          if (!p2) return;
+          const dot = p2.querySelector('.pvp-dot');
+          const state = p2.querySelector('.pvp-state');
+          const oppOnline = wallets.some(w => w !== myWallet);
+          if (dot) dot.classList.toggle('online', oppOnline);
+          if (state) state.textContent = oppOnline ? 'online' : 'waiting…';
+          const spinner = document.getElementById('pvp-lobby-spinner');
+          if (spinner) spinner.style.display = oppOnline ? 'none' : '';
         }
       );
     }

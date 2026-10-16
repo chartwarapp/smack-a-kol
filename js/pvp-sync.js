@@ -446,7 +446,7 @@ SAK.PvpSync = (function () {
    * confirmed online simultaneously. Calls onTimeout() after 60s if the
    * opponent never shows.
    */
-  function joinLobby(challengeAddr, wallet, onBothReady, onTimeout) {
+  function joinLobby(challengeAddr, wallet, onBothReady, onTimeout, onPresence) {
     leaveLobby();
     const LOBBY_TIMEOUT = 60000;
     let done = false;
@@ -486,6 +486,7 @@ SAK.PvpSync = (function () {
           presences.forEach(p => { if (p.wallet) wallets.add(p.wallet); });
         });
         console.log('[PvpSync] lobby presence:', [...wallets]);
+        if (onPresence) onPresence([...wallets]);
         if (wallets.size >= 2) finishReady();
       } catch (e) {}
     };

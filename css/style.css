@@ -1062,3 +1062,31 @@ body.on-menu #ticker { display: none; }
   border-radius: 50%; animation: pvp-spin 0.9s linear infinite;
 }
 @keyframes pvp-spin { to { transform: rotate(360deg); } }
+
+/* PvP lobby player status rows */
+.pvp-lobby-players { margin-bottom: 14px; }
+.pvp-lobby-player {
+  display: flex; align-items: center; gap: 10px;
+  background: #ffffff10; border-radius: 12px;
+  padding: 10px 14px; margin: 6px 0;
+}
+.pvp-lobby-vs {
+  font-size: 13px; font-weight: 900; color: #b44dff;
+  text-align: center; margin: 2px 0;
+}
+.pvp-dot {
+  width: 12px; height: 12px; border-radius: 50%;
+  background: #666; flex: none;
+  box-shadow: 0 0 0 2px #6666;
+}
+.pvp-dot.online {
+  background: #39ff88;
+  box-shadow: 0 0 8px #39ff88;
+  animation: pvp-pulse 1.6s ease-in-out infinite;
+}
+@keyframes pvp-pulse {
+  0%, 100% { box-shadow: 0 0 4px #39ff88; }
+  50% { box-shadow: 0 0 12px #39ff88; }
+}
+.pvp-name { font-weight: 800; color: #fff; flex: 1; text-align: left; }
+.pvp-state { font-size: 13px; color: #ffd23f; }
