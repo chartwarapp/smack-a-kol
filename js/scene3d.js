@@ -3176,7 +3176,7 @@ SAK.Scene3D = (function () {
         camBase.look.set(head.x, lookY, head.z);
         // Ride a three-quarter offset — pulled BACK so the whole wrecked face
         // reads in frame (funny, not claustrophobic). Stays wide on landing.
-        const off = koCam.offset || new T.Vector3(8.8, 4.4, 5.7); // LT 2026-10-15: pulled back ~30% — less claustrophobic
+        const off = koCam.offset || new T.Vector3(11.4, 5.7, 7.4); // LT 2026-10-16: pulled back another 30% — wider arena view
         const pull = landed ? 1.05 : 1;
         camBase.pos.set(
           head.x + off.x * pull,
