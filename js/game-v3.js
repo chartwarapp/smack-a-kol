@@ -2579,6 +2579,7 @@
         overlay.id = 'pvp-lobby-overlay';
         overlay.innerHTML = `
           <div class="pvp-lobby-card">
+            <img class="pvp-lobby-logo" src="assets/smack-a-kol-logo-title.jpg" alt="SMACK-A-KOL" />
             <div class="pvp-lobby-title">🥊 FIGHT LOBBY</div>
             <div class="pvp-lobby-players">
               <div class="pvp-lobby-player" id="pvp-lobby-p1">

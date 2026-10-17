@@ -440,6 +440,12 @@ SAK.PvpSync = (function () {
 
   let lobbyChannel = null;
   let lobbyTimeoutTimer = null;
+  let lobbyBeatTimer = null;
+  let lobbyPollTimer = null;
+  function stopLobbyRest() {
+    if (lobbyBeatTimer) { clearInterval(lobbyBeatTimer); lobbyBeatTimer = null; }
+    if (lobbyPollTimer) { clearInterval(lobbyPollTimer); lobbyPollTimer = null; }
+  }
 
   /**
    * Join the pre-fight lobby. Calls onBothReady() when both fighters are
@@ -448,13 +454,64 @@ SAK.PvpSync = (function () {
    */
   function joinLobby(challengeAddr, wallet, onBothReady, onTimeout, onPresence) {
     leaveLobby();
-    const LOBBY_TIMEOUT = 60000;
+    const LOBBY_TIMEOUT = 90000;
     let done = false;
+    // REST-based lobby heartbeat — works even if realtime/presence fails.
+    // Writes a 'lobby' heartbeat every 3s and polls for the opponent's.
+    const sendLobbyBeat = async () => {
+      try {
+        await fetch(`${SUPABASE_URL}/rest/v1/pvp_heartbeats`, {
+          method: 'POST',
+          headers: {
+            'apikey': SUPABASE_ANON_KEY,
+            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+            'Content-Type': 'application/json',
+            'Prefer': 'resolution=merge-duplicates',
+          },
+          body: JSON.stringify({
+            challenge_addr: challengeAddr,
+            wallet: wallet,
+            last_beat: new Date().toISOString(),
+          }),
+        });
+      } catch (e) {}
+    };
+    const pollLobbyBeat = async () => {
+      if (done) return;
+      try {
+        const res = await fetch(
+          `${SUPABASE_URL}/rest/v1/pvp_heartbeats?challenge_addr=eq.${challengeAddr}&order=last_beat.desc&limit=10`,
+          { headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${SUPABASE_ANON_KEY}` } }
+        );
+        const beats = await res.json();
+        const now = Date.now();
+        const wallets = new Set();
+        (beats || []).forEach(b => {
+          if (b.wallet && (now - new Date(b.last_beat).getTime()) < 15000) {
+            wallets.add(b.wallet);
+          }
+        });
+        // Always include ourselves — we just wrote a beat
+        wallets.add(wallet);
+        console.log('[PvpSync] lobby REST poll:', [...wallets]);
+        if (onPresence) onPresence([...wallets]);
+        if (wallets.size >= 2) finishReady();
+      } catch (e) {}
+    };
+    const startRestFallback = () => {
+      sendLobbyBeat();
+      lobbyBeatTimer = setInterval(sendLobbyBeat, 3000);
+      lobbyPollTimer = setInterval(pollLobbyBeat, 2000);
+      // Immediate first poll
+      pollLobbyBeat();
+    };
+    const stopRestFallback = stopLobbyRest;
 
     const finishReady = () => {
       if (done) return;
       done = true;
       clearTimeout(lobbyTimeoutTimer);
+      stopRestFallback();
       console.log('[PvpSync] lobby: both fighters online — starting fight');
       if (onBothReady) onBothReady();
       // Keep the channel open briefly so the other side also sees us;
@@ -464,6 +521,7 @@ SAK.PvpSync = (function () {
     const finishTimeout = () => {
       if (done) return;
       done = true;
+      stopRestFallback();
       leaveLobby();
       console.log('[PvpSync] lobby: opponent did not show up');
       if (onTimeout) onTimeout();
@@ -471,12 +529,14 @@ SAK.PvpSync = (function () {
 
     lobbyTimeoutTimer = setTimeout(finishTimeout, LOBBY_TIMEOUT);
 
+    // Start REST heartbeat fallback immediately — this is the reliable path.
+    // Presence (below) is the fast path; either one can trigger the fight.
+    startRestFallback();
+
     const sb = getSbClient();
     if (!sb) {
-      console.warn('[PvpSync] lobby: no realtime client — cannot verify opponent online');
-      finishTimeout();
-      return;
-    }
+      console.warn('[PvpSync] lobby: no realtime client — using REST fallback only');
+    } else {
 
     const checkPresence = () => {
       try {
@@ -503,17 +563,17 @@ SAK.PvpSync = (function () {
             await lobbyChannel.track({ wallet, online: true, ts: Date.now() });
             checkPresence();
           } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-            console.warn('[PvpSync] lobby subscribe failed:', status);
-            finishTimeout();
+            console.warn('[PvpSync] lobby presence failed:', status, '— REST fallback continues');
           }
         });
     } catch (e) {
-      console.warn('[PvpSync] lobby failed', e.message);
-      finishTimeout();
+      console.warn('[PvpSync] lobby presence failed', e.message, '— REST fallback continues');
+    }
     }
   }
 
   function leaveLobby() {
+    stopLobbyRest();
     if (lobbyTimeoutTimer) { clearTimeout(lobbyTimeoutTimer); lobbyTimeoutTimer = null; }
     if (lobbyChannel) {
       try {
