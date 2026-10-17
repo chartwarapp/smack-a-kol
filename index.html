@@ -36,6 +36,11 @@
   <!-- ================= MENU (B1 redesign) ================= -->
   <section id="screen-menu" class="screen active">
     <div class="menu-inner menu-b1">
+      <!-- Top header row: fighter (left), settings (right) -->
+      <div class="m1-header-row">
+        <button id="btn-fighter" class="fighter-chip m1-fighter"><span id="fighter-chip-av"></span><span><b id="fighter-chip-name">YOU</b><small>EDIT MY FIGHTER</small></span></button>
+        <button id="m1-top-settings" class="icon-btn m1-top-settings" aria-label="Settings">⚙</button>
+      </div>
       <!-- B1 top status bar -->
       <div class="m1-topbar">
         <span class="m1-stat">⭐ <b id="m1-pts">0</b></span>
@@ -56,9 +61,6 @@
       <div class="m1-hero">
         <img class="m1-logo" src="assets/smack-a-kol-logo-title.jpg" alt="SMACK-A-KOL" decoding="async" />
       </div>
-      <!-- Fighter chip (existing IDs preserved) -->
-      <button id="btn-fighter" class="fighter-chip m1-fighter"><span id="fighter-chip-av"></span><span><b id="fighter-chip-name">YOU</b><small>EDIT MY FIGHTER</small></span></button>
-
       <div class="menu-buttons m1-buttons">
         <!-- ENTER THE RING → Solo battle -->
         <button id="btn-enter-ring" class="btn btn-green btn-xl m1-enter">SMACK-A-KOL<small class="btn-sub">Solo vs House · wager SOL</small></button>

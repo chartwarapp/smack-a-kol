@@ -2511,6 +2511,7 @@
   const dockStake = $('#m1-dock-stake'); if (dockStake) dockStake.onclick = () => { A.click(); $('#btn-vault').click(); };
   const dockWallet = $('#m1-dock-wallet'); if (dockWallet) dockWallet.onclick = () => { A.click(); $('#btn-connect').click(); };
   const dockSettings = $('#m1-dock-settings'); if (dockSettings) dockSettings.onclick = () => { A.click(); $('#btn-settings').click(); };
+  const topSettings = $('#m1-top-settings'); if (topSettings) topSettings.onclick = () => { A.click(); $('#btn-settings').click(); };
   // B1 top bar icons
   const mAch = $('#m1-ach'); if (mAch) mAch.onclick = () => {
     A.click();
