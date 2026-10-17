@@ -2752,8 +2752,9 @@
     try { history.replaceState(null, '', location.pathname); } catch (e) {}
     if (!SAK.SolanaEscrow) { setTimeout(() => toast('Escrow module not loaded', 2600), 1200); return; }
     let ch = null;
-    try { ch = await SAK.SolanaEscrow.getChallenge(addr); } catch (e) {}
-    if (!ch || ch.stateName !== 'Open') { setTimeout(() => toast('That on-chain challenge is no longer open', 2600), 1200); return; }
+    try { ch = await SAK.SolanaEscrow.getChallenge(addr); } catch (e) { console.warn('[PvP] getChallenge threw:', e.message); }
+    if (!ch) { setTimeout(() => toast('Challenge not found on-chain — try again in a few seconds', 3000), 1200); return; }
+    if (ch.stateName !== 'Open') { setTimeout(() => toast('Challenge is ' + ch.stateName + ' (not open)', 2600), 1200); return; }
     const sol = ch.wagerSol;
     const challengerShort = ch.challenger.slice(0, 4) + '…' + ch.challenger.slice(-4);
     const go = async () => {

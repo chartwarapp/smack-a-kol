@@ -115,19 +115,39 @@
   }
 
   /** Fetch and parse a challenge account by PDA (base58 string or PublicKey). */
-  async function getChallenge(challengeAddr) {
+  async function getChallenge(challengeAddr, retries = 5) {
     const w = web3();
     const conn = connection();
     const pda = challengeAddr instanceof w.PublicKey ? challengeAddr : new w.PublicKey(challengeAddr);
-    const info = await conn.getAccountInfo(pda);
-    if (!info || !info.data) return null;
-    const parsed = parseChallenge(info.data);
-    if (!parsed) return null;
-    parsed.address = pda.toBase58();
-    // Derive vault PDA for convenience
-    const { vault } = await derivePDAs(parsed.challenger, parsed.nonce);
-    parsed.vault = vault.toBase58();
-    return parsed;
+    let lastError = null;
+    for (let attempt = 0; attempt < retries; attempt++) {
+      try {
+        const info = await conn.getAccountInfo(pda, 'confirmed');
+        if (info && info.data) {
+          const parsed = parseChallenge(info.data);
+          if (parsed) {
+            parsed.address = pda.toBase58();
+            // Derive vault PDA for convenience
+            const { vault } = await derivePDAs(parsed.challenger, parsed.nonce);
+            parsed.vault = vault.toBase58();
+            return parsed;
+          }
+          // Account exists but parse failed — don't retry, it's a data issue
+          console.warn('[Escrow] getChallenge: account exists but parse failed');
+          return null;
+        }
+        // Account not found yet — likely RPC lag, retry
+        console.log(`[Escrow] getChallenge: not found (attempt ${attempt + 1}/${retries}), retrying...`);
+      } catch (e) {
+        lastError = e;
+        console.warn(`[Escrow] getChallenge error (attempt ${attempt + 1}/${retries}):`, e.message);
+      }
+      if (attempt < retries - 1) {
+        await new Promise(r => setTimeout(r, 1500));
+      }
+    }
+    if (lastError) console.warn('[Escrow] getChallenge failed after retries:', lastError.message);
+    return null;
   }
 
   function getSigner() {
