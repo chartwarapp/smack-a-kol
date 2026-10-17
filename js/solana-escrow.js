@@ -265,6 +265,7 @@
       { pubkey: vault, isSigner: false, isWritable: true },
       { pubkey: challenger, isSigner: true, isWritable: true },
       { pubkey: new w.PublicKey(TOKEN_PROGRAM), isSigner: false, isWritable: false },
+      { pubkey: w.SystemProgram.programId, isSigner: false, isWritable: false },
     ], new Uint8Array(DISC.cancel_challenge));
     const signature = await buildAndSend([ix], address);
     return { signature };
@@ -333,6 +334,7 @@
       { pubkey: vault, isSigner: false, isWritable: true },
       { pubkey: challenger, isSigner: false, isWritable: true },
       { pubkey: new w.PublicKey(TOKEN_PROGRAM), isSigner: false, isWritable: false },
+      { pubkey: w.SystemProgram.programId, isSigner: false, isWritable: false },
     ], new Uint8Array(DISC.refund_expired));
     const signature = await buildAndSend([ix], address);
     return { signature };
