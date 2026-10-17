@@ -584,7 +584,12 @@ h2, h3, .prompt, .vs, .level, .fc-name, .banner, .float-text, .result-title {
 .pvp-card-sub { font: 600 11px system-ui, sans-serif; color: #666; margin-top: 2px; }
 .pvp-card-head .tag-devnet { margin-left: auto; }
 .pvp-list { display: grid; gap: 6px; max-height: 260px; overflow-y: auto; }
-.pvp-row { display: grid; grid-template-columns: 40px 1fr auto; gap: 8px; align-items: center; background: #f1edff; border-radius: 12px; padding: 5px 8px; }
+.pvp-row { display: flex; gap: 8px; align-items: center; background: #f1edff; border-radius: 12px; padding: 8px 10px; }
+.pvp-row .pvp-info { flex: 1; min-width: 0; }
+.pvp-row .pv-name { font: 800 14px system-ui, sans-serif; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pvp-wager-input { width: 64px; flex: none; padding: 8px 4px; border-radius: 10px; border: 2px solid #b44dff; background: #1a0a2e; color: #fff; text-align: center; font: 700 14px system-ui, sans-serif; }
+.pvp-smack-btn { flex: none; padding: 10px 16px; border: none; border-radius: 12px; background: linear-gradient(180deg, #ff4d4d, #cc0000); color: #fff; font: 800 14px system-ui, sans-serif; cursor: pointer; white-space: nowrap; box-shadow: 0 2px 8px #ff4d4d55; }
+.pvp-smack-btn:active { transform: scale(0.96); }
 .pvp-row .avatar-svg { width: 40px; height: 40px; border-radius: 10px; display: block; }
 .pvp-row .pv-name { font: 800 14px system-ui, sans-serif; }
 .pvp-row .pv-meta { font: 600 11px system-ui, sans-serif; opacity: .75; }

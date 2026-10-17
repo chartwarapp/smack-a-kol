@@ -2302,18 +2302,17 @@
     countEl.textContent = `${realOnlinePlayers.length} live fighter${realOnlinePlayers.length > 1 ? 's' : ''} online`;
     listEl.innerHTML = realOnlinePlayers.map((p, i) => {
       const short = p.wallet.slice(0, 4) + '…' + p.wallet.slice(-4);
-      const avatar = (p.look && SAK.avatarSVG) ? SAK.avatarSVG(p.look) : '<div style="width:48px;height:48px;border-radius:50%;background:#333"></div>';
+      const avatar = (p.look && SAK.avatarSVG) ? SAK.avatarSVG(p.look) : '';
       return `
       <div class="pvp-row">
         ${avatar}
-        <div style="flex:1"><div class="pv-name"><span class="pv-dot"></span>${esc(p.name || short)}</div>
-          <div class="pv-meta">${short} · live</div></div>
-        <input type="number" class="pvp-wager-input" data-i="${i}" placeholder="SOL" min="0.01" step="0.01" value="0.05"
-          style="width:70px;padding:8px;border-radius:8px;border:1px solid #b44dff;background:#1a0a2e;color:#fff;text-align:center" />
-        <button data-i="${i}" class="pvp-challenge-btn">⚔ CHALLENGE</button>
+        <div class="pvp-info"><div class="pv-name"><span class="pv-dot"></span>${esc(p.name || short)}</div>
+          <div class="pv-meta">${short}</div></div>
+        <input type="number" class="pvp-wager-input" data-i="${i}" min="0.01" step="0.01" value="0.05" />
+        <button data-i="${i}" class="pvp-smack-btn">SMACK</button>
       </div>`;
     }).join('');
-    $$('#pvp-list .pvp-challenge-btn').forEach(b => {
+    $$('#pvp-list .pvp-smack-btn').forEach(b => {
       b.onclick = () => challengeRealPlayer(realOnlinePlayers[+b.dataset.i]);
     });
   }
