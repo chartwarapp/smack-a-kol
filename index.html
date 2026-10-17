@@ -36,13 +36,11 @@
   <!-- ================= MENU (B1 redesign) ================= -->
   <section id="screen-menu" class="screen active">
     <div class="menu-inner menu-b1">
-      <!-- Top header: single unified bar with fighter, wallet, settings -->
-      <div class="m1-header-bar">
-        <button id="btn-fighter" class="m1-hb-fighter"><span id="fighter-chip-av"></span><span><b id="fighter-chip-name">YOU</b><small>EDIT MY FIGHTER</small></span></button>
-        <div class="m1-hb-divider"></div>
-        <button id="btn-connect" class="m1-hb-wallet">👛 CONNECT WALLET</button>
-        <div class="m1-hb-divider"></div>
-        <button id="m1-top-settings" class="m1-hb-settings" aria-label="Settings">⚙</button>
+      <!-- Top header row: fighter (left), settings (right) -->
+      <div class="m1-header-row">
+        <button id="btn-fighter" class="fighter-chip m1-fighter"><span id="fighter-chip-av"></span><span><b id="fighter-chip-name">YOU</b><small>EDIT MY FIGHTER</small></span></button>
+        <button id="btn-connect" class="wallet-chip-btn">👛 CONNECT WALLET</button>
+        <button id="m1-top-settings" class="icon-btn m1-top-settings" aria-label="Settings">⚙</button>
       </div>
       <!-- B1 top status bar -->
       <div class="m1-topbar">

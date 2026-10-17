@@ -936,34 +936,27 @@ h2, h3, .prompt, .vs, .level, .fc-name, .banner, .float-text, .result-title {
 .menu-b1 .m1-tagline {
   font-family: var(--font);
 }
-/* Top header: single unified bar with fighter, wallet, settings */
-.m1-header-bar {
-  display: flex; align-items: stretch;
-  background: #2a1545; border: 2px solid #39ff88; border-radius: 16px;
-  margin-bottom: 10px; overflow: hidden;
+/* Top header row: fighter chip left, settings right */
+.m1-header-row {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 10px; margin-bottom: 10px;
 }
-.m1-header-bar button {
-  background: none; border: none; color: #fff;
-  font-family: var(--font); cursor: pointer;
-  display: flex; align-items: center; justify-content: center;
-  padding: 8px 10px; min-width: 0;
-}
-.m1-hb-fighter { flex: 1 1 auto; gap: 8px; text-align: left; }
-.m1-hb-fighter #fighter-chip-av { width: 36px; height: 36px; flex: none; }
-.m1-hb-fighter #fighter-chip-av svg { width: 36px; height: 36px; }
-.m1-hb-fighter b { display: block; font-size: 14px; }
-.m1-hb-fighter small { display: block; font-size: 9px; color: #39ff88; font-weight: normal; }
-.m1-hb-divider { width: 2px; background: #39ff88; opacity: 0.3; flex: none; margin: 8px 0; }
-.m1-hb-wallet {
-  flex: 1 1 auto; flex-direction: column; gap: 2px;
-  font-size: 13px; font-weight: bold;
+.m1-header-row .m1-fighter { margin: 0; flex: 0 1 auto; }
+/* Compact wallet button in header row */
+.wallet-chip-btn {
+  flex: 1 1 auto; min-width: 0;
+  background: #2a1545; border: 2px solid #8b5cf6; border-radius: 12px;
+  color: #fff; font-family: var(--font); font-size: 13px; font-weight: bold;
+  padding: 8px 10px; cursor: pointer; text-align: center;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.m1-hb-wallet small.btn-sub { display: block; font-size: 10px; font-weight: normal; opacity: 0.8; }
-.m1-hb-settings { flex: 0 0 auto; font-size: 22px; padding: 8px 14px; }
-/* Legacy classes kept for JS compat */
-.wallet-chip-btn.btn-grey { }
-.m1-top-settings { }
+.wallet-chip-btn small.btn-sub { display: block; font-size: 10px; font-weight: normal; opacity: 0.8; }
+.wallet-chip-btn.btn-grey { background: #3a3a4a; border-color: #39ff88; }
+.m1-top-settings {
+  flex: 0 0 auto; width: 44px; height: 44px; font-size: 24px;
+  background: #2a1545; border: 2px solid #8b5cf6; border-radius: 12px;
+  color: #fff; cursor: pointer;
+}
 /* Top status bar */
 .m1-topbar {
   display: flex; align-items: center; gap: 8px;
