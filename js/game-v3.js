@@ -1349,6 +1349,7 @@
       : bet
       ? `BET ${ptsHTML()} ${fmt(bet)} → ${fmt(boosted(bet * kol.payout))}`
       : `FREE · WIN ${ptsHTML()} +${fmt(modePts(kol, mode))}`);
+    renderFightInfoBar();
     $('#upgrade-bar').classList.remove('gone');
     $('#taunt').classList.add('hidden'); $('#p-taunt').classList.add('hidden');
     $('#brace').classList.add('hidden');
@@ -1372,12 +1373,29 @@
     })();
   }
 
+  function renderFightInfoBar() {
+    const bar = $('#fight-info-bar');
+    if (!bar) return;
+    if (!F || !F.challenge) { bar.classList.add('hidden'); return; }
+    const C = F.challenge;
+    const arenaEl = $('#arena-label');
+    const stakeEl = $('#stake-tag');
+    const arena = arenaEl ? arenaEl.textContent.trim() : '';
+    const stake = stakeEl ? stakeEl.innerHTML.trim() : '';
+    bar.classList.remove('hidden');
+    bar.innerHTML =
+      (arena ? `<span class="fib-arena">${esc(arena)}</span><span class="fib-div"></span>` : '') +
+      `<span class="fib-score"><span class="rs-p">${C.pWins}</span> — <span class="rs-k">${C.kWins}</span></span>` +
+      (stake ? `<span class="fib-div"></span><span class="fib-bet">${stake}</span>` : '');
+  }
+
   function renderRoundScore() {
     const el = $('#round-score');
     if (!F || !F.challenge) { el.classList.add('hidden'); return; }
     const C = F.challenge;
     el.classList.remove('hidden');
     el.innerHTML = `<span class="rs-p">${C.pWins}</span><span class="sep">—</span><span class="rs-k">${C.kWins}</span>`;
+    renderFightInfoBar();
     // Real HP lives in renderHp() — round wins decide the match; HP is flavour that drops on landed hits
   }
 
@@ -3385,7 +3403,7 @@
   });
   $('#btn-close-settings').addEventListener('click', () => $('#modal-settings').classList.add('hidden'));
   // V2: fight-screen arena label
-  window.__setArenaLabel = () => { const el = $('#arena-label'); if (el && Scene && Scene.arenaName) el.textContent = '\u{1F3DF}\uFE0F ' + Scene.arenaName; };
+  window.__setArenaLabel = () => { const el = $('#arena-label'); if (el && Scene && Scene.arenaName) { el.textContent = '\u{1F3DF}\uFE0F ' + Scene.arenaName; if (typeof renderFightInfoBar === 'function') renderFightInfoBar(); } };
   $('#set-sound').addEventListener('change', e => { S.settings.sound = e.target.checked; SAK.Storage.save(); });
   $('#set-haptics').addEventListener('change', e => { S.settings.haptics = e.target.checked; SAK.Storage.save(); });
   // V2: arena picker — REKT Alley temporarily hidden (2026-10-06): it froze

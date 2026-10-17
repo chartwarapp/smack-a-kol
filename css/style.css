@@ -1226,3 +1226,22 @@ body.on-menu #ticker { display: none; }
   font-size: 11px; padding: 2px 8px; cursor: pointer; color: #fff;
 }
 .st-rpill.mine { border-color: #39ff88; background: #39ff8822; }
+
+/* Unified fight info bar: arena + score + bet in one pill */
+.fight-info-bar {
+  position: absolute; left: 50%; top: calc(150px + var(--safe-top)); transform: translateX(-50%);
+  z-index: 26; display: flex; align-items: center; gap: 10px;
+  background: #1a0b3add; border: 3px solid var(--ink); border-radius: 16px;
+  box-shadow: 0 4px 0 var(--ink);
+  padding: 6px 16px; white-space: nowrap;
+  font-family: var(--font); font-size: 14px; font-weight: 700; color: #fff;
+  pointer-events: none; max-width: 94vw; overflow: hidden;
+}
+.fight-info-bar.hidden { display: none; }
+.fight-info-bar .fib-arena { color: #ffd23f; letter-spacing: 2px; font-size: 12px; }
+.fight-info-bar .fib-div { width: 2px; height: 18px; background: #ffffff33; flex: none; }
+.fight-info-bar .fib-score { font-size: 20px; letter-spacing: 2px; }
+.fight-info-bar .fib-score .rs-p { color: #7ec0ff; }
+.fight-info-bar .fib-score .rs-k { color: #ff7a9a; }
+.fight-info-bar .fib-bet { font-size: 12px; color: #d9ccf5; opacity: 0.9; }
+.fight-info-bar .fib-bet .escrow-badge { font-size: 9px; }
