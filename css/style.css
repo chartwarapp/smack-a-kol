@@ -936,27 +936,31 @@ h2, h3, .prompt, .vs, .level, .fc-name, .banner, .float-text, .result-title {
 .menu-b1 .m1-tagline {
   font-family: var(--font);
 }
-/* Top header row: fighter chip left, settings right */
-.m1-header-row {
-  display: flex; align-items: center; justify-content: space-between;
-  gap: 10px; margin-bottom: 10px;
+/* Top header: single bar across the screen, like the stats bar */
+.m1-header-bar {
+  display: flex; align-items: center;
+  background: #2a1545; border: 2px solid #39ff88; border-radius: 16px;
+  padding: 8px 12px; margin-bottom: 10px; gap: 4px;
 }
-.m1-header-row .m1-fighter { margin: 0; flex: 0 1 auto; }
-/* Compact wallet button in header row */
-.wallet-chip-btn {
-  flex: 1 1 auto; min-width: 0;
-  background: #2a1545; border: 2px solid #8b5cf6; border-radius: 12px;
-  color: #fff; font-family: var(--font); font-size: 13px; font-weight: bold;
-  padding: 8px 10px; cursor: pointer; text-align: center;
+.m1-header-bar .m1-hb-item {
+  background: none; border: none; color: #fff;
+  font-family: var(--font); cursor: pointer;
+  display: flex; align-items: center; gap: 8px;
+  padding: 4px 6px; min-width: 0;
+}
+.m1-hb-item.m1-hb-wallet {
+  flex: 1 1 auto; justify-content: center; text-align: center;
+  font-size: 13px; font-weight: bold;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  flex-direction: column; gap: 1px;
 }
-.wallet-chip-btn small.btn-sub { display: block; font-size: 10px; font-weight: normal; opacity: 0.8; }
-.wallet-chip-btn.btn-grey { background: #3a3a4a; border-color: #39ff88; }
-.m1-top-settings {
-  flex: 0 0 auto; width: 44px; height: 44px; font-size: 24px;
-  background: #2a1545; border: 2px solid #8b5cf6; border-radius: 12px;
-  color: #fff; cursor: pointer;
-}
+.m1-hb-wallet small.btn-sub { display: block; font-size: 10px; font-weight: normal; opacity: 0.8; }
+.m1-hb-item.m1-hb-gear { flex: 0 0 auto; font-size: 22px; }
+.m1-hb-av { width: 32px; height: 32px; flex: none; display: block; }
+.m1-hb-av svg { width: 32px; height: 32px; display: block; }
+.m1-hb-txt { text-align: left; }
+.m1-hb-txt b { display: block; font-size: 13px; }
+.m1-hb-txt small { display: block; font-size: 9px; color: #39ff88; font-weight: normal; }
 /* Top status bar */
 .m1-topbar {
   display: flex; align-items: center; gap: 8px;
