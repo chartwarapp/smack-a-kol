@@ -315,10 +315,7 @@ h2, h3, .prompt, .vs, .level, .fc-name, .banner, .float-text, .result-title {
 @keyframes waitPulse { 0%,100% { opacity: .75; } 50% { opacity: 1; } }
 .meter-role-label { fill: #fff; font-size: 9px; font-family: system-ui, sans-serif; }
 .round-score {
-  position: absolute; left: 50%; top: calc(176px + var(--safe-top)); transform: translateX(-50%);
-  z-index: 25; font-size: 28px; background: #1a0b3acc; padding: 4px 16px; border-radius: 14px;
-  border: 3px solid #fff; box-shadow: 0 4px 0 #0006; letter-spacing: .04em; pointer-events: none;
-  white-space: nowrap;
+  display: none !important;
 }
 .round-score .sep { opacity: .55; margin: 0 4px; font-size: 20px; }
 .round-score .rs-p { color: #7ec0ff; }
@@ -1229,14 +1226,16 @@ body.on-menu #ticker { display: none; }
 
 /* Unified fight info bar: arena + score + bet in one pill */
 .fight-info-bar {
-  position: absolute; left: 50%; top: calc(150px + var(--safe-top)); transform: translateX(-50%);
-  z-index: 26; display: flex; align-items: center; gap: 10px;
+  position: absolute; left: 50%; top: calc(132px + var(--safe-top)); transform: translateX(-50%);
+  z-index: 26; display: flex; align-items: center; gap: 8px;
   background: #1a0b3add; border: 3px solid var(--ink); border-radius: 16px;
   box-shadow: 0 4px 0 var(--ink);
-  padding: 6px 16px; white-space: nowrap;
+  padding: 6px 14px; white-space: nowrap;
   font-family: var(--font); font-size: 14px; font-weight: 700; color: #fff;
-  pointer-events: none; max-width: 94vw; overflow: hidden;
+  pointer-events: none; max-width: 94vw;
 }
+.fight-info-bar .fib-arena, .fight-info-bar .fib-score { flex: none; }
+.fight-info-bar .fib-bet { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .fight-info-bar.hidden { display: none; }
 .fight-info-bar .fib-arena { color: #ffd23f; letter-spacing: 2px; font-size: 12px; }
 .fight-info-bar .fib-div { width: 2px; height: 18px; background: #ffffff33; flex: none; }

@@ -1390,11 +1390,11 @@
   }
 
   function renderRoundScore() {
-    const el = $('#round-score');
-    if (!F || !F.challenge) { el.classList.add('hidden'); return; }
-    const C = F.challenge;
-    el.classList.remove('hidden');
-    el.innerHTML = `<span class="rs-p">${C.pWins}</span><span class="sep">—</span><span class="rs-k">${C.kWins}</span>`;
+    if (!F || !F.challenge) {
+      const bar = $('#fight-info-bar');
+      if (bar) bar.classList.add('hidden');
+      return;
+    }
     renderFightInfoBar();
     // Real HP lives in renderHp() — round wins decide the match; HP is flavour that drops on landed hits
   }
