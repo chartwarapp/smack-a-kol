@@ -934,6 +934,16 @@ h2, h3, .prompt, .vs, .level, .fc-name, .banner, .float-text, .result-title {
   gap: 10px; margin-bottom: 10px;
 }
 .m1-header-row .m1-fighter { margin: 0; flex: 0 1 auto; }
+/* Compact wallet button in header row */
+.wallet-chip-btn {
+  flex: 1 1 auto; min-width: 0;
+  background: #2a1545; border: 2px solid #8b5cf6; border-radius: 12px;
+  color: #fff; font-family: var(--font); font-size: 13px; font-weight: bold;
+  padding: 8px 10px; cursor: pointer; text-align: center;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.wallet-chip-btn small.btn-sub { display: block; font-size: 10px; font-weight: normal; opacity: 0.8; }
+.wallet-chip-btn.btn-grey { background: #3a3a4a; border-color: #39ff88; }
 .m1-top-settings {
   flex: 0 0 auto; width: 44px; height: 44px; font-size: 24px;
   background: #2a1545; border: 2px solid #8b5cf6; border-radius: 12px;
