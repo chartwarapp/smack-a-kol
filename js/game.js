@@ -2356,7 +2356,7 @@
         ${avatar}
         <div class="pvp-info"><div class="pv-name"><span class="pv-dot"></span>${esc(p.name || short)}</div>
           <div class="pv-meta">${short}</div></div>
-        <input type="number" class="pvp-wager-input" data-i="${i}" min="0.01" step="0.01" value="0.05" />
+        <div class="pvp-wager-wrap"><input type="number" class="pvp-wager-input" data-i="${i}" min="0.01" step="0.01" value="0.05" /><small>SOL</small></div>
         <button data-i="${i}" class="pvp-smack-btn">SMACK</button>
       </div>`;
     }).join('');
