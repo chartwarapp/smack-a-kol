@@ -2926,7 +2926,9 @@
   }
 
   function stHighlightMentions(text) {
-    const escaped = stEscapeHtml(text);
+    // Strip URLs - no clickable links allowed in Smack Talk
+    const noUrls = String(text).replace(/(https?:\/\/[^\s]+|www\.[^\s]+|[a-zA-Z0-9-]+\.[a-z]{2,}(?:\/[^\s]*)?)/gi, '[link removed]');
+    const escaped = stEscapeHtml(noUrls);
     return escaped.replace(/@([\w\s]{1,24})/g, '<span class="st-mention">@$1</span>');
   }
 

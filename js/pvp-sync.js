@@ -684,7 +684,9 @@ SAK.PvpSync = (function () {
   async function postSmackTalk(wallet, name, look, message) {
     const sb = getSbClient();
     if (!sb || !wallet || !message || !message.trim()) return null;
-    const msg = message.trim().slice(0, 200);
+    // Strip URLs - no links allowed in Smack Talk
+    const noUrls = message.trim().replace(/(https?:\/\/[^\s]+|www\.[^\s]+|[a-zA-Z0-9-]+\.[a-z]{2,}(?:\/[^\s]*)?)/gi, '[link removed]');
+    const msg = noUrls.slice(0, 200);
     try {
       const { data, error } = await sb
         .from('smack_talk_messages')
