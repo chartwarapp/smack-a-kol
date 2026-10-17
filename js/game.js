@@ -376,11 +376,24 @@
 
   $('#btn-connect').addEventListener('click', () => {
     if (W.isConnected) {
-      if (confirm('Disconnect wallet?')) {
+      // Custom confirm modal (native confirm() is unreliable on iOS)
+      const overlay = document.createElement('div');
+      overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:9999;display:flex;align-items:center;justify-content:center;';
+      overlay.innerHTML = `<div style="background:#fff;border-radius:16px;padding:20px;max-width:280px;text-align:center;font-family:var(--font);">
+        <div style="font-size:16px;font-weight:bold;color:#1a0a2e;margin-bottom:12px;">Disconnect wallet?</div>
+        <div style="display:flex;gap:8px;justify-content:center;">
+          <button id="dc-yes" style="background:#ef4444;color:#fff;border:none;border-radius:10px;padding:10px 20px;font-weight:bold;cursor:pointer;">YES</button>
+          <button id="dc-no" style="background:#e5e7eb;color:#1a0a2e;border:none;border-radius:10px;padding:10px 20px;font-weight:bold;cursor:pointer;">CANCEL</button>
+        </div></div>`;
+      document.body.appendChild(overlay);
+      overlay.querySelector('#dc-yes').onclick = () => {
+        overlay.remove();
         W.disconnect();
         toast('Wallet disconnected');
         renderMenu();
-      }
+      };
+      overlay.querySelector('#dc-no').onclick = () => overlay.remove();
+      overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
       return;
     }
     openWalletModal();
