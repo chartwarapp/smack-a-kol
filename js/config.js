@@ -125,8 +125,7 @@ SAK.REWARDS = { perfectBonus: 0.05, perfectBonusCap: 5, streakBonus: 0.05, strea
  * Each round: each player only sees THEIR meter (ATTACK or BRACE); both use
  * jerky speed. Closer to the green centre wins the exchange.              */
 SAK.MODES = {
-  classic: { id: 'classic', label: 'CLASSIC KO', icon: '🥊', desc: 'Best of 5 · closer to green wins each round', ptsMult: 1, bestOf: 5 },
-  duel:    { id: 'duel',    label: 'QUICK DUEL', icon: '⚡', desc: 'Best of 3 · closer to green wins each round', ptsMult: 0.5, bestOf: 3 }
+  classic: { id: 'classic', label: 'CLASSIC KO', icon: '🥊', desc: 'Best of 5 · closer to green wins each round', ptsMult: 1, bestOf: 5 }
 };
 
 /* Private-meter challenge tuning. Tie-break: attacker wins when equally close.

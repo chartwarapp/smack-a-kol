@@ -906,9 +906,12 @@
   let selectedBet = 0;   // PTS bet for the next fight (0 = free match)
   let selectedMode = 'classic';   // 'classic' (KO) | 'duel' (one slap each)
 
-  /** Render the CLASSIC KO / QUICK DUEL toggle into `el`. */
+  /** Render the mode toggle into `el`. Hidden when only one mode exists. */
   function renderModes(el, mode, onPick) {
-    el.innerHTML = Object.values(SAK.MODES).map(m => `
+    const modes = Object.values(SAK.MODES);
+    if (modes.length <= 1) { el.style.display = 'none'; return; }
+    el.style.display = '';
+    el.innerHTML = modes.map(m => `
       <button type="button" class="mode-btn ${m.id} ${m.id === mode ? 'selected' : ''}" data-mode="${m.id}">
         <b>${m.icon} ${m.label}</b><small>${m.desc}</small></button>`).join('');
     el.querySelectorAll('.mode-btn').forEach(b => b.onclick = () => { A.click(); onPick(b.dataset.mode); });
