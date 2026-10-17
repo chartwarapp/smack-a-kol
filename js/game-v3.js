@@ -2618,6 +2618,10 @@
         () => {
           // Both online — START THE FIGHT
           if (statusEl) statusEl.textContent = 'Both fighters ready — FIGHT!';
+          // Clear the ACCEPTED badge now that the fight is starting
+          if (SAK.PvpSync && fightOpts.chainChallenge) {
+            SAK.PvpSync.updateChallengeStatus(fightOpts.chainChallenge, 'fighting').catch(() => {});
+          }
           setTimeout(() => {
             cleanup();
             startFight(shadow, 0, fightOpts);

@@ -184,7 +184,11 @@ SAK.PvpSync = (function () {
       const rows = await api()._req('GET',
         `/pvp_challenges?or=(challenger.eq.${encodeURIComponent(wallet)},opponent.eq.${encodeURIComponent(wallet)})&status=in.(open,accepted)&created_at=gte.${encodeURIComponent(dayAgo)}&select=*&order=created_at.desc`);
       const awaiting = (rows || []).filter(c => c.status === 'open' && c.challenger === wallet);
-      const accepted = (rows || []).filter(c => c.status === 'accepted');
+      // ACCEPTED badge: only when YOU are the challenger and the fight hasn't
+      // started yet — that's the one case with an action (join the fight).
+      const accepted = (rows || []).filter(c =>
+        c.status === 'accepted' && c.challenger === wallet
+      );
       return { awaiting, accepted };
     } catch (e) {
       console.warn('[PvpSync] challenge poll failed', e.message);
