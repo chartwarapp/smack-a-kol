@@ -2898,7 +2898,7 @@
     if (!activeSoloBet || !SAK.SolanaHouse) return null;
     const { bet, nonce, wagerSol } = activeSoloBet;
     try {
-      toast('Settling vs house — approve in wallet…', 2400);
+      toast('Settle win — approve in wallet…', 2400);
       await SAK.SolanaHouse.resolveBet(bet, W.address, nonce, won);
       const payout = won ? (wagerSol * 1.9) : 0;
       activeSoloBet = null;
