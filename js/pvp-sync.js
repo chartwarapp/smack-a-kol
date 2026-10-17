@@ -681,18 +681,27 @@ SAK.PvpSync = (function () {
     }
   }
 
-  async function postSmackTalk(wallet, name, look, message) {
+  async function postSmackTalk(wallet, name, look, message, replyTo) {
     const sb = getSbClient();
     if (!sb || !wallet || !message || !message.trim()) return null;
     // Strip URLs - no links allowed in Smack Talk
     const noUrls = message.trim().replace(/(https?:\/\/[^\s]+|www\.[^\s]+|[a-zA-Z0-9-]+\.[a-z]{2,}(?:\/[^\s]*)?)/gi, '[link removed]');
     const msg = noUrls.slice(0, 200);
+    const insertRow = (withReply) => {
+      const r = { wallet, name: name || wallet.slice(0, 8), look: look || null, message: msg };
+      if (withReply && replyTo) r.reply_to = replyTo;
+      return r;
+    };
     try {
-      const { data, error } = await sb
+      let { data, error } = await sb
         .from('smack_talk_messages')
-        .insert({ wallet, name: name || wallet.slice(0, 8), look: look || null, message: msg })
+        .insert(insertRow(true))
         .select()
         .single();
+      // Fallback if the reply_to column hasn't been added yet
+      if (error && replyTo && /reply_to/i.test(error.message || '')) {
+        ({ data, error } = await sb.from('smack_talk_messages').insert(insertRow(false)).select().single());
+      }
       if (error) throw error;
       // Auto-cleanup: keep only the latest 50
       try {
@@ -744,6 +753,45 @@ SAK.PvpSync = (function () {
       return data;
     } catch (e) {
       console.warn('[PvpSync] smack talk like failed:', e.message);
+      return null;
+    }
+  }
+
+  async function toggleSmackTalkReaction(msgId, wallet, emoji) {
+    const sb = getSbClient();
+    if (!sb || !msgId || !wallet || !emoji) return null;
+    try {
+      const { data: cur, error: e1 } = await sb
+        .from('smack_talk_messages')
+        .select('reactions')
+        .eq('id', msgId)
+        .single();
+      if (e1) throw e1;
+      const reactions = cur.reactions || {};
+      const wallets = reactions[emoji] || [];
+      if (wallets.includes(wallet)) {
+        reactions[emoji] = wallets.filter(w => w !== wallet);
+        if (!reactions[emoji].length) delete reactions[emoji];
+      } else {
+        // Remove user's other reactions first (one reaction per user, like tapbacks)
+        for (const k of Object.keys(reactions)) {
+          reactions[k] = (reactions[k] || []).filter(w => w !== wallet);
+          if (!reactions[k].length) delete reactions[k];
+        }
+        reactions[emoji] = [...(reactions[emoji] || []), wallet];
+      }
+      const { data, error: e2 } = await sb
+        .from('smack_talk_messages')
+        .update({ reactions })
+        .eq('id', msgId)
+        .select()
+        .single();
+      // Fallback if the reactions column hasn't been added yet
+      if (e2 && /reactions/i.test(e2.message || '')) return cur;
+      if (e2) throw e2;
+      return data;
+    } catch (e) {
+      console.warn('[PvpSync] smack talk reaction failed:', e.message);
       return null;
     }
   }
@@ -880,7 +928,7 @@ CREATE INDEX IF NOT EXISTS idx_heartbeats_seen ON pvp_heartbeats (last_seen);
     leaveLobby,
     startOnlinePresence,   // v2: real online players list
     stopOnlinePresence,
-    getSmackTalkMessages, postSmackTalk, likeSmackTalk,
+    getSmackTalkMessages, postSmackTalk, likeSmackTalk, toggleSmackTalkReaction,
     subscribeSmackTalk, unsubscribeSmackTalk,
     publishFighterSnapshot,
     getFighterSnapshots,

@@ -2938,6 +2938,7 @@
   /* --- SMACK TALK message board ----------------------------------------- */
   const ST_TAUNTS = ['🖐 Your guard is down', '💰 0.1 SOL, coward', '😂 Soft hands', '📉 Ngmi', '⚡ Catch this slap'];
   let stMessages = [];
+  let stReplyTo = null;   // message being replied to {id, wallet, name, message}
 
   function stTimeAgo(ts) {
     const s = Math.floor((Date.now() - new Date(ts).getTime()) / 1000);
@@ -2979,20 +2980,41 @@
     box.innerHTML = stMessages.map(m => {
       const own = m.wallet === myWallet;
       const liked = (m.liked_by || []).includes(myWallet);
+      const quote = m.reply_to ? `<div class="st-quote"><b>${stEscapeHtml(m.reply_to.name || 'Fighter')}</b><span>${stEscapeHtml(m.reply_to.message || '')}</span></div>` : '';
+      const reactions = m.reactions || {};
+      const rKeys = Object.keys(reactions).filter(k => (reactions[k] || []).length);
+      const rPills = rKeys.length ? `<div class="st-reactions">${rKeys.map(k => {
+        const mine = (reactions[k] || []).includes(myWallet);
+        return `<button class="st-rpill${mine ? ' mine' : ''}" data-react="${m.id}" data-emoji="${k}">${k} ${(reactions[k] || []).length}</button>`;
+      }).join('')}</div>` : '';
       return `<div class="st-msg${own ? ' own' : ''}" data-id="${m.id}">
         <div class="st-av">${stAvatarHtml(m)}</div>
         <div class="st-bubble">
+          ${quote}
           <div class="st-name">${stEscapeHtml(m.name)}</div>
           <div class="st-text">${stHighlightMentions(m.message)}</div>
           <div class="st-meta-row">
             <button class="st-like${liked ? ' liked' : ''}" data-like="${m.id}">👍 ${m.likes || 0}</button>
             <span class="st-time">${stTimeAgo(m.created_at)}</span>
           </div>
+          ${rPills}
         </div>
       </div>`;
     }).join('');
     // Scroll to bottom
     box.scrollTop = box.scrollHeight;
+    // Wire reaction pills (tap to toggle your reaction)
+    box.querySelectorAll('[data-react]').forEach(pill => {
+      pill.onclick = async (e) => {
+        e.stopPropagation();
+        if (!W.address || !SAK.PvpSync) return;
+        const updated = await SAK.PvpSync.toggleSmackTalkReaction(pill.dataset.react, W.address, pill.dataset.emoji);
+        if (updated && updated.id) {
+          const idx = stMessages.findIndex(m => m.id === updated.id);
+          if (idx >= 0) { stMessages[idx] = updated; renderSmackTalk(); }
+        }
+      };
+    });
     // Wire like buttons
     box.querySelectorAll('[data-like]').forEach(btn => {
       btn.onclick = async (e) => {
@@ -3007,11 +3029,99 @@
     });
   }
 
+  function stShowReplyBar() {
+    const bar = $('#st-reply-bar');
+    if (!bar) return;
+    if (stReplyTo) {
+      $('#st-reply-name').textContent = 'Replying to ' + (stReplyTo.name || 'Fighter');
+      $('#st-reply-text').textContent = stReplyTo.message || '';
+      bar.classList.remove('hidden');
+    } else {
+      bar.classList.add('hidden');
+    }
+  }
+
+  const ST_REACT_EMOJIS = ['❤️', '😂', '🔥', '😮', '😢', '👎'];
+
+  function stStartReply(msgId) {
+    const m = stMessages.find(x => x.id === msgId);
+    if (!m) return;
+    stReplyTo = { id: m.id, wallet: m.wallet, name: m.name, message: m.message };
+    stShowReplyBar();
+    const input = $('#st-input');
+    if (input) input.focus();
+  }
+
+  function stShowMsgPopup(msgId) {
+    const m = stMessages.find(x => x.id === msgId);
+    if (!m || !W.address) return;
+    try { if (navigator.vibrate) navigator.vibrate(30); } catch (e) {}
+    // Remove any existing popup
+    const old = document.getElementById('st-msg-popup');
+    if (old) old.remove();
+    const overlay = document.createElement('div');
+    overlay.id = 'st-msg-popup';
+    overlay.className = 'st-popup-overlay';
+    overlay.innerHTML = `<div class="st-popup">
+      <div class="st-popup-preview"><b>${stEscapeHtml(m.name)}</b><span>${stEscapeHtml((m.message || '').slice(0, 80))}</span></div>
+      <div class="st-popup-emojis">${ST_REACT_EMOJIS.map(e => `<button class="st-popup-emoji" data-emoji="${e}">${e}</button>`).join('')}</div>
+      <button class="st-popup-reply">↩️ Reply</button>
+    </div>`;
+    document.body.appendChild(overlay);
+    overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
+    overlay.querySelectorAll('.st-popup-emoji').forEach(btn => {
+      btn.onclick = async () => {
+        overlay.remove();
+        if (!SAK.PvpSync) return;
+        const updated = await SAK.PvpSync.toggleSmackTalkReaction(msgId, W.address, btn.dataset.emoji);
+        if (updated && updated.id) {
+          const idx = stMessages.findIndex(x => x.id === updated.id);
+          if (idx >= 0) { stMessages[idx] = updated; renderSmackTalk(); }
+        }
+      };
+    });
+    overlay.querySelector('.st-popup-reply').onclick = () => {
+      overlay.remove();
+      stStartReply(msgId);
+    };
+  }
+
+  function stCancelReply() {
+    stReplyTo = null;
+    stShowReplyBar();
+  }
+
+  function stWireLongPress() {
+    const box = $('#st-messages');
+    if (!box || box.dataset.lpWired) return;
+    box.dataset.lpWired = '1';
+    let lpTimer = null;
+    const startLp = (e) => {
+      if (e.target.closest('.st-like')) return;   // don't hijack like taps
+      const msgEl = e.target.closest('.st-msg');
+      if (!msgEl || !msgEl.dataset.id) return;
+      const id = msgEl.dataset.id;
+      clearTimeout(lpTimer);
+      lpTimer = setTimeout(() => { stShowMsgPopup(id); lpTimer = null; }, 500);
+    };
+    const cancelLp = () => { clearTimeout(lpTimer); lpTimer = null; };
+    box.addEventListener('touchstart', startLp, { passive: true });
+    box.addEventListener('touchend', cancelLp);
+    box.addEventListener('touchmove', cancelLp);
+    box.addEventListener('touchcancel', cancelLp);
+    box.addEventListener('mousedown', startLp);
+    box.addEventListener('mouseup', cancelLp);
+    box.addEventListener('mouseleave', cancelLp);
+    const cancelBtn = $('#st-reply-cancel');
+    if (cancelBtn) cancelBtn.onclick = stCancelReply;
+  }
+
   async function initSmackTalk() {
     if (!SAK.PvpSync) return;
     // Load existing messages
     stMessages = await SAK.PvpSync.getSmackTalkMessages(50);
     renderSmackTalk();
+    stWireLongPress();
     // Render quick taunt chips
     const tauntsEl = $('#st-taunts');
     if (tauntsEl) {
@@ -3050,7 +3160,9 @@
     if (input) input.value = '';
     const myName = (S.profile && (S.profile.fighter_name || S.profile.name)) || W.shortAddress();
     const myLook = (S.profile && S.profile.avatar) || null;
-    const posted = await SAK.PvpSync.postSmackTalk(W.address, myName, myLook, msg);
+    const replyPayload = stReplyTo ? { id: stReplyTo.id, wallet: stReplyTo.wallet, name: stReplyTo.name, message: (stReplyTo.message || '').slice(0, 120) } : null;
+    stCancelReply();
+    const posted = await SAK.PvpSync.postSmackTalk(W.address, myName, myLook, msg, replyPayload);
     if (!posted) toast('Failed to post — try again');
     // Realtime subscription will add it to the list
   }
