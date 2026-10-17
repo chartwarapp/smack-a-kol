@@ -2270,23 +2270,143 @@
     }
   }
 
+  // v2: Incoming direct challenge popup — someone challenged YOU.
+  function showIncomingChallengePopup(c) {
+    const old = document.getElementById('incoming-challenge-modal');
+    if (old) old.remove();
+    const challengerShort = (c.challenger || '').slice(0, 4) + '…' + (c.challenger || '').slice(-4);
+    const modal = document.createElement('div');
+    modal.id = 'incoming-challenge-modal';
+    modal.innerHTML =
+      '<div style="position:fixed;inset:0;z-index:10000;background:rgba(5,5,15,0.92);display:flex;align-items:center;justify-content:center;padding:20px;">' +
+      '<div style="background:linear-gradient(160deg,#2a0a4a,#1a0630);border:3px solid #b44dff;border-radius:20px;padding:28px 24px;max-width:380px;width:100%;text-align:center;box-shadow:0 0 60px rgba(180,77,255,0.4);">' +
+      '<div style="font-size:52px;margin-bottom:8px;">\u{1F94A}</div>' +
+      '<div style="font-size:22px;font-weight:800;color:#b44dff;margin-bottom:4px;">YOU\u2019VE BEEN CHALLENGED!</div>' +
+      '<div style="font-size:14px;color:#fff;margin-bottom:6px;">' + esc(challengerShort) + ' wants to slap fight you</div>' +
+      '<div style="font-size:13px;color:#ffd23f;margin-bottom:16px;">Accept in the PvP lobby or via their link</div>' +
+      '<button id="incoming-go-lobby" style="display:block;width:100%;padding:16px;margin:8px 0;border:none;border-radius:14px;font-size:18px;font-weight:800;cursor:pointer;background:linear-gradient(180deg,#b44dff,#7a2bd6);color:#fff;">OPEN PVP LOBBY</button>' +
+      '<button id="incoming-dismiss" style="display:block;width:100%;padding:12px;margin:8px 0;border:1px solid #666;border-radius:14px;font-size:15px;font-weight:700;cursor:pointer;background:transparent;color:#aaa;">DISMISS</button>' +
+      '</div></div>';
+    document.body.appendChild(modal);
+    try { if (navigator.vibrate) navigator.vibrate([200, 100, 200]); } catch (e) {}
+    document.getElementById('incoming-dismiss').onclick = () => modal.remove();
+    document.getElementById('incoming-go-lobby').onclick = () => {
+      modal.remove();
+      if (typeof openPvp === 'function') openPvp();
+    };
+  }
+
+  // v2: Render real online fighters from presence. Each row has a
+  // wager input and a CHALLENGE button that creates an on-chain challenge
+  // targeted at that wallet.
+  let realOnlinePlayers = [];
+  function renderRealOnlineList(players) {
+    realOnlinePlayers = players || [];
+    const countEl = $('#pvp-count');
+    const listEl = $('#pvp-list');
+    if (!countEl || !listEl) return;
+    if (realOnlinePlayers.length === 0) {
+      countEl.textContent = 'no live fighters online right now';
+      listEl.innerHTML = '<div style="text-align:center;color:#888;padding:20px">No one else is in the PvP lobby.<br>Share your challenge link to fight!</div>';
+      return;
+    }
+    countEl.textContent = `${realOnlinePlayers.length} live fighter${realOnlinePlayers.length > 1 ? 's' : ''} online`;
+    listEl.innerHTML = realOnlinePlayers.map((p, i) => {
+      const short = p.wallet.slice(0, 4) + '…' + p.wallet.slice(-4);
+      const avatar = (p.look && SAK.avatarSVG) ? SAK.avatarSVG(p.look) : '<div style="width:48px;height:48px;border-radius:50%;background:#333"></div>';
+      return `
+      <div class="pvp-row">
+        ${avatar}
+        <div style="flex:1"><div class="pv-name"><span class="pv-dot"></span>${esc(p.name || short)}</div>
+          <div class="pv-meta">${short} · live</div></div>
+        <input type="number" class="pvp-wager-input" data-i="${i}" placeholder="SOL" min="0.01" step="0.01" value="0.05"
+          style="width:70px;padding:8px;border-radius:8px;border:1px solid #b44dff;background:#1a0a2e;color:#fff;text-align:center" />
+        <button data-i="${i}" class="pvp-challenge-btn">⚔ CHALLENGE</button>
+      </div>`;
+    }).join('');
+    $$('#pvp-list .pvp-challenge-btn').forEach(b => {
+      b.onclick = () => challengeRealPlayer(realOnlinePlayers[+b.dataset.i]);
+    });
+  }
+
+  // v2: Challenge a real online player — creates an on-chain challenge
+  // with the entered SOL wager, targeted at their wallet.
+  async function challengeRealPlayer(player) {
+    if (!player || !player.wallet) return;
+    if (!W.isConnected) { openWalletModal(); toast('Connect wallet to challenge 👛', 2200); return; }
+    const input = document.querySelector(`.pvp-wager-input[data-i="${realOnlinePlayers.indexOf(player)}"]`);
+    let wagerSol = parseFloat(input && input.value) || 0.05;
+    if (wagerSol < 0.01) { toast('Min wager is 0.01 SOL', 2000); return; }
+    if (!SAK.SolanaEscrow) { toast('Escrow module not loaded', 2000); return; }
+    try {
+      toast(`Challenging ${player.name} — approve ${wagerSol} SOL in wallet…`, 2600);
+      const lamports = Math.round(wagerSol * 1e9);
+      const res = await SAK.SolanaEscrow.createChallenge(lamports, 24);
+      // Track with the specific opponent so they get notified
+      if (SAK.PvpSync) {
+        SAK.PvpSync.trackChallenge(res.challenge, W.address, player.wallet);
+        if (S.profile && S.profile.avatar) SAK.PvpSync.publishFighterSnapshot(res.challenge, 'challenger', S.profile.avatar);
+      }
+      toast(`Challenge sent to ${player.name}! Waiting for accept…`, 3000);
+      // Start watching for the accept, same as link flow
+      activeChainChallenge = { address: res.challenge, wagerSol };
+      updatePendingBar();
+      if (typeof startChainWatch === 'function') startChainWatch(res.challenge, wagerSol);
+    } catch (e) {
+      console.warn('[PvP] direct challenge failed', e);
+      toast('Challenge failed: ' + (e.message || e), 2600);
+    }
+  }
+
   async function openPvp() {
     A.unlock();
     $('#pvp-lobby').classList.remove('hidden'); $('#pvp-search').classList.add('hidden');
-    // Start challenge status polling for menu badge
+    // v2: announce ourselves as online in the PvP lobby
     if (SAK.PvpSync && W.address) {
+      const myLook = (S.profile && S.profile.avatar) || null;
+      const myName = (S.profile && (S.profile.fighter_name || S.profile.name)) || null;
+      SAK.PvpSync.startOnlinePresence(W.address, { name: myName, look: myLook }, renderRealOnlineList);
+      // Stop announcing when the modal closes
+      const modal = $('#modal-pvp');
+      if (modal && !modal._presenceObserver) {
+        const obs = new MutationObserver(() => {
+          if (modal.classList.contains('hidden') && SAK.PvpSync) {
+            SAK.PvpSync.stopOnlinePresence();
+          }
+        });
+        obs.observe(modal, { attributes: true, attributeFilter: ['class'] });
+        modal._presenceObserver = obs;
+      }
+    }
+    // Start challenge status polling for menu badge + incoming challenge alerts
+    if (SAK.PvpSync && W.address) {
+      if (!window._seenIncomingChallenges) window._seenIncomingChallenges = new Set();
       SAK.PvpSync.startStatusPolling(W.address, ({ awaiting, accepted }) => {
         const badge = $('#pvp-badge');
-        if (!badge) return;
-        if (accepted.length > 0) {
-          badge.textContent = `⚔ ${accepted.length} ACCEPTED`;
-          badge.className = 'pvp-badge accepted';
-        } else if (awaiting.length > 0) {
-          badge.textContent = `⏳ ${awaiting.length} AWAITING`;
-          badge.className = 'pvp-badge awaiting';
-        } else {
-          badge.className = 'pvp-badge hidden';
+        if (badge) {
+          if (accepted.length > 0) {
+            badge.textContent = `⚔ ${accepted.length} ACCEPTED`;
+            badge.className = 'pvp-badge accepted';
+          } else if (awaiting.length > 0) {
+            badge.textContent = `⏳ ${awaiting.length} AWAITING`;
+            badge.className = 'pvp-badge awaiting';
+          } else {
+            badge.className = 'pvp-badge hidden';
+          }
         }
+        // v2: incoming direct challenge — show a fight popup if we haven't seen it
+        try {
+          const all = [...(awaiting || []), ...(accepted || [])];
+          all.forEach(c => {
+            const addr = c.challenge_addr;
+            if (!addr || window._seenIncomingChallenges.has(addr)) return;
+            // Only alert if WE are the opponent (someone challenged us directly)
+            if (c.opponent && c.opponent === W.address && c.status === 'open') {
+              window._seenIncomingChallenges.add(addr);
+              showIncomingChallengePopup(c);
+            }
+          });
+        } catch (e) {}
       });
     }
     renderModes($('#pvp-modes'), pvpMode, m => { pvpMode = m; openPvp(); });
@@ -2314,17 +2434,12 @@
     } else {
       $('#pvp-wager-hint').textContent = 'friendly slap, no wager';
     }
-    const list = await SAK.Matchmaking.listOnline();
-    $('#pvp-count').textContent = `${list.filter(p => p.status === 'online').length} online (simulated)`;
-    $('#pvp-list').innerHTML = list.map((p, i) => `
-      <div class="pvp-row ${p.status === 'online' ? '' : 'busy'}">
-        ${SAK.avatarSVG(p.look)}
-        <div><div class="pv-name"><span class="pv-dot"></span>${esc(p.name)}</div>
-          <div class="pv-meta">${p.rank} · ${p.wins} W · ${p.winRate}% · ${p.status}</div></div>
-        <button data-i="${i}" ${p.status === 'online' ? '' : 'disabled'}>${p.status === 'online' ? 'SLAP' : 'BUSY'}</button>
-      </div>`).join('');
-    $$('#pvp-list button[data-i]').forEach(b => b.onclick = () => startPvpSearch(list[+b.dataset.i]));
+    // v2: real online players via presence (replaces simulated list)
+    $('#pvp-count').textContent = 'scanning for live fighters…';
+    $('#pvp-list').innerHTML = '<div style="text-align:center;color:#888;padding:20px">Looking for online fighters…</div>';
     $('#modal-pvp').classList.remove('hidden');
+    // renderRealOnlineList is called by presence updates; also do an initial render
+    renderRealOnlineList([]);
   }
   async function startPvpSearch(target) {
     A.click();

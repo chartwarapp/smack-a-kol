@@ -588,6 +588,78 @@ SAK.PvpSync = (function () {
     }
   }
 
+  /* --- PvP lobby online presence ------------------------------------------ */
+  // Real "who's online" for the PvP lobby. When a player opens the PvP lobby,
+  // they track themselves in the pvp-online channel. Everyone in the lobby
+  // sees the real list of online fighters — no more fake simulated players.
+  let onlineChannel = null;
+
+  function startOnlinePresence(wallet, fighterInfo, onOnlineList) {
+    stopOnlinePresence();
+    const sb = getSbClient();
+    if (!sb || !wallet) {
+      console.warn('[PvpSync] online presence: no client or wallet');
+      if (onOnlineList) onOnlineList([]);
+      return;
+    }
+    const updateList = () => {
+      try {
+        const state = onlineChannel.presenceState();
+        const players = [];
+        const seen = new Set();
+        Object.values(state).forEach(presences => {
+          presences.forEach(p => {
+            if (p.wallet && p.wallet !== wallet && !seen.has(p.wallet)) {
+              seen.add(p.wallet);
+              players.push({
+                wallet: p.wallet,
+                name: p.name || (p.wallet.slice(0, 4) + '…' + p.wallet.slice(-4)),
+                look: p.look || null,
+                ts: p.ts || Date.now(),
+              });
+            }
+          });
+        });
+        // Sort by most recent
+        players.sort((a, b) => b.ts - a.ts);
+        if (onOnlineList) onOnlineList(players);
+      } catch (e) {}
+    };
+    try {
+      onlineChannel = sb.channel('pvp-online', {
+        config: { presence: { key: wallet } },
+      });
+      onlineChannel
+        .on('presence', { event: 'sync' }, updateList)
+        .on('presence', { event: 'join' }, updateList)
+        .on('presence', { event: 'leave' }, updateList)
+        .subscribe(async (status) => {
+          if (status === 'SUBSCRIBED') {
+            await onlineChannel.track({
+              wallet,
+              name: (fighterInfo && fighterInfo.name) || null,
+              look: (fighterInfo && fighterInfo.look) || null,
+              ts: Date.now(),
+            });
+            updateList();
+          }
+        });
+    } catch (e) {
+      console.warn('[PvpSync] online presence failed:', e.message);
+      if (onOnlineList) onOnlineList([]);
+    }
+  }
+
+  function stopOnlinePresence() {
+    if (onlineChannel) {
+      try {
+        const sb = getSbClient();
+        if (sb) sb.removeChannel(onlineChannel);
+      } catch (e) {}
+      onlineChannel = null;
+    }
+  }
+
   /* --- Fighter snapshots -------------------------------------------------- */
   // Both fighters' looks stored on the challenge row at accept time.
   // This guarantees both phones render IDENTICAL fighters — no more
@@ -690,6 +762,8 @@ CREATE INDEX IF NOT EXISTS idx_heartbeats_seen ON pvp_heartbeats (last_seen);
     stopRoundPoll,
     joinLobby,             // v2: pre-fight presence handshake
     leaveLobby,
+    startOnlinePresence,   // v2: real online players list
+    stopOnlinePresence,
     publishFighterSnapshot,
     getFighterSnapshots,
     HEARTBEAT_TABLE_SQL,
