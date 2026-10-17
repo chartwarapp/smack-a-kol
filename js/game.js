@@ -2879,7 +2879,7 @@
       soloStatus('Bet failed: ' + (e.message || e));
       toast('Bet failed: ' + (e.message || e), 2600);
     }
-    btn.disabled = false; btn.textContent = '👋 SMACK-A-KOL';
+    btn.disabled = false; btn.innerHTML = '<img src="assets/hand-icon.png" alt="" style="width:28px;height:28px;vertical-align:-7px;margin-right:4px" /> SMACK-A-KOL';
   });
   // Resolve the solo bet after the fight ends. Called from the result screen.
   async function resolveSoloBet(won) {
