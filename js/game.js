@@ -2260,28 +2260,76 @@
   }
 
   // v2: Incoming direct challenge popup — someone challenged YOU.
-  function showIncomingChallengePopup(c) {
+  // Fetches the challenger's real fighter profile so it's never an AI.
+  async function showIncomingChallengePopup(c) {
     const old = document.getElementById('incoming-challenge-modal');
     if (old) old.remove();
     const challengerShort = (c.challenger || '').slice(0, 4) + '…' + (c.challenger || '').slice(-4);
+    let fighterName = challengerShort;
+    let fighterAvatar = '';
+    // Fetch the real challenger profile
+    try {
+      if (SAK.Api && SAK.Api.getProfile && c.challenger) {
+        const prof = await SAK.Api.getProfile(c.challenger);
+        if (prof) {
+          if (prof.fighter_name || prof.name) fighterName = prof.fighter_name || prof.name;
+          if (prof.fighter_look && SAK.avatarSVG) fighterAvatar = SAK.avatarSVG(prof.fighter_look);
+        }
+      }
+    } catch (e) {}
+    // Also check the fighter snapshot (more current than profile)
+    try {
+      if (SAK.PvpSync && SAK.PvpSync.getFighterSnapshots && c.challenge_addr) {
+        const snaps = await SAK.PvpSync.getFighterSnapshots(c.challenge_addr);
+        if (snaps && snaps.challengerLook && SAK.avatarSVG) {
+          fighterAvatar = SAK.avatarSVG(snaps.challengerLook);
+        }
+      }
+    } catch (e) {}
     const modal = document.createElement('div');
     modal.id = 'incoming-challenge-modal';
     modal.innerHTML =
       '<div style="position:fixed;inset:0;z-index:10000;background:rgba(5,5,15,0.92);display:flex;align-items:center;justify-content:center;padding:20px;">' +
       '<div style="background:linear-gradient(160deg,#2a0a4a,#1a0630);border:3px solid #b44dff;border-radius:20px;padding:28px 24px;max-width:380px;width:100%;text-align:center;box-shadow:0 0 60px rgba(180,77,255,0.4);">' +
       '<div style="font-size:52px;margin-bottom:8px;">\u{1F94A}</div>' +
-      '<div style="font-size:22px;font-weight:800;color:#b44dff;margin-bottom:4px;">YOU\u2019VE BEEN CHALLENGED!</div>' +
-      '<div style="font-size:14px;color:#fff;margin-bottom:6px;">' + esc(challengerShort) + ' wants to slap fight you</div>' +
-      '<div style="font-size:13px;color:#ffd23f;margin-bottom:16px;">Accept in the PvP lobby or via their link</div>' +
-      '<button id="incoming-go-lobby" style="display:block;width:100%;padding:16px;margin:8px 0;border:none;border-radius:14px;font-size:18px;font-weight:800;cursor:pointer;background:linear-gradient(180deg,#b44dff,#7a2bd6);color:#fff;">OPEN PVP LOBBY</button>' +
+      '<div style="font-size:22px;font-weight:800;color:#b44dff;margin-bottom:8px;">YOU\u2019VE BEEN CHALLENGED!</div>' +
+      (fighterAvatar ? '<div style="display:flex;justify-content:center;margin-bottom:8px;">' + fighterAvatar + '</div>' : '') +
+      '<div style="font-size:18px;font-weight:800;color:#fff;margin-bottom:4px;">' + esc(fighterName) + '</div>' +
+      '<div style="font-size:13px;color:#888;margin-bottom:6px;">' + esc(challengerShort) + '</div>' +
+      '<div style="font-size:13px;color:#ffd23f;margin-bottom:16px;">wants to slap fight you</div>' +
+      '<button id="incoming-accept" style="display:block;width:100%;padding:16px;margin:8px 0;border:none;border-radius:14px;font-size:18px;font-weight:800;cursor:pointer;background:linear-gradient(180deg,#39ff88,#1fb855);color:#000;">ACCEPT FIGHT</button>' +
       '<button id="incoming-dismiss" style="display:block;width:100%;padding:12px;margin:8px 0;border:1px solid #666;border-radius:14px;font-size:15px;font-weight:700;cursor:pointer;background:transparent;color:#aaa;">DISMISS</button>' +
       '</div></div>';
     document.body.appendChild(modal);
     try { if (navigator.vibrate) navigator.vibrate([200, 100, 200]); } catch (e) {}
     document.getElementById('incoming-dismiss').onclick = () => modal.remove();
-    document.getElementById('incoming-go-lobby').onclick = () => {
+    document.getElementById('incoming-accept').onclick = async () => {
       modal.remove();
-      if (typeof openPvp === 'function') openPvp();
+      // Accept the on-chain challenge directly
+      if (SAK.SolanaEscrow && c.challenge_addr) {
+        try {
+          toast('Accepting — approve in wallet…', 2400);
+          await SAK.SolanaEscrow.acceptChallenge(c.challenge_addr);
+          toast('Accepted! Entering fight lobby…', 2000);
+          // The accept flow in checkIncomingChainChallenge handles the rest,
+          // but we can trigger it by setting the URL param and re-running
+          window._seenIncomingChallenges.delete(c.challenge_addr);
+          // Directly enter the lobby via the standard accept path
+          const ch = await SAK.SolanaEscrow.getChallenge(c.challenge_addr);
+          if (ch && typeof startPvpFightWithLobby === 'function') {
+            const shadow = Object.assign({}, roster()[0], { name: 'Challenger', pvp: true });
+            try {
+              const snaps = await SAK.PvpSync.getFighterSnapshots(c.challenge_addr);
+              if (snaps && snaps.challengerLook) shadow.look = snaps.challengerLook;
+            } catch (e) {}
+            startPvpFightWithLobby(shadow,
+              { mode: 'classic', pvp: true, chainChallenge: c.challenge_addr, chainWagerSol: ch.wagerSol, chainRole: 'acceptor', chainOpponentWallet: ch.challenger },
+              c.challenge_addr, W.address, ch.challenger);
+          }
+        } catch (e) {
+          toast('Accept failed: ' + (e.message || e), 2600);
+        }
+      }
     };
   }
 
