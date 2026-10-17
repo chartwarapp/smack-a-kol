@@ -10,7 +10,7 @@
  *   Each ROUND: local player sees ONLY their meter (ATTACK or BRACE), jerky
  *   on both roles. Opponent locks privately (AI / other phone — never shown).
  *   Closer to the green centre wins. Tie → attacker edge.
- *   Quick Duel = best of 3 · Classic = best of 5. Then KO fly-off → result.
+ *   Classic = best of 5. Then KO fly-off → result.
  * ========================================================================= */
 (function () {
   'use strict';
@@ -917,7 +917,7 @@
   /* ================================================================ PICKER */
   let selected = 0;
   let selectedBet = 0;   // PTS bet for the next fight (0 = free match)
-  let selectedMode = 'classic';   // 'classic' (KO) | 'duel' (one slap each)
+  let selectedMode = 'classic';   // 'classic' (KO) - only mode
 
   /** Render the mode toggle into `el`. Hidden when only one mode exists. */
   function renderModes(el, mode, onPick) {
@@ -1274,7 +1274,7 @@
     }
     grantDailyFist();
     clearTimeout(aiLockTimer);
-    const bestOf = (SAK.MODES[mode] && SAK.MODES[mode].bestOf) || (mode === 'duel' ? 3 : 5);
+    const bestOf = (SAK.MODES[mode] && SAK.MODES[mode].bestOf) || 5;
     const winsNeeded = Math.ceil(bestOf / 2);
     F = {
       kol, bet, hits: 0,
@@ -1889,7 +1889,7 @@
     if (win) {
       const base = k.winPts * modeMult;
       const streakPts = base * PR.streakPct * Math.min(streakBefore, PR.streakCap);
-      rows.push([F.mode === 'duel' ? 'Bo3 duel win (½ pts)' : 'Bo5 classic win', base]);
+      rows.push(['Bo5 classic win', base]);
       if (F.perfects > 0) rows.push([`Based slaps (${F.perfects}★)`, F.perfects * PR.perPerfect]);
       if (streakPts) rows.push([`Win streak (${streakBefore}🔥)`, streakPts]);
       pts = base + F.perfects * PR.perPerfect + streakPts;

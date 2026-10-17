@@ -121,7 +121,6 @@ SAK.REWARDS = { perfectBonus: 0.05, perfectBonusCap: 5, streakBonus: 0.05, strea
 
 /* ---- Match modes (private per-device meter) ------------------------------
  * classic : best of 5 round challenges (first to 3).
- * duel    : best of 3 round challenges (first to 2).
  * Each round: each player only sees THEIR meter (ATTACK or BRACE); both use
  * jerky speed. Closer to the green centre wins the exchange.              */
 SAK.MODES = {
