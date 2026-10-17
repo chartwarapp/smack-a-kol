@@ -2557,14 +2557,17 @@
     $('#pvp-chain-share').classList.add('hidden');
     updatePendingBar();
     const pcs = $('#pvp-chain-status'); if (pcs) pcs.classList.add('hidden');
+    const _pb = $('#pvp-bets');
+    if (_pb) {
     const wagers = [0, 100, 250, 500, 1000];
     if (!P.canAfford(pvpWager)) pvpWager = 0;
-    $('#pvp-bets').innerHTML = wagers.map(b => `<button class="bet-chip ${b === pvpWager ? 'selected' : ''} ${b && !P.canAfford(b) ? 'locked' : ''}" data-bet="${b}">${b ? ptsHTML() + b : 'FREE'}</button>`).join('');
+    _pb.innerHTML = wagers.map(b => `<button class="bet-chip ${b === pvpWager ? 'selected' : ''} ${b && !P.canAfford(b) ? 'locked' : ''}" data-bet="${b}">${b ? ptsHTML() + b : 'FREE'}</button>`).join('');
     $$('#pvp-bets .bet-chip').forEach(c => c.onclick = () => {
       const b = +c.dataset.bet;
       if (b && !P.canAfford(b)) return toast('Not enough PTS. Down bad.');
       pvpWager = b; A.click(); openPvp();
     });
+    }
     // Payout = wager × opponent multiplier (x1.6–x2.65) × (1 + vault boost) — same as fight stake tag
     if (pvpWager) {
       const lo = boosted(pvpWager * 1.6), hi = boosted(pvpWager * 2.65);
