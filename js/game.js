@@ -3208,6 +3208,7 @@
     $('#set-haptics').checked = S.settings.haptics;
     $('#btn-forfeit').classList.toggle('hidden', !(screen === 'fight' && F && !['over', 'done', 'busy'].includes(F.turn)));
     renderMenu();
+    refreshAdminAccess();
     $('#modal-settings').classList.remove('hidden');
   });
   $('#btn-close-settings').addEventListener('click', () => $('#modal-settings').classList.add('hidden'));
