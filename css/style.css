@@ -480,6 +480,14 @@ h2, h3, .prompt, .vs, .level, .fc-name, .banner, .float-text, .result-title {
 .bet-chip.free.selected { background: var(--green); }
 .bet-chip.locked { opacity: .45; }
 .modal-card .fine.dark { color: var(--ink); opacity: .75; text-align: center; }
+/* PvP lobby info box: bordered card for separation from the online list */
+#pvp-info-box {
+  border: 3px solid var(--ink); border-radius: 14px; box-shadow: 0 4px 0 var(--ink);
+  background: #ffffff55; padding: 10px 14px; margin: 10px 0 4px;
+  color: var(--ink); opacity: 1; text-align: center;
+  font-family: var(--font); font-size: 12px; font-weight: 700; line-height: 1.5;
+  text-shadow: none;
+}
 .vault-card { background: linear-gradient(#2ee6a6, #fff 40%); max-height: 92%; overflow-y: auto; }
 .vault-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; text-align: center; }
 .vault-stats div { background: #f1edff; border-radius: 12px; padding: 6px; }
