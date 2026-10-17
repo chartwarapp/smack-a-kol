@@ -2420,12 +2420,14 @@
       const myLook = (S.profile && S.profile.avatar) || null;
       const myName = (S.profile && (S.profile.fighter_name || S.profile.name)) || null;
       SAK.PvpSync.startOnlinePresence(W.address, { name: myName, look: myLook }, renderRealOnlineList);
+      initSmackTalk();
       // Stop announcing when the modal closes
       const modal = $('#modal-pvp');
       if (modal && !modal._presenceObserver) {
         const obs = new MutationObserver(() => {
           if (modal.classList.contains('hidden') && SAK.PvpSync) {
             SAK.PvpSync.stopOnlinePresence();
+            stopSmackTalk();
           }
         });
         obs.observe(modal, { attributes: true, attributeFilter: ['class'] });
@@ -2914,6 +2916,129 @@
       toast('Settle failed: ' + (e.message || e), 2600);
       return null;
     }
+  }
+
+
+  /* --- SMACK TALK message board ----------------------------------------- */
+  const ST_TAUNTS = ['🖐 Your guard is down', '💰 0.1 SOL, coward', '😂 Soft hands', '📉 Ngmi', '⚡ Catch this slap'];
+  let stMessages = [];
+
+  function stTimeAgo(ts) {
+    const s = Math.floor((Date.now() - new Date(ts).getTime()) / 1000);
+    if (s < 10) return 'just now';
+    if (s < 60) return s + 's ago';
+    const m = Math.floor(s / 60);
+    if (m < 60) return m + 'm ago';
+    return Math.floor(m / 60) + 'h ago';
+  }
+
+  function stEscapeHtml(t) {
+    return String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  function stHighlightMentions(text) {
+    const escaped = stEscapeHtml(text);
+    return escaped.replace(/@([\w\s]{1,24})/g, '<span class="st-mention">@$1</span>');
+  }
+
+  function stAvatarHtml(msg) {
+    try {
+      if (msg.look && SAK.avatarSVG) return SAK.avatarSVG(msg.look);
+    } catch (e) {}
+    const emojis = ['🧑', '🧔', '👨', '👩', '🧓'];
+    const idx = (msg.wallet || '').charCodeAt(0) % emojis.length;
+    return emojis[idx];
+  }
+
+  function renderSmackTalk() {
+    const box = $('#st-messages');
+    if (!box) return;
+    const myWallet = W.address;
+    if (!stMessages.length) {
+      box.innerHTML = '<div class="st-empty">No smack yet. Talk your trash 👇</div>';
+      return;
+    }
+    box.innerHTML = stMessages.map(m => {
+      const own = m.wallet === myWallet;
+      const liked = (m.liked_by || []).includes(myWallet);
+      return `<div class="st-msg${own ? ' own' : ''}" data-id="${m.id}">
+        <div class="st-av">${stAvatarHtml(m)}</div>
+        <div class="st-bubble">
+          <div class="st-name">${stEscapeHtml(m.name)}</div>
+          <div class="st-text">${stHighlightMentions(m.message)}</div>
+          <div class="st-meta-row">
+            <button class="st-like${liked ? ' liked' : ''}" data-like="${m.id}">👍 ${m.likes || 0}</button>
+            <span class="st-time">${stTimeAgo(m.created_at)}</span>
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+    // Scroll to bottom
+    box.scrollTop = box.scrollHeight;
+    // Wire like buttons
+    box.querySelectorAll('[data-like]').forEach(btn => {
+      btn.onclick = async (e) => {
+        e.stopPropagation();
+        if (!W.address || !SAK.PvpSync) return;
+        const updated = await SAK.PvpSync.likeSmackTalk(btn.dataset.like, W.address);
+        if (updated) {
+          const idx = stMessages.findIndex(m => m.id === updated.id);
+          if (idx >= 0) { stMessages[idx] = updated; renderSmackTalk(); }
+        }
+      };
+    });
+  }
+
+  async function initSmackTalk() {
+    if (!SAK.PvpSync) return;
+    // Load existing messages
+    stMessages = await SAK.PvpSync.getSmackTalkMessages(50);
+    renderSmackTalk();
+    // Render quick taunt chips
+    const tauntsEl = $('#st-taunts');
+    if (tauntsEl) {
+      tauntsEl.innerHTML = ST_TAUNTS.map(t => `<button class="st-taunt-chip">${stEscapeHtml(t)}</button>`).join('');
+      tauntsEl.querySelectorAll('.st-taunt-chip').forEach(chip => {
+        chip.onclick = () => postSmackTalkMsg(chip.textContent);
+      });
+    }
+    // Wire send button + Enter key
+    const input = $('#st-input');
+    const sendBtn = $('#st-send');
+    const doSend = () => postSmackTalkMsg(input.value);
+    if (sendBtn) sendBtn.onclick = doSend;
+    if (input) input.onkeydown = (e) => { if (e.key === 'Enter') doSend(); };
+    // Subscribe to realtime
+    SAK.PvpSync.subscribeSmackTalk(
+      (newMsg) => { // on INSERT
+        if (!stMessages.find(m => m.id === newMsg.id)) {
+          stMessages.push(newMsg);
+          if (stMessages.length > 50) stMessages = stMessages.slice(-50);
+          renderSmackTalk();
+        }
+      },
+      (updatedMsg) => { // on UPDATE (likes)
+        const idx = stMessages.findIndex(m => m.id === updatedMsg.id);
+        if (idx >= 0) { stMessages[idx] = updatedMsg; renderSmackTalk(); }
+      }
+    );
+  }
+
+  async function postSmackTalkMsg(text) {
+    if (!W.address || !SAK.PvpSync) { toast('Connect wallet to talk smack'); return; }
+    const msg = (text || '').trim();
+    if (!msg) return;
+    const input = $('#st-input');
+    if (input) input.value = '';
+    const myName = (S.profile && (S.profile.fighter_name || S.profile.name)) || W.shortAddress();
+    const myLook = (S.profile && S.profile.avatar) || null;
+    const posted = await SAK.PvpSync.postSmackTalk(W.address, myName, myLook, msg);
+    if (!posted) toast('Failed to post — try again');
+    // Realtime subscription will add it to the list
+  }
+
+  function stopSmackTalk() {
+    if (SAK.PvpSync) SAK.PvpSync.unsubscribeSmackTalk();
   }
 
   // Incoming on-chain challenge via ?sol_challenge=<PDA> link.

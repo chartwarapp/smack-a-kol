@@ -660,6 +660,120 @@ SAK.PvpSync = (function () {
     }
   }
 
+  /* --- SMACK TALK message board ------------------------------------------- */
+  // Real-time trash talk in the PvP lobby. Table: smack_talk_messages
+  let smackTalkChannel = null;
+
+  async function getSmackTalkMessages(limit = 50) {
+    const sb = getSbClient();
+    if (!sb) return [];
+    try {
+      const { data, error } = await sb
+        .from('smack_talk_messages')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(limit);
+      if (error) throw error;
+      return (data || []).reverse(); // oldest first for display
+    } catch (e) {
+      console.warn('[PvpSync] smack talk load failed:', e.message);
+      return [];
+    }
+  }
+
+  async function postSmackTalk(wallet, name, look, message) {
+    const sb = getSbClient();
+    if (!sb || !wallet || !message || !message.trim()) return null;
+    const msg = message.trim().slice(0, 200);
+    try {
+      const { data, error } = await sb
+        .from('smack_talk_messages')
+        .insert({ wallet, name: name || wallet.slice(0, 8), look: look || null, message: msg })
+        .select()
+        .single();
+      if (error) throw error;
+      // Auto-cleanup: keep only the latest 50
+      try {
+        const { data: old } = await sb
+          .from('smack_talk_messages')
+          .select('id')
+          .order('created_at', { ascending: false })
+          .range(50, 1000);
+        if (old && old.length) {
+          await sb.from('smack_talk_messages').delete().in('id', old.map(r => r.id));
+        }
+      } catch (e) {}
+      return data;
+    } catch (e) {
+      console.warn('[PvpSync] smack talk post failed:', e.message);
+      return null;
+    }
+  }
+
+  async function likeSmackTalk(msgId, wallet) {
+    const sb = getSbClient();
+    if (!sb || !msgId || !wallet) return null;
+    try {
+      // Fetch current likes
+      const { data: cur, error: e1 } = await sb
+        .from('smack_talk_messages')
+        .select('likes, liked_by')
+        .eq('id', msgId)
+        .single();
+      if (e1) throw e1;
+      const likedBy = cur.liked_by || [];
+      let likes = cur.likes || 0;
+      let newLikedBy;
+      if (likedBy.includes(wallet)) {
+        // Unlike
+        newLikedBy = likedBy.filter(w => w !== wallet);
+        likes = Math.max(0, likes - 1);
+      } else {
+        newLikedBy = [...likedBy, wallet];
+        likes = likes + 1;
+      }
+      const { data, error: e2 } = await sb
+        .from('smack_talk_messages')
+        .update({ likes, liked_by: newLikedBy })
+        .eq('id', msgId)
+        .select()
+        .single();
+      if (e2) throw e2;
+      return data;
+    } catch (e) {
+      console.warn('[PvpSync] smack talk like failed:', e.message);
+      return null;
+    }
+  }
+
+  function subscribeSmackTalk(onMessage, onUpdate) {
+    const sb = getSbClient();
+    if (!sb) return;
+    unsubscribeSmackTalk();
+    try {
+      smackTalkChannel = sb.channel('smack-talk')
+        .on('postgres_changes',
+          { event: 'INSERT', schema: 'public', table: 'smack_talk_messages' },
+          (payload) => { if (onMessage) onMessage(payload.new); })
+        .on('postgres_changes',
+          { event: 'UPDATE', schema: 'public', table: 'smack_talk_messages' },
+          (payload) => { if (onUpdate) onUpdate(payload.new); })
+        .subscribe();
+    } catch (e) {
+      console.warn('[PvpSync] smack talk subscribe failed:', e.message);
+    }
+  }
+
+  function unsubscribeSmackTalk() {
+    if (smackTalkChannel) {
+      try {
+        const sb = getSbClient();
+        if (sb) sb.removeChannel(smackTalkChannel);
+      } catch (e) {}
+      smackTalkChannel = null;
+    }
+  }
+
   /* --- Fighter snapshots -------------------------------------------------- */
   // Both fighters' looks stored on the challenge row at accept time.
   // This guarantees both phones render IDENTICAL fighters — no more
@@ -764,6 +878,8 @@ CREATE INDEX IF NOT EXISTS idx_heartbeats_seen ON pvp_heartbeats (last_seen);
     leaveLobby,
     startOnlinePresence,   // v2: real online players list
     stopOnlinePresence,
+    getSmackTalkMessages, postSmackTalk, likeSmackTalk,
+    subscribeSmackTalk, unsubscribeSmackTalk,
     publishFighterSnapshot,
     getFighterSnapshots,
     HEARTBEAT_TABLE_SQL,

@@ -1131,3 +1131,32 @@ body.on-menu #ticker { display: none; }
   border-radius: 12px; margin-bottom: 10px;
   box-shadow: 0 0 24px #b44dff55;
 }
+
+/* ============ SMACK TALK board ============ */
+.smack-talk { margin: 14px 0; border: 2px solid #2d1b4e; border-radius: 14px; background: #faf8ff; overflow: hidden; }
+.st-head { background: linear-gradient(135deg, #7c3aed, #a855f7); color: #fff; padding: 10px 14px; font-size: 15px; font-weight: bold; display: flex; align-items: center; gap: 8px; font-family: var(--font); }
+.st-live { margin-left: auto; font-size: 10px; background: #22c55e; padding: 3px 8px; border-radius: 20px; display: flex; align-items: center; gap: 4px; }
+.st-dot { width: 6px; height: 6px; background: #fff; border-radius: 50%; animation: st-blink 1.5s infinite; }
+@keyframes st-blink { 0%,100% { opacity: 1; } 50% { opacity: .3; } }
+.st-messages { max-height: 220px; overflow-y: auto; padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; }
+.st-msg { display: flex; gap: 8px; align-items: flex-start; }
+.st-av { width: 28px; height: 28px; border-radius: 8px; flex: none; background: #1a0a2e; display: flex; align-items: center; justify-content: center; font-size: 16px; overflow: hidden; }
+.st-av svg { width: 28px; height: 28px; }
+.st-bubble { background: #fff; border: 1.5px solid #e0d4ff; border-radius: 4px 12px 12px 12px; padding: 6px 10px; font-size: 13px; max-width: 85%; font-family: var(--font); color: #1a0a2e; }
+.st-name { font-size: 11px; color: #7c3aed; font-weight: bold; margin-bottom: 2px; }
+.st-meta-row { display: flex; align-items: center; gap: 8px; margin-top: 3px; }
+.st-like { display: inline-flex; align-items: center; gap: 3px; font-size: 11px; color: #7c3aed; cursor: pointer; background: none; border: none; font-family: inherit; padding: 2px 0; }
+.st-like.liked { color: #e11d48; }
+.st-time { font-size: 9px; opacity: .5; }
+.st-msg.own { flex-direction: row-reverse; }
+.st-msg.own .st-bubble { background: #ede9fe; border-radius: 12px 4px 12px 12px; text-align: right; }
+.st-msg.own .st-meta-row { justify-content: flex-end; }
+.st-mention { color: #7c3aed; font-weight: bold; background: #ede9fe; padding: 0 4px; border-radius: 4px; }
+.st-taunts { display: flex; gap: 6px; padding: 8px 12px 0; overflow-x: auto; background: #fff; }
+.st-taunt-chip { flex: none; font-size: 11px; padding: 5px 10px; border-radius: 20px; border: 1.5px solid #d1c4f5; background: #faf8ff; color: #5b21b6; cursor: pointer; font-family: var(--font); white-space: nowrap; }
+.st-taunt-chip:active { background: #ede9fe; }
+.st-input-row { display: flex; gap: 8px; padding: 10px 12px; border-top: 1.5px solid #e0d4ff; background: #fff; }
+.st-input { flex: 1; border: 2px solid #d1c4f5; border-radius: 10px; padding: 8px 12px; font-size: 13px; font-family: var(--font); outline: none; min-width: 0; }
+.st-input:focus { border-color: #7c3aed; }
+.st-send { background: linear-gradient(#a855f7, #7c3aed); color: #fff; border: 2px solid #2d1b4e; border-radius: 10px; padding: 8px 16px; font-weight: bold; font-size: 13px; cursor: pointer; font-family: var(--font); flex: none; }
+.st-empty { text-align: center; color: #999; font-size: 12px; padding: 16px; font-family: var(--font); }
