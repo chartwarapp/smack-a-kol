@@ -969,14 +969,14 @@ h2, h3, .prompt, .vs, .level, .fc-name, .banner, .float-text, .result-title {
   background: none; border: none; font-size: 18px; cursor: pointer;
   padding: 2px 4px; filter: saturate(1.2);
 }
-.m1-topbar .m1-wallet {
+.m1-topbar .m1-leader-btn {
   margin-left: auto; display: flex; align-items: center; gap: 6px;
-  font-size: 12px; color: #b9a8d9;
+  background: linear-gradient(135deg, #fbbf24, #f59e0b);
+  border: 2px solid #2d1b4e; border-radius: 12px;
+  padding: 6px 12px; font-size: 12px; font-weight: bold; color: #2d1b4e;
+  cursor: pointer; font-family: var(--font); letter-spacing: 0.5px;
 }
-.m1-topbar .m1-wallet .dot {
-  width: 8px; height: 8px; border-radius: 50%; background: #39ff88;
-  box-shadow: 0 0 6px #39ff88;
-}
+.m1-topbar .m1-leader-btn:active { transform: scale(0.96); }
 /* 2x2 stat grid */
 .m1-stats {
   display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
