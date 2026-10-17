@@ -2558,12 +2558,13 @@
     });
     }
     // Payout = wager × opponent multiplier (x1.6–x2.65) × (1 + vault boost) — same as fight stake tag
-    if (pvpWager) {
+    const _pwh = $('#pvp-wager-hint');
+    if (_pwh && pvpWager) {
       const lo = boosted(pvpWager * 1.6), hi = boosted(pvpWager * 2.65);
       const boostLbl = V.boost ? ` incl. +${Math.round(V.boost * 100)}% vault` : '';
-      $('#pvp-wager-hint').textContent = `winner takes ${fmt(lo)}–${fmt(hi)} PTS (×opp${boostLbl})`;
-    } else {
-      $('#pvp-wager-hint').textContent = 'friendly slap, no wager';
+      _pwh.textContent = `winner takes ${fmt(lo)}–${fmt(hi)} PTS (×opp${boostLbl})`;
+    } else if (_pwh) {
+      _pwh.textContent = 'friendly slap, no wager';
     }
     // v2: real online players via presence (replaces simulated list)
     $('#pvp-count').textContent = 'scanning for live fighters…';
