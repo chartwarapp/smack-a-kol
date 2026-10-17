@@ -346,15 +346,18 @@
   }
 
   window.SAK = window.SAK || {};
-  async function getSolBalance(address) {
-    try {
-      const conn = connection();
-      const lamports = await conn.getBalance(new (web3().PublicKey)(address));
-      return lamports / 1e9;
-    } catch (e) {
-      console.warn('[Escrow] getSolBalance failed:', e.message);
-      return null;
+  async function getSolBalance(address, retries = 2) {
+    for (let i = 0; i <= retries; i++) {
+      try {
+        const conn = connection();
+        const lamports = await conn.getBalance(new (web3().PublicKey)(address));
+        return lamports / 1e9;
+      } catch (e) {
+        console.warn(`[Escrow] getSolBalance attempt ${i + 1} failed:`, e.message);
+        if (i < retries) await new Promise(r => setTimeout(r, 1500));
+      }
     }
+    return null;
   }
 
   window.SAK.SolanaEscrow = {

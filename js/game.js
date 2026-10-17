@@ -289,7 +289,12 @@
     $('#fighter-chip-name').textContent = profile().name;
     $('#wallet-chip').classList.toggle('hidden', !on);
     $('#wallet-addr').textContent = W.shortAddress();
-    const balText = solBalance !== null ? `◎ ${solBalance.toFixed(2)} SOL` : '◎ —';
+    const balText = solBalance !== null ? `◎ ${solBalance.toFixed(2)} SOL` : '◎ …';
+    // Kick off a fetch if we don't have the balance yet
+    if (on && solBalance === null && !window._balFetching) {
+      window._balFetching = true;
+      refreshSolBalance().finally(() => { window._balFetching = false; });
+    }
     $('#btn-connect').innerHTML = on
       ? `✅ ${W.shortAddress()}<small class="btn-sub">${balText} · ${W.providerName || 'Solana'}</small>`
       : '👛 CONNECT WALLET<small class="btn-sub">Phantom · Solflare</small>';
