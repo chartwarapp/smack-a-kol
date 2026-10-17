@@ -346,9 +346,20 @@
   }
 
   window.SAK = window.SAK || {};
+  async function getSolBalance(address) {
+    try {
+      const conn = connection();
+      const lamports = await conn.getBalance(new (web3().PublicKey)(address));
+      return lamports / 1e9;
+    } catch (e) {
+      console.warn('[Escrow] getSolBalance failed:', e.message);
+      return null;
+    }
+  }
+
   window.SAK.SolanaEscrow = {
     PROGRAM_ID, RPC_URL,
     createChallenge, acceptChallenge, cancelChallenge, resolveChallenge, refundExpired,
-    getChallenge, derivePDAs, challengeUrl, parseChallenge,
+    getChallenge, derivePDAs, challengeUrl, parseChallenge, getSolBalance,
   };
 })();

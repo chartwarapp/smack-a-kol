@@ -253,14 +253,45 @@
     ptsRaf = requestAnimationFrame(step);
   }
 
+  let solBalance = null;
+  let solBalanceTimer = null;
+
+  async function refreshSolBalance() {
+    if (!W.isConnected || !W.address || !SAK.SolanaEscrow || !SAK.SolanaEscrow.getSolBalance) {
+      solBalance = null;
+      return;
+    }
+    try {
+      solBalance = await SAK.SolanaEscrow.getSolBalance(W.address);
+      // Update the button sub-line if we're on the menu
+      const btn = $('#btn-connect');
+      if (btn && W.isConnected) {
+        const bal = solBalance !== null ? `◎ ${solBalance.toFixed(2)} SOL` : '◎ —';
+        btn.innerHTML = `✅ ${W.shortAddress()}<small class="btn-sub">${bal} · ${W.providerName || 'Solana'}</small>`;
+      }
+    } catch (e) { solBalance = null; }
+  }
+
+  function startSolBalancePolling() {
+    stopSolBalancePolling();
+    refreshSolBalance();
+    solBalanceTimer = setInterval(refreshSolBalance, 30000);
+  }
+
+  function stopSolBalancePolling() {
+    if (solBalanceTimer) { clearInterval(solBalanceTimer); solBalanceTimer = null; }
+    solBalance = null;
+  }
+
   function renderMenu() {
     const on = W.isConnected;
     $('#fighter-chip-av').innerHTML = SAK.avatarSVG(playerLook());
     $('#fighter-chip-name').textContent = profile().name;
     $('#wallet-chip').classList.toggle('hidden', !on);
     $('#wallet-addr').textContent = W.shortAddress();
+    const balText = solBalance !== null ? `◎ ${solBalance.toFixed(2)} SOL` : '◎ —';
     $('#btn-connect').innerHTML = on
-      ? `✅ ${W.shortAddress()}<small class="btn-sub">${W.providerName || 'Solana'} · connected</small>`
+      ? `✅ ${W.shortAddress()}<small class="btn-sub">${balText} · ${W.providerName || 'Solana'}</small>`
       : '👛 CONNECT WALLET<small class="btn-sub">Phantom · Solflare</small>';
     $('#btn-connect').classList.toggle('btn-purple', !on);
     $('#btn-connect').classList.toggle('btn-grey', on);
@@ -3636,8 +3667,13 @@
   P.onChange(() => { renderPoints(); renderUpgrades(); if (F) renderPowerups(); if (screen === 'menu') renderMenu(); if (screen === 'pick') renderBets(); });
   W.onChange(() => {
     renderMenu();
-    if (W.isConnected && W.address) ensureGlobalChallengeWatch();
-    else stopGlobalChallengeWatch();
+    if (W.isConnected && W.address) {
+      ensureGlobalChallengeWatch();
+      startSolBalancePolling();
+    } else {
+      stopGlobalChallengeWatch();
+      stopSolBalancePolling();
+    }
   });
 
   function boot() {
