@@ -3067,7 +3067,7 @@
         const updated = await SAK.PvpSync.toggleSmackTalkReaction(pill.dataset.react, W.address, pill.dataset.emoji);
         if (updated && updated.id) {
           const idx = stMessages.findIndex(m => m.id === updated.id);
-          if (idx >= 0) { stMessages[idx] = updated; renderSmackTalk(); }
+          if (idx >= 0) { Object.assign(stMessages[idx], updated); renderSmackTalk(); }
         }
       };
     });
@@ -3077,9 +3077,9 @@
         e.stopPropagation();
         if (!W.address || !SAK.PvpSync) return;
         const updated = await SAK.PvpSync.likeSmackTalk(btn.dataset.like, W.address);
-        if (updated) {
+        if (updated && updated.id) {
           const idx = stMessages.findIndex(m => m.id === updated.id);
-          if (idx >= 0) { stMessages[idx] = updated; renderSmackTalk(); }
+          if (idx >= 0) { Object.assign(stMessages[idx], updated); renderSmackTalk(); }
         }
       };
     });
@@ -3132,7 +3132,7 @@
         const updated = await SAK.PvpSync.toggleSmackTalkReaction(msgId, W.address, btn.dataset.emoji);
         if (updated && updated.id) {
           const idx = stMessages.findIndex(x => x.id === updated.id);
-          if (idx >= 0) { stMessages[idx] = updated; renderSmackTalk(); }
+          if (idx >= 0) { Object.assign(stMessages[idx], updated); renderSmackTalk(); }
         }
       };
     });

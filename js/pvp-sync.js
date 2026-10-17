@@ -725,32 +725,15 @@ SAK.PvpSync = (function () {
     const sb = getSbClient();
     if (!sb || !msgId || !wallet) return null;
     try {
-      // Fetch current likes
-      const { data: cur, error: e1 } = await sb
-        .from('smack_talk_messages')
-        .select('likes, liked_by')
-        .eq('id', msgId)
-        .single();
-      if (e1) throw e1;
-      const likedBy = cur.liked_by || [];
-      let likes = cur.likes || 0;
-      let newLikedBy;
-      if (likedBy.includes(wallet)) {
-        // Unlike
-        newLikedBy = likedBy.filter(w => w !== wallet);
-        likes = Math.max(0, likes - 1);
-      } else {
-        newLikedBy = [...likedBy, wallet];
-        likes = likes + 1;
-      }
-      const { data, error: e2 } = await sb
-        .from('smack_talk_messages')
-        .update({ likes, liked_by: newLikedBy })
-        .eq('id', msgId)
-        .select()
-        .single();
-      if (e2) throw e2;
-      return data;
+      // Secure RPC — the open UPDATE policy is gone, so direct updates no longer work
+      const { data, error } = await sb.rpc('toggle_smack_talk_like', {
+        msg_id: msgId, liker_wallet: wallet,
+      });
+      if (error) throw error;
+      const row = Array.isArray(data) ? data[0] : data;
+      if (!row) return null;
+      // Merge into a full message-shaped object for the UI
+      return { id: row.id, likes: row.likes, liked_by: row.liked_by };
     } catch (e) {
       console.warn('[PvpSync] smack talk like failed:', e.message);
       return null;
@@ -761,35 +744,14 @@ SAK.PvpSync = (function () {
     const sb = getSbClient();
     if (!sb || !msgId || !wallet || !emoji) return null;
     try {
-      const { data: cur, error: e1 } = await sb
-        .from('smack_talk_messages')
-        .select('reactions')
-        .eq('id', msgId)
-        .single();
-      if (e1) throw e1;
-      const reactions = cur.reactions || {};
-      const wallets = reactions[emoji] || [];
-      if (wallets.includes(wallet)) {
-        reactions[emoji] = wallets.filter(w => w !== wallet);
-        if (!reactions[emoji].length) delete reactions[emoji];
-      } else {
-        // Remove user's other reactions first (one reaction per user, like tapbacks)
-        for (const k of Object.keys(reactions)) {
-          reactions[k] = (reactions[k] || []).filter(w => w !== wallet);
-          if (!reactions[k].length) delete reactions[k];
-        }
-        reactions[emoji] = [...(reactions[emoji] || []), wallet];
-      }
-      const { data, error: e2 } = await sb
-        .from('smack_talk_messages')
-        .update({ reactions })
-        .eq('id', msgId)
-        .select()
-        .single();
-      // Fallback if the reactions column hasn't been added yet
-      if (e2 && /reactions/i.test(e2.message || '')) return cur;
-      if (e2) throw e2;
-      return data;
+      // Secure RPC — the open UPDATE policy is gone, so direct updates no longer work
+      const { data, error } = await sb.rpc('toggle_smack_talk_reaction', {
+        msg_id: msgId, reactor_wallet: wallet, emoji,
+      });
+      if (error) throw error;
+      const row = Array.isArray(data) ? data[0] : data;
+      if (!row) return null;
+      return { id: row.id, reactions: row.reactions };
     } catch (e) {
       console.warn('[PvpSync] smack talk reaction failed:', e.message);
       return null;
