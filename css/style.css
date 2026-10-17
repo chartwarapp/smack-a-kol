@@ -956,8 +956,8 @@ h2, h3, .prompt, .vs, .level, .fc-name, .banner, .float-text, .result-title {
 }
 .m1-hb-wallet small.btn-sub { display: block; font-size: 10px; font-weight: normal; opacity: 0.8; }
 .m1-hb-item.m1-hb-gear { flex: 0 0 auto; font-size: 22px; }
-.m1-hb-av { width: 32px; height: 32px; flex: none; display: block; }
-.m1-hb-av svg { width: 32px; height: 32px; display: block; }
+.m1-hb-av { width: 32px; height: 32px; flex: none; display: block; overflow: hidden; border-radius: 8px; }
+.m1-hb-av svg, .m1-hb-av .avatar-svg { width: 32px !important; height: 32px !important; display: block; border-radius: 8px; }
 .m1-hb-txt { text-align: left; }
 .m1-hb-txt b { display: block; font-size: 13px; }
 .m1-hb-txt small { display: block; font-size: 9px; color: #39ff88; font-weight: normal; }
