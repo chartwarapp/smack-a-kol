@@ -578,6 +578,8 @@ h2, h3, .prompt, .vs, .level, .fc-name, .banner, .float-text, .result-title {
 .pvp-card-link { background: #fdf2f8; border-color: #f9a8d4; }
 .pvp-card-chain { background: #f5f3ff; border-color: #c4b5fd; }
 .pvp-card-solo { background: #f0fdf4; border-color: #86efac; }
+.pvp-card-solo #pvp-solo-bet { margin-bottom: 12px; }
+.pvp-card-solo .fine.dark { margin-top: 12px; clear: both; }
 .pvp-card-head { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
 .pvp-card-icon { font-size: 28px; line-height: 1; }
 .pvp-card-title { font-family: var(--font); font-size: 18px; color: var(--ink); letter-spacing: .5px; }
