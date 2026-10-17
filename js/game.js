@@ -2417,6 +2417,48 @@
     }
   }
 
+  // Global incoming-challenge watcher — runs whenever wallet is connected,
+  // so challenge popups appear even if the PvP lobby isn't open.
+  function ensureGlobalChallengeWatch() {
+    if (!SAK.PvpSync || !W.address || window._globalChallengeWatch) return;
+    window._globalChallengeWatch = true;
+    if (!window._seenIncomingChallenges) window._seenIncomingChallenges = new Set();
+    SAK.PvpSync.startStatusPolling(W.address, ({ awaiting, accepted }) => {
+      // Update lobby badge if visible
+      try {
+        const badge = $('#pvp-badge');
+        if (badge) {
+          if (accepted.length > 0) {
+            badge.textContent = `⚔ ${accepted.length} ACCEPTED`;
+            badge.className = 'pvp-badge accepted';
+          } else if (awaiting.length > 0) {
+            badge.textContent = `⏳ ${awaiting.length} AWAITING`;
+            badge.className = 'pvp-badge awaiting';
+          } else {
+            badge.className = 'pvp-badge hidden';
+          }
+        }
+      } catch (e) {}
+      // Incoming direct challenge popup — works from any screen
+      try {
+        const all = [...(awaiting || []), ...(accepted || [])];
+        all.forEach(c => {
+          const addr = c.challenge_addr;
+          if (!addr || window._seenIncomingChallenges.has(addr)) return;
+          if (c.opponent && c.opponent === W.address && c.status === 'open') {
+            window._seenIncomingChallenges.add(addr);
+            showIncomingChallengePopup(c);
+          }
+        });
+      } catch (e) {}
+    });
+  }
+
+  function stopGlobalChallengeWatch() {
+    window._globalChallengeWatch = false;
+    if (SAK.PvpSync) SAK.PvpSync.stopStatusPolling();
+  }
+
   async function openPvp() {
     A.unlock();
     $('#pvp-lobby').classList.remove('hidden'); $('#pvp-search').classList.add('hidden');
@@ -2439,37 +2481,8 @@
         modal._presenceObserver = obs;
       }
     }
-    // Start challenge status polling for menu badge + incoming challenge alerts
-    if (SAK.PvpSync && W.address) {
-      if (!window._seenIncomingChallenges) window._seenIncomingChallenges = new Set();
-      SAK.PvpSync.startStatusPolling(W.address, ({ awaiting, accepted }) => {
-        const badge = $('#pvp-badge');
-        if (badge) {
-          if (accepted.length > 0) {
-            badge.textContent = `⚔ ${accepted.length} ACCEPTED`;
-            badge.className = 'pvp-badge accepted';
-          } else if (awaiting.length > 0) {
-            badge.textContent = `⏳ ${awaiting.length} AWAITING`;
-            badge.className = 'pvp-badge awaiting';
-          } else {
-            badge.className = 'pvp-badge hidden';
-          }
-        }
-        // v2: incoming direct challenge — show a fight popup if we haven't seen it
-        try {
-          const all = [...(awaiting || []), ...(accepted || [])];
-          all.forEach(c => {
-            const addr = c.challenge_addr;
-            if (!addr || window._seenIncomingChallenges.has(addr)) return;
-            // Only alert if WE are the opponent (someone challenged us directly)
-            if (c.opponent && c.opponent === W.address && c.status === 'open') {
-              window._seenIncomingChallenges.add(addr);
-              showIncomingChallengePopup(c);
-            }
-          });
-        } catch (e) {}
-      });
-    }
+    // Global challenge watcher handles badge + incoming popups (works from any screen)
+    ensureGlobalChallengeWatch();
     renderModes($('#pvp-modes'), pvpMode, m => { pvpMode = m; openPvp(); });
     renderSolBets();
     renderChainBets();
@@ -3621,7 +3634,11 @@
   }
 
   P.onChange(() => { renderPoints(); renderUpgrades(); if (F) renderPowerups(); if (screen === 'menu') renderMenu(); if (screen === 'pick') renderBets(); });
-  W.onChange(() => renderMenu());
+  W.onChange(() => {
+    renderMenu();
+    if (W.isConnected && W.address) ensureGlobalChallengeWatch();
+    else stopGlobalChallengeWatch();
+  });
 
   function boot() {
     // Backend: Supabase when configured AND reachable, local mock otherwise.
