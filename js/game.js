@@ -2870,14 +2870,16 @@
       activeSoloBet = { bet: res.bet, nonce: res.nonce, wagerSol: soloWager };
       soloStatus(`Bet locked: ${soloWager} SOL. Fight!`, true);
       toast(`Bet locked — ${soloWager} SOL vs house \u{1F3E0}`, 2400);
-      // Start a solo fight vs AI; resolve on-chain when it ends
-      const ai = Object.assign({}, roster()[0], { name: 'House', pvp: false });
+      // Start a solo fight vs a random practice fighter; resolve on-chain when it ends
+      const kols = (SAK.KOLS && SAK.KOLS.length > 0) ? SAK.KOLS : roster();
+      const pick = kols[Math.floor(Math.random() * kols.length)];
+      const ai = Object.assign({}, pick, { pvp: false });
       startFight(ai, 0, { mode: 'classic', soloHouse: activeSoloBet });
     } catch (e) {
       soloStatus('Bet failed: ' + (e.message || e));
       toast('Bet failed: ' + (e.message || e), 2600);
     }
-    btn.disabled = false; btn.textContent = '🏠 BET VS HOUSE';
+    btn.disabled = false; btn.textContent = '👋 SMACK-A-KOL';
   });
   // Resolve the solo bet after the fight ends. Called from the result screen.
   async function resolveSoloBet(won) {
