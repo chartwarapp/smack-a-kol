@@ -375,7 +375,14 @@
   function openWalletModal() { A.unlock(); A.click(); $('#modal-wallet').classList.remove('hidden'); }
 
   $('#btn-connect').addEventListener('click', () => {
-    if (W.isConnected) { toast(`Connected ${W.shortAddress()}${W.providerName ? ' · ' + W.providerName : ''}`); return; }
+    if (W.isConnected) {
+      if (confirm('Disconnect wallet?')) {
+        W.disconnect();
+        toast('Wallet disconnected');
+        renderMenu();
+      }
+      return;
+    }
     openWalletModal();
   });
   $('#wallet-cancel').addEventListener('click', () => $('#modal-wallet').classList.add('hidden'));
