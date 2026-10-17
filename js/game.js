@@ -376,11 +376,9 @@
 
   $('#btn-connect').addEventListener('click', () => {
     if (W.isConnected) {
-      if (confirm('Disconnect wallet?')) {
-        W.disconnect();
-        toast('Wallet disconnected');
-        renderMenu();
-      }
+      W.disconnect();
+      toast('Wallet disconnected');
+      renderMenu();
       return;
     }
     openWalletModal();
