@@ -1226,10 +1226,10 @@ body.on-menu #ticker { display: none; }
 
 /* Unified fight info bar: arena + score + bet in one pill */
 .fight-info-bar {
-  position: absolute; left: 50%; top: calc(132px + var(--safe-top)); transform: translateX(-50%);
+  position: absolute; left: 50%; top: calc(120px + var(--safe-top)); transform: translateX(-50%);
   z-index: 26; display: flex; align-items: center; gap: 8px;
-  background: #1a0b3add; border: 3px solid var(--ink); border-radius: 16px;
-  box-shadow: 0 4px 0 var(--ink);
+  background: #1a0b3add; border: 3px solid #fff; border-radius: 16px;
+  box-shadow: 0 4px 0 #0006;
   padding: 6px 14px; white-space: nowrap;
   font-family: var(--font); font-size: 14px; font-weight: 700; color: #fff;
   pointer-events: none; max-width: 94vw;
