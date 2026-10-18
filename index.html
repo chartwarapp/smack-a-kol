@@ -73,6 +73,19 @@
   </div>
 
 <script>
+  // Force muted autoplay (iOS Safari needs the JS nudge)
+  (function () {
+    var v = document.getElementById('intro-video');
+    v.muted = true;
+    v.setAttribute('muted', '');
+    var tryPlay = function () { v.play().catch(function () {}); };
+    tryPlay();
+    // fallback: kick playback on first touch if the browser blocked it
+    var kick = function () { tryPlay(); };
+    document.addEventListener('touchstart', kick, { passive: true, once: true });
+    document.addEventListener('click', kick, { once: true });
+  })();
+
   document.getElementById('enter-btn').addEventListener('click', function () {
     location.href = 'play.html' + location.search;
   });
