@@ -189,7 +189,9 @@ SAK.PvpSync = (function () {
       const accepted = (rows || []).filter(c =>
         c.status === 'accepted' && c.challenger === wallet
       );
-      return { awaiting, accepted };
+      // INCOMING: challenges where YOU are the opponent — these trigger the popup
+      const incoming = (rows || []).filter(c => c.status === 'open' && c.opponent === wallet);
+      return { awaiting, accepted, incoming };
     } catch (e) {
       console.warn('[PvpSync] challenge poll failed', e.message);
       return { awaiting: [], accepted: [] };

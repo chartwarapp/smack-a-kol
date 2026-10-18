@@ -2477,7 +2477,7 @@
     if (!SAK.PvpSync || !W.address || window._globalChallengeWatch) return;
     window._globalChallengeWatch = true;
     if (!window._seenIncomingChallenges) window._seenIncomingChallenges = new Set();
-    SAK.PvpSync.startStatusPolling(W.address, ({ awaiting, accepted }) => {
+    SAK.PvpSync.startStatusPolling(W.address, ({ awaiting, accepted, incoming }) => {
       // Update lobby badge if visible
       try {
         const badge = $('#pvp-badge');
@@ -2495,14 +2495,11 @@
       } catch (e) {}
       // Incoming direct challenge popup — works from any screen
       try {
-        const all = [...(awaiting || []), ...(accepted || [])];
-        all.forEach(c => {
+        (incoming || []).forEach(c => {
           const addr = c.challenge_addr;
           if (!addr || window._seenIncomingChallenges.has(addr)) return;
-          if (c.opponent && c.opponent === W.address && c.status === 'open') {
-            window._seenIncomingChallenges.add(addr);
-            showIncomingChallengePopup(c);
-          }
+          window._seenIncomingChallenges.add(addr);
+          showIncomingChallengePopup(c);
         });
       } catch (e) {}
     });
