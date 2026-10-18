@@ -155,13 +155,14 @@ SAK.PvpSync = (function () {
   // Table: pvp_challenges (challenge_addr TEXT PK, challenger TEXT, opponent TEXT,
   //                        status TEXT, created_at TIMESTAMPTZ, updated_at TIMESTAMPTZ)
 
-  async function trackChallenge(challengeAddr, challenger, opponent) {
+  async function trackChallenge(challengeAddr, challenger, opponent, wagerSol) {
     try {
       await api()._req('POST', '/pvp_challenges?on_conflict=challenge_addr',
         {
           challenge_addr: challengeAddr,
           challenger, opponent,
           status: 'open',
+          wager_sol: wagerSol || null,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         },

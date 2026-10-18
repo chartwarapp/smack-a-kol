@@ -2345,6 +2345,8 @@
     const old = document.getElementById('incoming-challenge-modal');
     if (old) old.remove();
     const challengerShort = (c.challenger || '').slice(0, 4) + '…' + (c.challenger || '').slice(-4);
+    // Wager text: from the tracked row if present, else filled in async via on-chain lookup
+    let wagerText = c.wager_sol ? ('◎ ' + Number(c.wager_sol).toFixed(2) + ' SOL') : '…';
     // Create the modal shell + buttons FIRST (synchronously), so handlers
     // are attached immediately and can't be orphaned by a stacked duplicate
     const modal = document.createElement('div');
@@ -2358,7 +2360,8 @@
       '<div id="incoming-fighter-avatar" style="display:flex;justify-content:center;margin-bottom:8px;"></div>' +
       '<div id="incoming-fighter-name" style="font-size:18px;font-weight:800;color:#fff;margin-bottom:4px;">' + esc(challengerShort) + '</div>' +
       '<div style="font-size:13px;color:#888;margin-bottom:6px;">' + esc(challengerShort) + '</div>' +
-      '<div style="font-size:13px;color:#ffd23f;margin-bottom:16px;">wants to slap fight you</div>' +
+      '<div style="font-size:13px;color:#ffd23f;margin-bottom:6px;">wants to slap fight you</div>' +
+      '<div id="incoming-wager" style="font-size:26px;font-weight:800;color:#39ff88;margin-bottom:16px;">' + esc(wagerText) + '</div>' +
       '<button id="incoming-accept" style="display:block;width:100%;padding:16px;margin:8px 0;border:none;border-radius:14px;font-size:18px;font-weight:800;cursor:pointer;background:linear-gradient(180deg,#39ff88,#1fb855);color:#000;">ACCEPT FIGHT</button>' +
       '<button id="incoming-dismiss" style="display:block;width:100%;padding:12px;margin:8px 0;border:1px solid #666;border-radius:14px;font-size:15px;font-weight:700;cursor:pointer;background:transparent;color:#aaa;">DISMISS</button>' +
       '</div></div>';
@@ -2381,6 +2384,16 @@
           if (snaps && snaps.challengerLook && SAK.avatarSVG) fighterAvatar = SAK.avatarSVG(snaps.challengerLook);
         }
         if (!document.body.contains(modal)) return;
+        // On-chain fallback for the wager amount (older challenges lack wager_sol)
+        if (!c.wager_sol && SAK.SolanaEscrow && c.challenge_addr) {
+          try {
+            const ch = await SAK.SolanaEscrow.getChallenge(c.challenge_addr);
+            if (ch && ch.wagerSol) {
+              const we = modal.querySelector('#incoming-wager');
+              if (we) we.textContent = '◎ ' + Number(ch.wagerSol).toFixed(2) + ' SOL';
+            }
+          } catch (e) {}
+        }
         if (fighterName) {
           const ne = modal.querySelector('#incoming-fighter-name');
           if (ne) ne.textContent = fighterName;
@@ -2468,7 +2481,7 @@
       const res = await SAK.SolanaEscrow.createChallenge(lamports, 24);
       // Track with the specific opponent so they get notified
       if (SAK.PvpSync) {
-        SAK.PvpSync.trackChallenge(res.challenge, W.address, player.wallet);
+        SAK.PvpSync.trackChallenge(res.challenge, W.address, player.wallet, wagerSol);
         if (S.profile && S.profile.avatar) SAK.PvpSync.publishFighterSnapshot(res.challenge, 'challenger', S.profile.avatar);
       }
       toast(`Challenge sent to ${player.name}! Waiting for accept…`, 3000);
