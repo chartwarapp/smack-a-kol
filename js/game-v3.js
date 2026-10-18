@@ -2350,39 +2350,24 @@
   // v2: Incoming direct challenge popup — someone challenged YOU.
   // Fetches the challenger's real fighter profile so it's never an AI.
   async function showIncomingChallengePopup(c) {
+    // Guard against concurrent calls stacking duplicate modals (async race)
+    if (window._incomingPopupOpen) return;
+    window._incomingPopupOpen = true;
     const old = document.getElementById('incoming-challenge-modal');
     if (old) old.remove();
     const challengerShort = (c.challenger || '').slice(0, 4) + '…' + (c.challenger || '').slice(-4);
-    let fighterName = challengerShort;
-    let fighterAvatar = '';
-    // Fetch the real challenger profile
-    try {
-      if (SAK.Api && SAK.Api.getProfile && c.challenger) {
-        const prof = await SAK.Api.getProfile(c.challenger);
-        if (prof) {
-          if (prof.fighter_name || prof.name) fighterName = prof.fighter_name || prof.name;
-          if (prof.fighter_look && SAK.avatarSVG) fighterAvatar = SAK.avatarSVG(prof.fighter_look);
-        }
-      }
-    } catch (e) {}
-    // Also check the fighter snapshot (more current than profile)
-    try {
-      if (SAK.PvpSync && SAK.PvpSync.getFighterSnapshots && c.challenge_addr) {
-        const snaps = await SAK.PvpSync.getFighterSnapshots(c.challenge_addr);
-        if (snaps && snaps.challengerLook && SAK.avatarSVG) {
-          fighterAvatar = SAK.avatarSVG(snaps.challengerLook);
-        }
-      }
-    } catch (e) {}
+    // Create the modal shell + buttons FIRST (synchronously), so handlers
+    // are attached immediately and can't be orphaned by a stacked duplicate
     const modal = document.createElement('div');
     modal.id = 'incoming-challenge-modal';
+    const closePopup = () => { window._incomingPopupOpen = false; modal.remove(); };
     modal.innerHTML =
       '<div style="position:fixed;inset:0;z-index:10000;background:rgba(5,5,15,0.92);display:flex;align-items:center;justify-content:center;padding:20px;">' +
       '<div style="background:linear-gradient(160deg,#2a0a4a,#1a0630);border:3px solid #b44dff;border-radius:20px;padding:28px 24px;max-width:380px;width:100%;text-align:center;box-shadow:0 0 60px rgba(180,77,255,0.4);">' +
       '<div style="font-size:52px;margin-bottom:8px;">\u{1F94A}</div>' +
       '<div style="font-size:22px;font-weight:800;color:#b44dff;margin-bottom:8px;">YOU\u2019VE BEEN CHALLENGED!</div>' +
-      (fighterAvatar ? '<div style="display:flex;justify-content:center;margin-bottom:8px;">' + fighterAvatar + '</div>' : '') +
-      '<div style="font-size:18px;font-weight:800;color:#fff;margin-bottom:4px;">' + esc(fighterName) + '</div>' +
+      '<div id="incoming-fighter-avatar" style="display:flex;justify-content:center;margin-bottom:8px;"></div>' +
+      '<div id="incoming-fighter-name" style="font-size:18px;font-weight:800;color:#fff;margin-bottom:4px;">' + esc(challengerShort) + '</div>' +
       '<div style="font-size:13px;color:#888;margin-bottom:6px;">' + esc(challengerShort) + '</div>' +
       '<div style="font-size:13px;color:#ffd23f;margin-bottom:16px;">wants to slap fight you</div>' +
       '<button id="incoming-accept" style="display:block;width:100%;padding:16px;margin:8px 0;border:none;border-radius:14px;font-size:18px;font-weight:800;cursor:pointer;background:linear-gradient(180deg,#39ff88,#1fb855);color:#000;">ACCEPT FIGHT</button>' +
@@ -2390,9 +2375,35 @@
       '</div></div>';
     document.body.appendChild(modal);
     try { if (navigator.vibrate) navigator.vibrate([200, 100, 200]); } catch (e) {}
-    document.getElementById('incoming-dismiss').onclick = () => modal.remove();
-    document.getElementById('incoming-accept').onclick = async () => {
-      modal.remove();
+    modal.querySelector('#incoming-dismiss').onclick = () => closePopup();
+    // Fill in the real challenger name/avatar asynchronously (non-blocking)
+    (async () => {
+      try {
+        let fighterName = null, fighterAvatar = '';
+        if (SAK.Api && SAK.Api.getProfile && c.challenger) {
+          const prof = await SAK.Api.getProfile(c.challenger);
+          if (prof) {
+            if (prof.fighter_name || prof.name) fighterName = prof.fighter_name || prof.name;
+            if (prof.fighter_look && SAK.avatarSVG) fighterAvatar = SAK.avatarSVG(prof.fighter_look);
+          }
+        }
+        if (SAK.PvpSync && SAK.PvpSync.getFighterSnapshots && c.challenge_addr) {
+          const snaps = await SAK.PvpSync.getFighterSnapshots(c.challenge_addr);
+          if (snaps && snaps.challengerLook && SAK.avatarSVG) fighterAvatar = SAK.avatarSVG(snaps.challengerLook);
+        }
+        if (!document.body.contains(modal)) return;
+        if (fighterName) {
+          const ne = modal.querySelector('#incoming-fighter-name');
+          if (ne) ne.textContent = fighterName;
+        }
+        if (fighterAvatar) {
+          const ae = modal.querySelector('#incoming-fighter-avatar');
+          if (ae) ae.innerHTML = fighterAvatar;
+        }
+      } catch (e) {}
+    })();
+    modal.querySelector('#incoming-accept').onclick = async () => {
+      closePopup();
       // Accept the on-chain challenge directly
       if (SAK.SolanaEscrow && c.challenge_addr) {
         try {
