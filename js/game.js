@@ -2497,11 +2497,71 @@
 
   // Global incoming-challenge watcher — runs whenever wallet is connected,
   // so challenge popups appear even if the PvP lobby isn't open.
+  // ---- My Challenges (sent, awaiting accept) ----
+  let mySentChallenges = [];
+
+  function timeAgo(ts) {
+    if (!ts) return '';
+    const s = Math.floor((Date.now() - new Date(ts).getTime()) / 1000);
+    if (s < 60) return 'just now';
+    if (s < 3600) return Math.floor(s / 60) + 'm ago';
+    if (s < 86400) return Math.floor(s / 3600) + 'h ago';
+    return Math.floor(s / 86400) + 'd ago';
+  }
+
+  function renderMyChallenges() {
+    const list = $('#my-challenges-list');
+    const count = $('#my-challenges-count');
+    const toggle = $('#my-challenges-toggle');
+    if (!list || !toggle) return;
+    const n = mySentChallenges.length;
+    if (count) {
+      count.textContent = n;
+      count.classList.toggle('hidden', n === 0);
+    }
+    if (n === 0) {
+      list.innerHTML = '<div class="mc-empty">No open challenges — hit SMACK on a fighter above.</div>';
+    } else {
+      list.innerHTML = mySentChallenges.map(ch => {
+        const opp = (ch.opponent || '').slice(0, 4) + '…' + (ch.opponent || '').slice(-4);
+        const wager = ch.wager_sol ? ('◎ ' + Number(ch.wager_sol).toFixed(2) + ' SOL') : '';
+        return '<div class="mc-row">' +
+          '<div class="mc-info"><div class="mc-opp">' + esc(opp) + '</div>' +
+          '<div class="mc-meta">' + esc(wager) + (wager ? ' · ' : '') + esc(timeAgo(ch.created_at)) + '</div></div>' +
+          '<button class="mc-cancel" data-addr="' + esc(ch.challenge_addr) + '">CANCEL</button>' +
+          '</div>';
+      }).join('');
+      list.querySelectorAll('.mc-cancel').forEach(btn => {
+        btn.onclick = () => cancelSentChallenge(btn.dataset.addr, btn);
+      });
+    }
+  }
+
+  async function cancelSentChallenge(challengeAddr, btn) {
+    if (!challengeAddr || !SAK.SolanaEscrow) return;
+    if (btn) btn.disabled = true;
+    try {
+      toast('Cancelling — approve in wallet…', 2400);
+      await SAK.SolanaEscrow.cancelChallenge(challengeAddr);
+      if (SAK.PvpSync && SAK.PvpSync.updateChallengeStatus) {
+        await SAK.PvpSync.updateChallengeStatus(challengeAddr, 'cancelled');
+      }
+      mySentChallenges = mySentChallenges.filter(ch => ch.challenge_addr !== challengeAddr);
+      renderMyChallenges();
+      toast('Challenge cancelled — SOL refunded', 2400);
+    } catch (e) {
+      toast('Cancel failed: ' + (e.message || e), 2600);
+      if (btn) btn.disabled = false;
+    }
+  }
+
   function ensureGlobalChallengeWatch() {
     if (!SAK.PvpSync || !W.address || window._globalChallengeWatch) return;
     window._globalChallengeWatch = true;
     if (!window._seenIncomingChallenges) window._seenIncomingChallenges = new Set();
     SAK.PvpSync.startStatusPolling(W.address, ({ awaiting, accepted, incoming }) => {
+      mySentChallenges = awaiting || [];
+      try { renderMyChallenges(); } catch (e) {}
       // Update lobby badge if visible
       try {
         const badge = $('#pvp-badge');
@@ -2536,6 +2596,19 @@
 
   async function openPvp() {
     A.unlock();
+    try {
+      const tgl = $('#my-challenges-toggle');
+      if (tgl && !tgl._wired) {
+        tgl._wired = true;
+        tgl.onclick = () => {
+          const list = $('#my-challenges-list');
+          const chev = tgl.querySelector('.mc-chev');
+          if (list) list.classList.toggle('hidden');
+          if (chev) chev.textContent = list && list.classList.contains('hidden') ? '▾' : '▴';
+        };
+      }
+      renderMyChallenges();
+    } catch (e) {}
     $('#pvp-lobby').classList.remove('hidden'); $('#pvp-search').classList.add('hidden');
     // v2: announce ourselves as online in the PvP lobby
     if (SAK.PvpSync && W.address) {
