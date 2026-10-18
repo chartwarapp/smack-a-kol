@@ -18,219 +18,138 @@
 <link href="https://fonts.googleapis.com/css2?family=Lilita+One&display=swap" rel="stylesheet" />
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  html, body { height: 100%; overflow: hidden; background: #1a0b2e; }
-  body { font-family: 'Lilita One', system-ui, sans-serif; }
-
-  #stage { position: fixed; inset: 0; overflow: hidden; }
-  #portal { position: absolute; inset: 0; width: 100%; height: 100%; }
-
-  /* Hand mascot fly-in */
-  #hand {
-    position: absolute; left: 50%; top: 52%;
-    width: min(72vw, 420px);
-    transform: translate(-50%, -50%) scale(0);
-    filter: drop-shadow(0 0 30px #39ff88aa);
-    opacity: 0;
-  }
-  #hand.fly {
-    animation: handFly 1.1s cubic-bezier(.2,1.4,.3,1) forwards;
-  }
-  @keyframes handFly {
-    0% { opacity: 0; transform: translate(-50%,-50%) scale(0) rotate(-30deg); }
-    60% { opacity: 1; transform: translate(-50%,-50%) scale(1.25) rotate(8deg); }
-    80% { transform: translate(-50%,-50%) scale(0.95) rotate(-4deg); }
-    100% { opacity: 1; transform: translate(-50%,-50%) scale(1) rotate(0); }
-  }
-  /* Idle wobble after landing */
-  #hand.settled { animation: handWobble 3s ease-in-out infinite; opacity: 1; }
-  @keyframes handWobble {
-    0%,100% { transform: translate(-50%,-50%) scale(1) rotate(-2deg); }
-    50% { transform: translate(-50%,-52%) scale(1.03) rotate(2deg); }
-  }
-
-  /* SMACK! comic burst */
-  #smack {
-    position: absolute; left: 50%; top: 30%;
-    transform: translate(-50%,-50%) scale(0) rotate(-12deg);
-    font-size: clamp(60px, 18vw, 140px);
-    color: #ffd23f;
-    -webkit-text-stroke: 3px #1a0b2e;
-    text-shadow: 6px 6px 0 #1a0b2e, 0 0 40px #ff6b35;
-    opacity: 0; white-space: nowrap;
-  }
-  #smack.pop { animation: smackPop 0.9s cubic-bezier(.2,1.6,.3,1) forwards; }
-  @keyframes smackPop {
-    0% { opacity: 0; transform: translate(-50%,-50%) scale(0) rotate(-12deg); }
-    40% { opacity: 1; transform: translate(-50%,-50%) scale(1.3) rotate(4deg); }
-    70% { transform: translate(-50%,-50%) scale(0.95) rotate(-2deg); }
-    100% { opacity: 1; transform: translate(-50%,-50%) scale(1) rotate(-6deg); }
-  }
-  #smack.fade { animation: smackFade 0.5s ease-in forwards; }
-  @keyframes smackFade { to { opacity: 0; transform: translate(-50%,-50%) scale(1.6); } }
-
-  /* Logo text slam */
-  #logo-text {
-    position: absolute; left: 50%; top: 16%;
-    width: min(92vw, 640px);
-    transform: translate(-50%, -120vh);
-    filter: drop-shadow(0 6px 0 #1a0b2e);
-    opacity: 0;
-  }
-  #logo-text.slam { animation: logoSlam 0.7s cubic-bezier(.2,1.2,.3,1) forwards; }
-  @keyframes logoSlam {
-    0% { opacity: 1; transform: translate(-50%,-120vh); }
-    60% { opacity: 1; transform: translate(-50%,-50%) scale(1.1); }
-    80% { transform: translate(-50%,-50%) scale(0.96); }
-    100% { opacity: 1; transform: translate(-50%,-50%) scale(1); }
-  }
-
-  /* Screen shake */
-  #stage.shake { animation: shake 0.5s linear; }
-  @keyframes shake {
-    0%,100% { transform: translate(0,0); }
-    20% { transform: translate(-14px,8px) rotate(-1deg); }
-    40% { transform: translate(12px,-10px) rotate(1deg); }
-    60% { transform: translate(-10px,-6px); }
-    80% { transform: translate(8px,10px); }
-  }
-
-  /* Settle: full logo backdrop */
-  #hero {
-    position: absolute; inset: 0;
-    background: url('assets/logo-hero.jpg') center / cover no-repeat;
-    opacity: 0; transition: opacity 1.2s ease;
-  }
-  #hero.show { opacity: 1; }
-  #intro-els.hide { opacity: 0; transition: opacity 0.8s ease; }
-
-  /* Enter overlay */
-  .landing-overlay {
-    position: fixed; inset: 0;
-    display: flex; flex-direction: column;
-    justify-content: flex-end; align-items: center;
-    padding: 0 24px calc(48px + env(safe-area-inset-bottom));
-    background: linear-gradient(to top, rgba(10,4,24,.78) 0%, rgba(10,4,24,0) 42%);
-    pointer-events: none;
-    opacity: 0; transition: opacity 0.8s ease;
-  }
-  .landing-overlay.show { opacity: 1; }
-  #enter-btn {
-    pointer-events: auto;
+  html, body { height: 100%; overflow: hidden; }
+  body {
     font-family: 'Lilita One', system-ui, sans-serif;
-    font-size: clamp(24px, 6vw, 34px);
+    background:
+      radial-gradient(120% 90% at 50% 10%, #3d1663 0%, #241040 45%, #120826 100%);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    min-height: 100dvh;
+    padding: calc(24px + env(safe-area-inset-top)) 24px calc(40px + env(safe-area-inset-bottom));
+  }
+
+  #bg-canvas { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+
+  .hero {
+    position: relative;
+    width: min(94vw, 560px);
+    opacity: 0;
+    animation: heroIn 1.1s cubic-bezier(.2,.9,.25,1) 0.15s forwards;
+    filter: drop-shadow(0 18px 50px rgba(123,47,247,.45));
+  }
+  @keyframes heroIn {
+    from { opacity: 0; transform: scale(.93) translateY(14px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+  }
+  .hero img {
+    display: block; width: 100%; height: auto;
+    border-radius: 22px;
+    /* feather the edges so the art melts into the background */
+    -webkit-mask-image: radial-gradient(115% 115% at 50% 50%, #000 62%, transparent 98%);
+    mask-image: radial-gradient(115% 115% at 50% 50%, #000 62%, transparent 98%);
+  }
+  /* gentle idle float */
+  .hero.float { animation: heroFloat 5s ease-in-out infinite; }
+  @keyframes heroFloat {
+    0%,100% { transform: translateY(0); }
+    50% { transform: translateY(-8px); }
+  }
+  /* premium shine sweep */
+  .hero::after {
+    content: ''; position: absolute; inset: 0; border-radius: 22px;
+    background: linear-gradient(105deg, transparent 40%, rgba(255,255,255,.22) 50%, transparent 60%);
+    background-size: 280% 100%; background-position: 130% 0;
+    -webkit-mask-image: radial-gradient(115% 115% at 50% 50%, #000 62%, transparent 98%);
+    mask-image: radial-gradient(115% 115% at 50% 50%, #000 62%, transparent 98%);
+    animation: shine 6s ease-in-out 2s infinite;
+    pointer-events: none;
+  }
+  @keyframes shine {
+    0% { background-position: 130% 0; }
+    35%,100% { background-position: -40% 0; }
+  }
+
+  .cta {
+    margin-top: 34px;
+    display: flex; flex-direction: column; align-items: center;
+    opacity: 0; animation: heroIn 0.9s ease 1s forwards;
+  }
+  #enter-btn {
+    font-family: 'Lilita One', system-ui, sans-serif;
+    font-size: clamp(24px, 6vw, 32px);
     letter-spacing: 2px;
     color: #1a0b2e;
-    background: #39ff88;
+    background: linear-gradient(180deg, #4dff9d, #39ff88);
     border: 4px solid #1a0b2e;
     border-radius: 20px;
-    box-shadow: 0 8px 0 #1a0b2e, 0 0 40px #39ff8866;
-    padding: 18px 54px;
+    box-shadow: 0 8px 0 #1a0b2e, 0 0 44px rgba(57,255,136,.35);
+    padding: 18px 58px;
     cursor: pointer;
-    animation: pulse 1.6s ease-in-out infinite;
   }
   #enter-btn:active { transform: translateY(6px); box-shadow: 0 2px 0 #1a0b2e; }
-  @keyframes pulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.04); } }
   .landing-tag {
-    margin-top: 14px; color: #fff; opacity: .85;
-    font-size: 14px; letter-spacing: 3px;
-    text-shadow: 0 2px 8px #000;
+    margin-top: 16px; color: #fff; opacity: .8;
+    font-size: 13px; letter-spacing: 4px;
+    text-shadow: 0 2px 10px #000;
   }
 </style>
 </head>
 <body>
-<div id="stage">
-  <canvas id="portal"></canvas>
-  <div id="intro-els">
-    <img id="hand" src="assets/hand-mascot.png" alt="" />
-    <div id="smack">SMACK!</div>
-    <img id="logo-text" src="assets/logo-text.png" alt="" />
-  </div>
-  <div id="hero"></div>
+<canvas id="bg-canvas"></canvas>
+
+<div class="hero" id="hero">
+  <img src="assets/logo-hero.jpg" alt="Smack-a-KOL" />
 </div>
 
-<div class="landing-overlay" id="overlay">
+<div class="cta">
   <button id="enter-btn">🥊 ENTER THE RING</button>
   <div class="landing-tag">SLAP · WAGER · WIN SOL</div>
 </div>
 
 <script>
 (function () {
-  // ---- Portal vortex canvas ----
-  var cv = document.getElementById('portal'), ctx = cv.getContext('2d');
-  var W, H, parts = [], t = 0;
+  // subtle ambient particles in brand colors
+  var cv = document.getElementById('bg-canvas'), ctx = cv.getContext('2d');
+  var W, H, ps = [];
   function size() { W = cv.width = innerWidth; H = cv.height = innerHeight; }
   size(); addEventListener('resize', size);
-  var COLORS = ['#7b2ff7', '#39ff88', '#ffd23f', '#ff6bd6', '#4a1d96'];
-  for (var i = 0; i < 130; i++) {
-    parts.push({
-      a: Math.random() * Math.PI * 2,
-      r: 40 + Math.random() * Math.max(W, H) * 0.7,
-      sp: 0.008 + Math.random() * 0.03,
-      sz: 2 + Math.random() * 7,
-      c: COLORS[i % COLORS.length],
-      wob: Math.random() * Math.PI * 2
+  var COLORS = ['#7b2ff7', '#39ff88', '#ffd23f'];
+  for (var i = 0; i < 45; i++) {
+    ps.push({
+      x: Math.random(), y: Math.random(),
+      r: 1 + Math.random() * 2.6,
+      c: COLORS[i % 3],
+      vx: (Math.random() - .5) * 0.0006,
+      vy: -0.0004 - Math.random() * 0.0011,
+      ph: Math.random() * 6.28
     });
   }
-  var cx, cy;
+  var t = 0;
   (function draw() {
     t += 0.016;
-    cx = W / 2; cy = H * 0.46;
-    ctx.fillStyle = '#1a0b2e';
-    ctx.fillRect(0, 0, W, H);
-    // radial glow
-    var g = ctx.createRadialGradient(cx, cy, 0, cx, cy, Math.max(W, H) * 0.6);
-    g.addColorStop(0, '#3d1663');
-    g.addColorStop(0.5, '#241040');
-    g.addColorStop(1, '#1a0b2e');
-    ctx.fillStyle = g;
-    ctx.fillRect(0, 0, W, H);
-    // spiral particles
-    for (var i = 0; i < parts.length; i++) {
-      var p = parts[i];
-      p.a += p.sp * (1 + 0.6 * Math.sin(t * 2 + p.wob));
-      p.r -= 0.55; // spiral inward
-      if (p.r < 24) { p.r = 60 + Math.random() * Math.max(W, H) * 0.65; p.a = Math.random() * Math.PI * 2; }
-      var x = cx + Math.cos(p.a) * p.r, y = cy + Math.sin(p.a) * p.r * 0.82;
-      ctx.globalAlpha = 0.35 + 0.45 * Math.abs(Math.sin(t * 3 + p.wob));
+    ctx.clearRect(0, 0, W, H);
+    for (var i = 0; i < ps.length; i++) {
+      var p = ps[i];
+      p.x += p.vx; p.y += p.vy;
+      if (p.y < -0.05) { p.y = 1.05; p.x = Math.random(); }
+      if (p.x < -0.05) p.x = 1.05; if (p.x > 1.05) p.x = -0.05;
+      ctx.globalAlpha = 0.14 + 0.12 * Math.sin(t * 1.4 + p.ph);
       ctx.fillStyle = p.c;
       ctx.beginPath();
-      ctx.arc(x, y, p.sz * (1 - p.r / (Math.max(W, H) * 0.8)), 0, 7);
+      ctx.arc(p.x * W, p.y * H, p.r, 0, 7);
       ctx.fill();
     }
     ctx.globalAlpha = 1;
     requestAnimationFrame(draw);
   })();
 
-  // ---- Intro timeline ----
-  var stage = document.getElementById('stage');
-  var hand = document.getElementById('hand');
-  var smack = document.getElementById('smack');
-  var logoText = document.getElementById('logo-text');
+  // start idle float after entrance
+  var hero = document.getElementById('hero');
+  hero.addEventListener('animationend', function h(e) {
+    if (e.animationName === 'heroIn') { hero.classList.add('float'); hero.removeEventListener('animationend', h); }
+  });
 
-  setTimeout(function () { hand.classList.add('fly'); }, 900);
-
-  setTimeout(function () {
-    smack.classList.add('pop');
-    stage.classList.remove('shake'); void stage.offsetWidth;
-    stage.classList.add('shake');
-    // comedic hand recoil on impact
-    hand.classList.remove('fly'); hand.classList.add('settled');
-  }, 2100);
-
-  setTimeout(function () {
-    smack.classList.add('fade');
-    logoText.classList.add('slam');
-    stage.classList.remove('shake'); void stage.offsetWidth;
-    stage.classList.add('shake');
-  }, 3000);
-
-  setTimeout(function () {
-    document.getElementById('intro-els').classList.add('hide');
-    document.getElementById('hero').classList.add('show');
-    document.getElementById('overlay').classList.add('show');
-  }, 4300);
-
-  // ---- Enter ----
   document.getElementById('enter-btn').addEventListener('click', function () {
     location.href = 'play.html' + location.search;
   });
