@@ -478,7 +478,7 @@ SAK.PvpSync = (function () {
           body: JSON.stringify({
             challenge_addr: challengeAddr,
             wallet: wallet,
-            last_beat: new Date().toISOString(),
+            last_seen: new Date().toISOString(),
           }),
         });
       } catch (e) {}
@@ -487,14 +487,14 @@ SAK.PvpSync = (function () {
       if (done) return;
       try {
         const res = await fetch(
-          `${SUPABASE_URL}/rest/v1/pvp_heartbeats?challenge_addr=eq.${challengeAddr}&order=last_beat.desc&limit=10`,
+          `${SUPABASE_URL}/rest/v1/pvp_heartbeats?challenge_addr=eq.${challengeAddr}&order=last_seen.desc&limit=10`,
           { headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${SUPABASE_ANON_KEY}` } }
         );
         const beats = await res.json();
         const now = Date.now();
         const wallets = new Set();
         (beats || []).forEach(b => {
-          if (b.wallet && (now - new Date(b.last_beat).getTime()) < 15000) {
+          if (b.wallet && (now - new Date(b.last_seen).getTime()) < 15000) {
             wallets.add(b.wallet);
           }
         });
