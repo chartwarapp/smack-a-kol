@@ -33,7 +33,7 @@
 
   // Challenge account layout (after 8-byte discriminator):
   // challenger(32) opponent(32) nonce(u64) wager(u64) mint(32) expiry(i64) state(u8) bump(u8)
-  const CHALLENGE_DATA_LEN = 32 + 32 + 8 + 8 + 32 + 8 + 1 + 1;
+  const CHALLENGE_DATA_LEN = 32 + 32 + 8 + 8 + 32 + 8 + 1 + 1 + 1; // +vault_bump
 
   const STATE = ['Open', 'Accepted', 'Resolved', 'Cancelled', 'Refunded'];
 
@@ -91,7 +91,9 @@
 
   /** Parse a Challenge account's raw data into a JS object. Returns null if not a valid challenge. */
   function parseChallenge(data) {
-    if (!data || data.length < 8 + CHALLENGE_DATA_LEN) return null;
+    const OLD_LEN = 8 + CHALLENGE_DATA_LEN - 1; // pre-vault_bump layout
+    if (!data || data.length < OLD_LEN) return null;
+    const hasVaultBump = data.length >= 8 + CHALLENGE_DATA_LEN;
     const dv = new DataView(data.buffer, data.byteOffset, data.byteLength);
     let o = 8; // skip discriminator
     const readPubkey = () => {
@@ -105,10 +107,11 @@
     const mint = readPubkey();
     const expiry = dv.getBigInt64(o, true); o += 8;
     const state = data[o]; o += 1;
-    const bump = data[o];
+    const bump = data[o]; o += 1;
+    const vaultBump = hasVaultBump ? data[o] : null;
     return {
       challenger, opponent, nonce: nonce.toString(), wager: wager.toString(), mint,
-      expiry: Number(expiry), state, stateName: STATE[state] || 'Unknown', bump,
+      expiry: Number(expiry), state, stateName: STATE[state] || 'Unknown', bump, vaultBump,
       wagerSol: Number(wager) / 1e9,
       isNative: mint === NATIVE_MINT,
     };
