@@ -3177,11 +3177,22 @@ SAK.Scene3D = (function () {
         // Ride a three-quarter offset — pulled BACK so the whole wrecked face
         // reads in frame (funny, not claustrophobic). Stays wide on landing.
         const off = koCam.offset || new T.Vector3(11.4, 5.7, 7.4); // LT 2026-10-16: pulled back another 30% — wider arena view
+        // If the loser landed behind the center structure (billboard/table at
+        // arena center), the fixed offset puts the structure between camera
+        // and loser. Swing the camera to the same side as the loser so the
+        // whole body stays visible — never blocked.
+        let offX = off.x, offZ = off.z;
+        if (landed) {
+          if (head.z < -1.5) offZ = -Math.abs(off.z); // loser behind center → camera swings behind too
+          else if (head.z > 1.5) offZ = Math.abs(off.z);
+          if (head.x < -1.5) offX = -Math.abs(off.x);
+          else if (head.x > 1.5) offX = Math.abs(off.x);
+        }
         const pull = landed ? 1.05 : 1;
         camBase.pos.set(
-          head.x + off.x * pull,
+          head.x + offX * pull,
           Math.max(landed ? 1.35 : 1.8, head.y + off.y * (landed ? 0.7 : 1)),
-          head.z + off.z * pull
+          head.z + offZ * pull
         );
       }
       if (time > koCam.until) koCam = null;
