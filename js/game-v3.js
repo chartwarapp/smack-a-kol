@@ -1912,10 +1912,11 @@
     if (Scene) {
       try {
         const koPromise = Scene.knockout(loser, null, sweep);
-        // Catch both sync throws and async rejections
+        // Catch both sync throws and async rejections — show error in UI for debugging
         ko = Promise.race([
           Promise.resolve(koPromise).catch(e => {
             console.error('[KO] Scene.knockout failed:', e.message);
+            try { toast('KO error: ' + e.message, 3000); } catch (te) {}
             return null;
           }),
           koTimeout

@@ -4478,7 +4478,8 @@ SAK.Scene3D = (function () {
     // no matter the landing pose — never face-down. Yaw/pitch-only aim (no roll
     // weirdness), wide cartoon clamps. The per-frame pose driver is parked
     // during KO, so this tween holds.
-    {
+    // SKIP for sweep KOs (headspin/headpop): the head is gone — no face to reveal.
+    if (!isSweepKO || (variant !== 'headspin' && variant !== 'headpop')) {
       const headPos = F.headWorld();
       const toCam = camera.position.clone().sub(headPos);
       if (toCam.lengthSq() > 1e-6) {
