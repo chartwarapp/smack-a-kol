@@ -4093,8 +4093,14 @@ SAK.Scene3D = (function () {
     let variant;
     let isSweepKO = !!sweep;
     if (sweep) {
-      const sr = Math.random();
-      variant = sr < 0.28 ? 'headspin' : sr < 0.55 ? 'headpop' : sr < 0.78 ? 'pancake' : 'ufo';
+      // Debug: window._forceSweepVariant = 'headspin'|'headpop'|'pancake'|'ufo' forces one for testing
+      const forced = (typeof window !== 'undefined' && window._forceSweepVariant) || null;
+      if (forced && ['headspin','headpop','pancake','ufo'].includes(forced)) {
+        variant = forced;
+      } else {
+        const sr = Math.random();
+        variant = sr < 0.28 ? 'headspin' : sr < 0.55 ? 'headpop' : sr < 0.78 ? 'pancake' : 'ufo';
+      }
     } else if (Math.random() < (hardKO ? 0.25 : 0.08)) {
       // towardcam stumbles at the camera, splat pastes them on a wall — both
       // stay visible. launch/rocket arc toward the camera too.

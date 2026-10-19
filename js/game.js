@@ -1895,7 +1895,7 @@
     if (loser === 'kol') $('#k-portrait').innerHTML = SAK.avatarSVG(F.kol.look, { ko: true, wrecked: true, blush: true });
     else $('#p-portrait').innerHTML = SAK.avatarSVG(playerLook(), { ko: true, wrecked: true, blush: true });
     renderMeterFaces(null, loser); // KO face on the meter
-    const sweep = false; // SWEEP KOs disabled until stable — was: loser === 'kol' ? (C.pStreak || 0) >= 3 : (C.kStreak || 0) >= 3;
+    const sweep = loser === 'kol' ? (C.pStreak || 0) >= 3 : (C.kStreak || 0) >= 3;
     // Safety: KO animation can never stall the game — catch errors + 8s cap
     const koTimeout = wait(8).then(() => console.warn('[KO] animation timeout, forcing endFight'));
     let ko;
