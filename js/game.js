@@ -1795,8 +1795,9 @@
       else { F.duel.p = Math.round(dmg * 0.6); F.hits++; }
     }
 
-    // Scoreboard
-    if (playerWonRound) C.pWins++; else C.kWins++;
+    // Scoreboard (+ consecutive-win streak for sweep KOs)
+    if (playerWonRound) { C.pWins++; C.pStreak = (C.pStreak || 0) + 1; C.kStreak = 0; }
+    else { C.kWins++; C.kStreak = (C.kStreak || 0) + 1; C.pStreak = 0; }
     renderRoundScore();
 
     // Reveal WHERE they locked (private until both locked) — YOU vs THEM dial
@@ -1893,7 +1894,8 @@
     if (loser === 'kol') $('#k-portrait').innerHTML = SAK.avatarSVG(F.kol.look, { ko: true, wrecked: true, blush: true });
     else $('#p-portrait').innerHTML = SAK.avatarSVG(playerLook(), { ko: true, wrecked: true, blush: true });
     renderMeterFaces(null, loser); // KO face on the meter
-    const ko = Scene ? Scene.knockout(loser) : wait(1.2);
+    const sweep = loser === 'kol' ? (C.pStreak || 0) >= 3 : (C.kStreak || 0) >= 3;
+    const ko = Scene ? Scene.knockout(loser, null, sweep) : wait(1.2);
     if (Scene && loser === 'kol') Scene.coinRain(70);                       // 🪙 coin rain on a win
     banner(loser === 'kol' ? pick(SAK.COPY.koWinBanners) : pick(SAK.COPY.koLoseBanners), loser === 'kol' ? '#39ff88' : '#ff3b5c', 1400);
     await ko;

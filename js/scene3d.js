@@ -4073,7 +4073,7 @@ SAK.Scene3D = (function () {
    *  EVERY KO ends with the money shot: the loser's head turns to camera so the
    *  battered face (bruises, black eye, scratches + X eyes) and dizzy stars
    *  always read — never face-down — before the winner celebrates. */
-  async function knockout(who, tier) {
+  async function knockout(who, tier, sweep) {
     const F = who === 'player' ? player : kol;
     const finTier = tier || lastSlapTier || 'perfect'; // game.js passes only `loser`
     endHitCam(true); // KO follow-cam takes over from the face-cam
@@ -4088,9 +4088,12 @@ SAK.Scene3D = (function () {
     // newer backflip, bounce, spiral and slow-mo crumble. Only sometimes do
     // they get launched (backflip launch, ragdoll rocket, splat, towardcam).
     const hardKO = finTier === 'heavy' || finTier === 'perfect';
-    const flyChance = hardKO ? 0.25 : 0.08;
+    // SWEEP KOs: 3 straight round wins → special over-the-top finishers
     let variant;
-    if (Math.random() < flyChance) {
+    if (sweep) {
+      const sr = Math.random();
+      variant = sr < 0.28 ? 'headspin' : sr < 0.55 ? 'headpop' : sr < 0.78 ? 'pancake' : 'ufo';
+    } else if (Math.random() < (hardKO ? 0.25 : 0.08)) {
       // towardcam stumbles at the camera, splat pastes them on a wall — both
       // stay visible. launch/rocket arc toward the camera too.
       const fr = Math.random();
@@ -4354,6 +4357,108 @@ SAK.Scene3D = (function () {
       const dust5 = F.root.position.clone(); dust5.y = 0.12;
       burst(dust5, ['#c4a574', '#e8d5a3', '#ffffff'], 18, 2.2);
       ring(dust5, '#ffffff');
+      F.stampLandPose(pose);
+    } else if (variant === 'headspin') {
+      // SWEEP: head spins 2-3 times, then pops off; body crumples.
+      const head = F.headGroup || F.head;
+      if (head) {
+        SAK.Tween.to(F.root.rotation, { z: 0.15 }, 0.3, SAK.Ease.inOutQuad);
+        const hy0 = head.rotation.y;
+        await SAK.Tween.to(head.rotation, { y: hy0 + Math.PI * 2 }, 0.45, SAK.Ease.inQuad);
+        if (F.ko) return;
+        await SAK.Tween.to(head.rotation, { y: hy0 + Math.PI * 4 }, 0.4, SAK.Ease.inQuad);
+        if (F.ko) return;
+        await SAK.Tween.to(head.rotation, { y: hy0 + Math.PI * 5 }, 0.25, SAK.Ease.outQuad);
+        if (F.ko) return;
+        const hp = F.headWorld();
+        burst(hp, ['#ffd23f', '#ffffff', '#ff4fd8'], 26, 4);
+        ring(hp, '#ffd23f');
+        SAK.Tween.to(head.scale, { x: 0.01, y: 0.01, z: 0.01 }, 0.18, SAK.Ease.inQuad);
+        await SAK.Tween.to(F.root.rotation, { z: -0.5 }, 0.35, SAK.Ease.inQuad);
+        if (F.ko) return;
+        const pose = LAND_POSES.find(p => p.id === 'heap') || pickLandPose();
+        SAK.Tween.to(F.root.rotation, { x: pose.rx, z: (pose.rz || 0) - 0.4 }, 0.4, SAK.Ease.inQuad);
+        await SAK.Tween.to(F.root.position, { y: pose.y }, 0.4, SAK.Ease.inQuad);
+        const dust = F.root.position.clone(); dust.y = 0.12;
+        burst(dust, ['#c4a574', '#e8d5a3', '#ffffff'], 20, 2.5);
+        F.stampLandPose(pose);
+        setTimeout(() => { if (head) head.scale.set(1, 1, 1); }, 3000);
+      } else {
+        const pose = pickLandPose();
+        await SAK.Tween.to(F.root.position, { y: pose.y }, 0.4, SAK.Ease.inQuad);
+        F.stampLandPose(pose);
+      }
+    } else if (variant === 'headpop') {
+      // SWEEP: head swells huge in 3 pulses, then cartoon-pops (confetti).
+      const head = F.headGroup || F.head;
+      if (head) {
+        for (let s = 0; s < 3; s++) {
+          if (F.ko) return;
+          const sc = 1 + (s + 1) * 0.45;
+          await SAK.Tween.to(head.scale, { x: sc, y: sc, z: sc }, 0.28, SAK.Ease.outQuad);
+          if (F.ko) return;
+          await SAK.Tween.to(head.scale, { x: sc * 0.92, y: sc * 0.92, z: sc * 0.92 }, 0.12, SAK.Ease.inOutQuad);
+        }
+        if (F.ko) return;
+        const hp = F.headWorld();
+        head.scale.set(0.01, 0.01, 0.01);
+        burst(hp, ['#ffd23f', '#ff4fd8', '#39ff88', '#ffffff', '#ff7a9a'], 40, 5.5);
+        ring(hp, '#ffd23f'); ring(hp, '#ff4fd8');
+        shake = Math.max(shake, 1.0);
+        const pose = LAND_POSES.find(p => p.id === 'heap') || pickLandPose();
+        SAK.Tween.to(F.root.rotation, { x: pose.rx, z: pose.rz || 0 }, 0.35, SAK.Ease.inQuad);
+        await SAK.Tween.to(F.root.position, { y: pose.y }, 0.35, SAK.Ease.inQuad);
+        const dust = F.root.position.clone(); dust.y = 0.12;
+        burst(dust, ['#c4a574', '#e8d5a3'], 16, 2);
+        F.stampLandPose(pose);
+        setTimeout(() => { if (head) head.scale.set(1, 1, 1); }, 3000);
+      } else {
+        const pose = pickLandPose();
+        await SAK.Tween.to(F.root.position, { y: pose.y }, 0.4, SAK.Ease.inQuad);
+        F.stampLandPose(pose);
+      }
+    } else if (variant === 'pancake') {
+      // SWEEP: flattened like a pancake — squash, jelly wobble, slide off.
+      SAK.Tween.to(F.root.scale, { x: 1.7, z: 1.7 }, 0.3, SAK.Ease.inQuad);
+      await SAK.Tween.to(F.root.scale, { y: 0.18 }, 0.3, SAK.Ease.inQuad);
+      if (F.ko) return;
+      await SAK.Tween.to(F.root.position, { y: 0.12 }, 0.25, SAK.Ease.inQuad);
+      if (F.ko) return;
+      const flat = F.root.position.clone(); flat.y = 0.15;
+      burst(flat, ['#ffd23f', '#ffffff', '#c4a574'], 24, 3.5);
+      ring(flat, '#ffd23f');
+      for (let wob = 0; wob < 2; wob++) {
+        if (F.ko) return;
+        await SAK.Tween.to(F.root.scale, { x: 1.85, z: 1.55 }, 0.18, SAK.Ease.inOutQuad);
+        if (F.ko) return;
+        await SAK.Tween.to(F.root.scale, { x: 1.55, z: 1.85 }, 0.18, SAK.Ease.inOutQuad);
+      }
+      if (F.ko) return;
+      const slideX = F.root.position.x + (F === player ? -2.5 : 2.5);
+      await SAK.Tween.to(F.root.position, { x: slideX }, 0.5, SAK.Ease.outQuad);
+      const pose = LAND_POSES.find(p => p.id === 'heap') || pickLandPose();
+      F.stampLandPose(pose);
+      setTimeout(() => { F.root.scale.set(1, 1, 1); }, 3000);
+    } else if (variant === 'ufo') {
+      // SWEEP: spins like a top, launches straight UP pinwheeling, craters down.
+      const y0 = F.root.position.y;
+      const spin = SAK.Tween.to(F.root.rotation, { y: F.root.rotation.y + Math.PI * 6 }, 0.9, SAK.Ease.inQuad);
+      SAK.Tween.to(F.root.position, { y: y0 + 1.2 }, 0.9, SAK.Ease.inQuad);
+      await spin;
+      if (F.ko) return;
+      const upSpin = SAK.Tween.to(F.root.rotation, { y: F.root.rotation.y + Math.PI * 8 }, 0.8, SAK.Ease.outQuad);
+      await SAK.Tween.to(F.root.position, { y: y0 + 9 }, 0.8, SAK.Ease.outQuad);
+      await upSpin;
+      if (F.ko) return;
+      await wait(0.25);
+      if (F.ko) return;
+      await SAK.Tween.to(F.root.position, { y: 0.15 }, 0.55, SAK.Ease.inQuad);
+      if (F.ko) return;
+      const crater = F.root.position.clone(); crater.y = 0.15;
+      burst(crater, ['#c4a574', '#e8d5a3', '#ffffff', '#ffd23f'], 34, 4.5);
+      ring(crater, '#ff7a9a'); ring(crater, '#ffd23f');
+      shake = Math.max(shake, 1.2);
+      const pose = LAND_POSES.find(p => p.id === 'starfished') || pickLandPose();
       F.stampLandPose(pose);
     } else {
       // launch: backflip-style launch arcing TOWARD the camera (stays visible).
