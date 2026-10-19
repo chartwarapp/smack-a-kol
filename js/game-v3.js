@@ -2566,6 +2566,39 @@
     }
   }
 
+  // Auto-refund: sweep sent challenges past their 24h expiry
+  let _refundSweepRunning = false;
+  async function sweepExpiredChallenges() {
+    if (_refundSweepRunning || !SAK.SolanaEscrow || !W.address) return;
+    _refundSweepRunning = true;
+    try {
+      const now = Date.now();
+      const candidates = mySentChallenges.filter(ch => {
+        if (!ch.created_at) return false;
+        return (now - new Date(ch.created_at).getTime()) > 24 * 60 * 60 * 1000;
+      });
+      for (const ch of candidates) {
+        try {
+          const onchain = await SAK.SolanaEscrow.getChallenge(ch.challenge_addr);
+          if (onchain && onchain.stateName === 'Open' && Date.now() / 1000 > onchain.expiry) {
+            toast('Refunding expired challenge…', 2200);
+            await SAK.SolanaEscrow.refundExpired(ch.challenge_addr);
+            if (SAK.PvpSync && SAK.PvpSync.updateChallengeStatus) {
+              await SAK.PvpSync.updateChallengeStatus(ch.challenge_addr, 'refunded');
+            }
+            mySentChallenges = mySentChallenges.filter(x => x.challenge_addr !== ch.challenge_addr);
+            toast('Expired challenge refunded ◎', 2600);
+          }
+        } catch (e) {
+          console.warn('[PvP] auto-refund failed for', ch.challenge_addr, e.message);
+        }
+      }
+      renderMyChallenges();
+    } finally {
+      _refundSweepRunning = false;
+    }
+  }
+
   function ensureGlobalChallengeWatch() {
     if (!SAK.PvpSync || !W.address || window._globalChallengeWatch) return;
     window._globalChallengeWatch = true;
@@ -2619,6 +2652,8 @@
         };
       }
       renderMyChallenges();
+      // Auto-refund any challenges past 24h unaccepted
+      setTimeout(() => { try { sweepExpiredChallenges(); } catch (e) {} }, 3000);
     } catch (e) {}
     $('#pvp-lobby').classList.remove('hidden'); $('#pvp-search').classList.add('hidden');
     // v2: announce ourselves as online in the PvP lobby
