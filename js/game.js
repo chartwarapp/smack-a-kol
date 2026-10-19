@@ -1895,7 +1895,9 @@
     else $('#p-portrait').innerHTML = SAK.avatarSVG(playerLook(), { ko: true, wrecked: true, blush: true });
     renderMeterFaces(null, loser); // KO face on the meter
     const sweep = loser === 'kol' ? (C.pStreak || 0) >= 3 : (C.kStreak || 0) >= 3;
-    const ko = Scene ? Scene.knockout(loser, null, sweep) : wait(1.2);
+    // Safety: KO animation can never stall the game — 8s cap
+    const koTimeout = wait(8).then(() => console.warn('[KO] animation timeout, forcing endFight'));
+    const ko = Scene ? Promise.race([Scene.knockout(loser, null, sweep), koTimeout]) : wait(1.2);
     if (Scene && loser === 'kol') Scene.coinRain(70);                       // 🪙 coin rain on a win
     banner(loser === 'kol' ? pick(SAK.COPY.koWinBanners) : pick(SAK.COPY.koLoseBanners), loser === 'kol' ? '#39ff88' : '#ff3b5c', 1400);
     await ko;
