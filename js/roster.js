@@ -22,25 +22,11 @@ SAK.PARODY_DISCLAIMER = 'All KOLs are fictional parody cartoons. Not affiliated 
 
 SAK.KOLS = [
   {
-    id: 'ansom', name: 'Ansom', handle: '@BottomCallerAnsom', level: 1,
-    tagline: 'Calls the bottom. Then calls it again. And again.',
-    difficulty: 1, hp: 60, power: 8, accuracy: 0.35, winPts: 100, minBet: 100, payout: 1.6,
-    look: { skin: '#f6c9a0', shirt: '#1f1f2e', hair: '#2a1a10', pants: '#3a3a52', accessory: 'cap', accent: '#ffffff', body: 'noodle', hairStyle: 'buzz', eyes: 'sleepy' },
-    taunts: ['This is the bottom. Probably.', 'Send it. 🚀', 'I\'m bullish on your face.']
-  },
-  {
     id: 'kobee', name: 'Kobee', handle: '@UpOnlySlaps', level: 2,
     tagline: 'Retired from posting. Un-retired just to slap you.',
     difficulty: 2, hp: 85, power: 11, accuracy: 0.45, winPts: 160, minBet: 100, payout: 1.8,
     look: { skin: '#f2c49b', shirt: '#ff7a1a', hair: '#7a4a24', pants: '#2b2b44', accessory: 'headphones', accent: '#222222', body: 'classic', hairStyle: 'spiky', eyes: 'round' },
     taunts: ['UpOnly? More like SlapOnly.', 'Season 2 of this slap: coming soon™.', 'Hold on, I\'m recording this.']
-  },
-  {
-    id: 'pentoshy', name: 'Pentoshy', handle: '@PenguinCharts', level: 3,
-    tagline: 'A chart-drawing penguin. Speaks only in trendlines.',
-    difficulty: 2, hp: 110, power: 13, accuracy: 0.55, winPts: 230, minBet: 100, payout: 2.0,
-    look: { skin: '#e9f1ff', shirt: '#111a2e', hair: '#0b0f1a', pants: '#111a2e', accessory: 'beanie', accent: '#ffb000', body: 'chonk', hairStyle: 'bald', eyes: 'dot' },
-    taunts: ['Higher timeframe says: slap.', 'Bullish divergence on my palm.', 'Zoom out. Still slapping.']
   },
   {
     id: 'murrad', name: 'Murrad', handle: '@SupercycleSlap', level: 4,
@@ -69,13 +55,6 @@ SAK.KOLS = [
     difficulty: 4, hp: 200, power: 22, accuracy: 0.82, winPts: 680, minBet: 500, payout: 2.8,
     look: { skin: '#f0b98f', shirt: '#ff9500', hair: '#cfcfd8', pants: '#1a1a2a', accessory: 'laser', accent: '#ff1a1a', body: 'chonk', hairStyle: 'buzz', eyes: 'big' },
     taunts: ['There is no second-best slap.', 'I just bought more slaps.', 'Laser-focused on your cheek. 👁👁']
-  },
-  {
-    id: 'vitaleek', name: 'Vitaleek', handle: '@UltrasoundSlap', level: 8,
-    tagline: 'Galaxy-brained unicorn whisperer. Final boss.',
-    difficulty: 5, hp: 240, power: 25, accuracy: 0.88, winPts: 850, minBet: 1000, payout: 3.0,
-    look: { skin: '#f6d2b4', shirt: '#ff7ad9', hair: '#c9a46b', pants: '#2a2a40', accessory: 'unicorn', accent: '#ffffff', body: 'smol', hairStyle: 'afro', eyes: 'big', eyeColor: '#7a2bff' },
-    taunts: ['Have you considered a layer-2 slap?', 'Ultrasound slap incoming.', 'Gas-efficient palm deployed.']
   },
   /* ---- V3 Parody Fighters -------------------------------------------------
    * Cartoon parody presets inspired by reference images. The `parody` field
