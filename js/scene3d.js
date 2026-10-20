@@ -1927,6 +1927,18 @@ SAK.Scene3D = (function () {
       this.head.rotation.set(P.hx || 0, P.hy || 0, P.hz || 0);
       this.applyArm(this.arms[-1], ...(P.armL || [1.2, 0.5, 0.4]));
       this.applyArm(this.arms[1], ...(P.armR || [1.2, -0.5, 0.4]));
+      // Ground clearance: pose heights were hand-tuned and several rotations
+      // (side rolls, inverted headstuck) push body parts BELOW the floor —
+      // the "loser disappears into the ground" bug. Measure the real body in
+      // the FINAL pose (arms included) and lift the root so the lowest point
+      // rests on the floor.
+      try {
+        this.root.updateWorldMatrix(true, true);
+        const bb = new T.Box3().setFromObject(this.root);
+        if (bb && isFinite(bb.min.y) && bb.min.y < 0.03) {
+          this.root.position.y += (0.03 - bb.min.y);
+        }
+      } catch (e) { /* clearance is best-effort; pose still applies */ }
       // Max-damage loss face (if one was picked this KO): variants 0/2/3 use
       // custom eyes, so keep the standard X eyes hidden for those.
       const mdv = this.maxDamageVariant;
@@ -3171,22 +3183,27 @@ SAK.Scene3D = (function () {
       if (F && F.root) {
         const head = F.headWorld();
         const landed = F.ko && F.ko.phase === 'land';
+        // Frame the head plus a pull toward the body so the whole fallen
+        // fighter reads in the shot — not a head floating in space.
+        const rootP = F.root.position;
+        const lookX = head.x * 0.8 + rootP.x * 0.2;
+        const lookZ = head.z * 0.8 + rootP.z * 0.2;
         // Aim at the skull; drop look floor once they pancake so the pose reads
         const lookY = Math.max(landed ? 0.12 : 0.35, head.y - (landed ? 0.05 : 0.2));
-        camBase.look.set(head.x, lookY, head.z);
+        camBase.look.set(lookX, lookY, lookZ);
         // Ride a three-quarter offset — pulled BACK so the whole wrecked face
         // reads in frame (funny, not claustrophobic). Stays wide on landing.
         const off = koCam.offset || new T.Vector3(11.4, 5.7, 7.4); // LT 2026-10-16: pulled back another 30% — wider arena view
-        // If the loser landed behind the center structure (billboard/table at
-        // arena center), the fixed offset puts the structure between camera
-        // and loser. Swing the camera to the same side as the loser so the
-        // whole body stays visible — never blocked.
+        // Swing the camera to the same side as the loser so the center
+        // structure (billboard/table) never sits between camera and loser —
+        // the whole body stays visible. Sign-based: wherever they landed,
+        // the camera goes to their side (deadzone only when truly centered).
         let offX = off.x, offZ = off.z;
         if (landed) {
-          if (head.z < -1.5) offZ = -Math.abs(off.z); // loser behind center → camera swings behind too
-          else if (head.z > 1.5) offZ = Math.abs(off.z);
-          if (head.x < -1.5) offX = -Math.abs(off.x);
-          else if (head.x > 1.5) offX = Math.abs(off.x);
+          if (head.z < -0.4) offZ = -Math.abs(off.z);
+          else if (head.z > 0.4) offZ = Math.abs(off.z);
+          if (head.x < -0.4) offX = -Math.abs(off.x);
+          else if (head.x > 0.4) offX = Math.abs(off.x);
         }
         const pull = landed ? 1.05 : 1;
         camBase.pos.set(
@@ -4191,7 +4208,7 @@ SAK.Scene3D = (function () {
         await SAK.Tween.to(F.root.position, { x: slideX }, 0.5, SAK.Ease.outQuad);
         const pose = LAND_POSES.find(p => p.id === 'heap') || pickLandPose();
         F.stampLandPose(pose);
-        setTimeout(() => { F.root.scale.set(1, 1, 1); }, 3000);
+        setTimeout(() => { F.root.scale.set(1, 1, 1); if (F.ko && F.ko.landPose === pose) F.stampLandPose(pose); }, 3000);
       } else if (variant === 'ufo') {
         // Spins like a top, launches straight UP, craters down.
         const y0 = F.root.position.y;
@@ -4465,10 +4482,10 @@ SAK.Scene3D = (function () {
     }
 
     // Follow-cam: lock onto the loser through fly-out AND landing.
-    // Starts WIDE (7, 3.5, 4.5) so the full fall reads, then pushes in close
-    // after landing for the face-reveal finale.
+    // Starts WIDE so the full fall reads, then eases to a still-wide framing
+    // for the finale — never a nose-cam, the whole fallen body stays in frame.
     const head0 = F.headWorld();
-    const followOff = new T.Vector3(7, 3.5, 4.5); // wide during flight/fall
+    const followOff = new T.Vector3(8.5, 4.4, 5.6); // wide during flight/fall
     camBase.look.set(head0.x, Math.max(0.35, head0.y - 0.2), head0.z);
     camBase.pos.set(head0.x + followOff.x, Math.max(1.8, head0.y + followOff.y), head0.z + followOff.z);
     const fov0 = camera.fov;
@@ -4504,10 +4521,11 @@ SAK.Scene3D = (function () {
         }, 0.45, SAK.Ease.outCubic);
       }
     }
-    // Push in close on the battered face (bruises, black eye, scratches + X
-    // eyes) with dizzy stars orbiting, hold so the damage reads.
+    // Frame the battered fighter WIDE (bruises, black eye, scratches + X eyes)
+    // with dizzy stars orbiting, hold so the damage reads. Stays pulled back —
+    // no nose-cam: the whole fallen body stays in frame with arena context.
     const stars = spawnHitStars(F, 6);
-    SAK.Tween.to(koCam.offset, { x: 1.7, y: 1.0, z: 1.2 }, 0.6, SAK.Ease.inOutQuad);
+    SAK.Tween.to(koCam.offset, { x: 4.6, y: 2.7, z: 3.5 }, 0.6, SAK.Ease.inOutQuad);
     const spinUntil = time + 1.7;
     while (time < spinUntil) {
       await wait(0.03);
