@@ -2451,6 +2451,11 @@
           toast('Accepting — approve in wallet…', 2400);
           await SAK.SolanaEscrow.acceptChallenge(c.challenge_addr);
           toast('Accepted! Entering fight lobby…', 2000);
+          // Mark accepted in Supabase (drives the challenger's ACCEPTED badge,
+          // stops this popup resurfacing) and publish our fighter look so both
+          // phones render identical fighters — mirrors the ?sol_challenge= path.
+          if (SAK.PvpSync) SAK.PvpSync.updateChallengeStatus(c.challenge_addr, 'accepted');
+          if (SAK.PvpSync && S.profile && S.profile.avatar) SAK.PvpSync.publishFighterSnapshot(c.challenge_addr, 'acceptor', S.profile.avatar);
           // The accept flow in checkIncomingChainChallenge handles the rest,
           // but we can trigger it by setting the URL param and re-running
           window._seenIncomingChallenges.delete(c.challenge_addr);
@@ -2467,6 +2472,10 @@
               c.challenge_addr, W.address, ch.challenger);
           }
         } catch (e) {
+          // Release the popup guard so the card can resurface on the next poll —
+          // the acceptor can retry cleanly. Idempotent accept means a retry
+          // after a landed-but-unconfirmed tx now succeeds instead of erroring.
+          window._seenIncomingChallenges.delete(c.challenge_addr);
           toast('Accept failed: ' + (e.message || e), 2600);
         }
       }

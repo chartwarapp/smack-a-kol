@@ -227,14 +227,21 @@
     return { challenge: challenge.toBase58(), vault: vault.toBase58(), nonce: nonce.toString(), signature };
   }
 
-  /** Opponent accepts a challenge by depositing the matching wager. */
+  /** Opponent accepts a challenge by depositing the matching wager.
+   *  Idempotent: if this wallet already accepted (e.g. a previous attempt's
+   *  tx landed on-chain but confirmation failed), returns success instead of
+   *  erroring, so the acceptor can proceed to the fight lobby. */
   async function acceptChallenge(challengeAddr) {
     const w = web3();
     const ch = await getChallenge(challengeAddr);
     if (!ch) throw new Error('Challenge not found');
+    const { address } = getSigner();
+    if (ch.stateName === 'Accepted' && ch.opponent === address) {
+      console.log('[Escrow] challenge already accepted by this wallet — treating as success');
+      return { signature: null, alreadyAccepted: true };
+    }
     if (ch.stateName !== 'Open') throw new Error('Challenge is not open (state: ' + ch.stateName + ')');
     if (Date.now() / 1000 > ch.expiry) throw new Error('Challenge expired');
-    const { address } = getSigner();
     if (address === ch.challenger) throw new Error("You can't accept your own challenge");
 
     const challenge = new w.PublicKey(ch.address);
@@ -247,7 +254,23 @@
       { pubkey: new w.PublicKey(TOKEN_PROGRAM), isSigner: false, isWritable: false },
       { pubkey: new w.PublicKey(SYSTEM_PROGRAM), isSigner: false, isWritable: false },
     ], new Uint8Array(DISC.accept_challenge));
-    const signature = await buildAndSend([ix], address);
+    let signature;
+    try {
+      signature = await buildAndSend([ix], address);
+    } catch (e) {
+      // The tx may have landed despite a confirmation/network error
+      // (flaky devnet RPC). Re-read the chain: if we're now the acceptor,
+      // treat as success so the fight can proceed instead of stranding
+      // both phones (acceptor sees "failed", challenger waits forever).
+      try {
+        const rechk = await getChallenge(challengeAddr);
+        if (rechk && rechk.stateName === 'Accepted' && rechk.opponent === address) {
+          console.log('[Escrow] accept tx landed despite send/confirm error — treating as accepted');
+          return { signature: null, alreadyAccepted: true, confirmationUncertain: true };
+        }
+      } catch (_) { /* fall through to the original error */ }
+      throw e;
+    }
     return { signature };
   }
 
