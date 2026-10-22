@@ -1955,7 +1955,7 @@
       F.opts.soloSettled = true;
       const soloBet = F.opts.soloHouse;
       setTimeout(async () => {
-        const res = await resolveSoloBet(win);
+        const res = await resolveSoloBet(win, soloBet);
         if (res) F.opts.soloResult = res;
       }, 1500);
     }
@@ -2114,8 +2114,15 @@
 
     const list = roster(), idx = list.findIndex(x => x.id === k.id), next = list[idx + 1];
     const reBet = F.bet && P.canAfford(F.bet) ? F.bet : 0;
+    const isSoloHouse = !!(F.opts && F.opts.soloHouse);
     html += `<div class="result-btns">
-        <button class="btn btn-yellow" id="r-rematch">↻ RUN IT BACK${reBet ? ` · BET ${fmt(reBet)}` : ' (FREE)'}</button>
+        ${isSoloHouse ? `<div style="display:flex;gap:8px;align-items:stretch;">
+          <div style="flex:0 0 42%;display:flex;align-items:center;gap:6px;background:#1a0b3a;border:3px solid var(--ink);border-radius:14px;padding:0 12px;box-sizing:border-box;">
+            <input id="r-solo-amount" type="number" inputmode="decimal" step="0.01" min="0.01" value="${parseFloat(F.opts.soloHouse.wagerSol || 0.05)}" style="width:100%;background:transparent;border:none;outline:none;color:#fff;font:inherit;font-size:20px;font-weight:800;text-align:right;" />
+            <span style="font-weight:800;color:#f5c542;">SOL</span>
+          </div>
+          <button class="btn btn-yellow" id="r-solo-again" style="flex:1;">🖐 SMACK AGAIN</button>
+        </div>` : `<button class="btn btn-yellow" id="r-rematch">↻ RUN IT BACK${reBet ? ` · BET ${fmt(reBet)}` : ' (FREE)'}</button>`}
         ${win && next && !k.pvp ? `<button class="btn btn-red" id="r-next">APE INTO ${esc(next.name)} →</button>` : ''}
         <div class="row">
           <button class="btn btn-purple" id="r-card">📤 FIGHT CARD</button>
@@ -2128,7 +2135,36 @@
     card.className = 'result-card ' + (win ? 'win' : 'lose');
     card.innerHTML = html;
     show('result');
-    $('#r-rematch').onclick = () => startFight(k, reBet, { mode: F.mode, pvp: F.opts && F.opts.pvp });
+    const rematchBtn = $('#r-rematch');
+    if (rematchBtn) rematchBtn.onclick = () => startFight(k, reBet, { mode: F.mode, pvp: F.opts && F.opts.pvp });
+    const againBtn = $('#r-solo-again');
+    if (againBtn) {
+      const amtEl0 = $('#r-solo-amount');
+      if (amtEl0) amtEl0.addEventListener('focus', () => amtEl0.select());
+      againBtn.onclick = async () => {
+        if (!W.isConnected) { toast('Connect your wallet first \u{1F45B}', 2200); openWalletModal(); return; }
+        if (!SAK.SolanaHouse) { toast('House module not loaded', 2000); return; }
+        const amtEl = $('#r-solo-amount');
+        const amt = amtEl ? parseFloat(amtEl.value) : NaN;
+        if (!amt || !(amt > 0)) { toast('Enter a bet amount first', 2200); return; }
+        againBtn.disabled = true; const oldLabel = againBtn.textContent; againBtn.textContent = 'PLACING BET\u2026';
+        await refreshHouseMax();
+        if (houseMaxBetLamports !== null && Math.round(amt * 1e9) > houseMaxBetLamports) {
+          toast('That bet is bigger than the house can cover right now \u2014 max bet is ' + fmtSol(houseMaxBetLamports) + ' SOL.', 3000);
+          againBtn.disabled = false; againBtn.textContent = oldLabel;
+          return;
+        }
+        try {
+          const res = await SAK.SolanaHouse.placeBet(Math.round(amt * 1e9));
+          activeSoloBet = { bet: res.bet, nonce: res.nonce, wagerSol: amt };
+          toast('Bet locked \u2014 ' + amt + ' SOL vs house \u{1F3E0}', 2400);
+          startFight(k, 0, { mode: F.mode, soloHouse: activeSoloBet });
+        } catch (e) {
+          toast(friendlyHouseError(e, 'bet'), 2800);
+          againBtn.disabled = false; againBtn.textContent = oldLabel;
+        }
+      };
+    }
     $('#r-card').onclick = async (e) => {
       const btn = e.currentTarget;
       btn.disabled = true; const old = btn.textContent; btn.textContent = 'MAKING CARD…';
@@ -3231,14 +3267,15 @@
     btn.disabled = false; btn.innerHTML = '<img src="assets/hand-icon.png" alt="" style="width:28px;height:28px;vertical-align:-7px;margin-right:4px" /> SMACK-A-KOL';
   });
   // Resolve the solo bet after the fight ends. Called from the result screen.
-  async function resolveSoloBet(won) {
-    if (!activeSoloBet || !SAK.SolanaHouse) return null;
-    const { bet, nonce, wagerSol } = activeSoloBet;
+  async function resolveSoloBet(won, betObj) {
+    const mine = betObj || activeSoloBet;
+    if (!mine || !SAK.SolanaHouse) return null;
+    const { bet, nonce, wagerSol } = mine;
     try {
       toast('Settle win — approve in wallet…', 2400);
       await SAK.SolanaHouse.resolveBet(bet, W.address, nonce, won);
       const payout = won ? (wagerSol * 1.9) : 0;
-      activeSoloBet = null;
+      if (activeSoloBet === mine) activeSoloBet = null;
       return { wagerSol, payout, won, burnSol: 0 }; // SOL skips the 1% burn
     } catch (e) {
       toast(friendlyHouseError(e, 'settle'), 2600);
