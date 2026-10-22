@@ -3935,44 +3935,52 @@
     const btn = $('#admin-vault-refresh');
     if (btn) { btn.disabled = true; btn.textContent = 'LOADING…'; }
     el.textContent = 'Reading the vault from devnet…';
-    const row = (label, val) => `<div class="vault-row"><span>${label}</span><b>${val}</b></div>`;
+    const row = (label, val) => `<div class="vt-row"><span>${label}</span><b>${val}</b></div>`;
     try {
       const H = SAK.SolanaHouse;
       const st = await H.getHouseState();
       let html =
-        `<div class="vault-row vault-big"><span>Vault balance</span><b>◎ ${fmtSol(st.vaultLamports)} SOL</b></div>` +
-        row('Max bet it can cover', `◎ ${fmtSol(st.maxBetLamports)} SOL`) +
-        row('On-chain config', `Win ${st.winBps / 100}% · Pay ${st.payoutBps / 10000}× · Cap ${st.maxBetBps / 100}% · Burn ${st.burnBps / 100}%`);
+        `<div class="vt-hero"><span class="vt-hero-label">VAULT BALANCE</span>` +
+        `<span class="vt-hero-val">◎ ${fmtSol(st.vaultLamports)} <small>SOL</small></span>` +
+        `<span class="vt-hero-sub">Max bet it can cover: ◎ ${fmtSol(st.maxBetLamports)} SOL</span></div>`;
       // Gameplay totals from the Bet accounts — independent read, so a
       // failure here never blanks the balance above.
       try {
         const ob = await H.getOpenBetsSummary();
-        html += `<div class="vault-sub">GAMEPLAY · SOLO VS HOUSE (ALL TIME)</div>` +
-          row('Bets placed', `${ob.totalBets}`) +
-          row('Settled · still open', `${ob.resolvedCount} · ${ob.openCount}`) +
-          row('Total wagered in', `◎ ${fmtSol(ob.totalWagerLamports)} SOL`) +
+        html += `<div class="vt-tiles">` +
+          `<div><b>${ob.totalBets}</b><small>BETS PLACED</small></div>` +
+          `<div><b>${ob.resolvedCount} · ${ob.openCount}</b><small>SETTLED · OPEN</small></div>` +
+          `<div><b>◎ ${fmtSol(ob.totalWagerLamports)}</b><small>WAGERED IN</small></div></div>` +
+          `<div class="vt-sub">DETAILS</div>` +
           row('Average bet', `◎ ${fmtSol(ob.avgWagerLamports)} SOL`) +
           row('Biggest bet', `◎ ${fmtSol(ob.maxWagerLamports)} SOL`) +
           row('SOL locked in open bets', `◎ ${fmtSol(ob.betVaultLamports)} SOL`);
-      } catch (e) { html += `<div class="vault-sub">GAMEPLAY</div>` + row('Bet history', 'unavailable right now'); }
+      } catch (e) { html += `<div class="vt-sub">DETAILS</div>` + row('Bet history', 'unavailable right now'); }
+      html += `<div class="vt-sub">ON-CHAIN CONFIG</div><div class="vt-tiles four">` +
+        `<div><b>${st.winBps / 100}%</b><small>WIN RATE</small></div>` +
+        `<div><b>${st.payoutBps / 10000}×</b><small>PAYOUT</small></div>` +
+        `<div><b>${st.maxBetBps / 100}%</b><small>RISK CAP</small></div>` +
+        `<div><b>${st.burnBps / 100}%</b><small>BURN</small></div></div>`;
       // Recent money in/out on the main vault (funding, lost wagers in,
       // win profits out).
       try {
         const acts = await H.getVaultActivity(8);
         if (acts.length) {
-          html += `<div class="vault-sub">RECENT VAULT MOVES</div>`;
+          html += `<div class="vt-sub">RECENT VAULT MOVES</div>`;
           for (const a of acts) {
             const inSol = a.deltaLamports > 0;
             const label = inSol
               ? (a.deltaLamports >= 1e9 ? 'Funding / deposit in' : 'Lost wager collected')
               : 'Win payout out';
             const when = a.blockTime ? new Date(a.blockTime * 1000).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '';
-            html += `<div class="vault-row ${inSol ? 'vault-move-in' : 'vault-move-out'}"><span>${inSol ? '➕' : '➖'} ${label}${when ? ' · ' + when : ''}</span><b>${inSol ? '+' : '−'}◎ ${fmtSol(Math.abs(a.deltaLamports))}</b></div>`;
+            html += `<div class="vt-move"><span class="vt-arrow ${inSol ? 'in' : 'out'}">${inSol ? '▲' : '▼'}</span>` +
+              `<span class="vt-move-main"><span class="vt-move-label">${label}</span>${when ? `<span class="vt-move-time">${when}</span>` : ''}</span>` +
+              `<b class="vt-move-amt ${inSol ? 'in' : 'out'}">${inSol ? '+' : '−'}◎ ${fmtSol(Math.abs(a.deltaLamports))}</b></div>`;
           }
         }
       } catch (e) { /* activity is a bonus; the totals above still stand */ }
       html += row('Vault address', `<code>${st.vaultAddress.slice(0, 4)}…${st.vaultAddress.slice(-4)}</code>`) +
-        row('Last checked', new Date().toLocaleTimeString());
+        `<div class="vt-foot">Last checked ${new Date().toLocaleTimeString()} · devnet</div>`;
       el.innerHTML = html;
     } catch (e) {
       el.textContent = '⚠️ Could not reach the devnet vault from this device. Check your connection and tap REFRESH VAULT.';
