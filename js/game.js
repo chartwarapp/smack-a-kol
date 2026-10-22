@@ -2750,6 +2750,7 @@
     renderChainBets();
     renderChainExpiry();
     renderSoloBets();
+    refreshHouseMax();
     const _ps = $('#pvp-share'); if (_ps) _ps.classList.add('hidden');
     $('#pvp-chain-share').classList.add('hidden');
     updatePendingBar();
@@ -3152,12 +3153,42 @@
   let soloWager = 0.05;
   const SOLO_PRESETS = [0.01, 0.02, 0.05, 0.1, 0.5];
   let activeSoloBet = null; // { bet, nonce, wagerSol }
+  // Live house max bet (lamports) from the chain; null = not loaded yet.
+  // The contract rejects any bet whose 1.9x payout exceeds 5% of the vault
+  // (BetTooLarge) — the UI now enforces that BEFORE the wallet opens.
+  let houseMaxBetLamports = null;
+  function fmtSol(lamports) { return (Math.floor(lamports / 1e6) / 1000).toString(); }
+  async function refreshHouseMax() {
+    if (!SAK.SolanaHouse || !SAK.SolanaHouse.getHouseState) return;
+    try {
+      const st = await SAK.SolanaHouse.getHouseState();
+      houseMaxBetLamports = st.maxBetLamports;
+      const mx = $('#pvp-solo-max');
+      if (mx) mx.textContent = '🏠 House max bet right now: ' + fmtSol(st.maxBetLamports) + ' SOL';
+      renderSoloBets();
+    } catch (e) { /* chain unreachable: chips stay live; pre-flight still guards */ }
+  }
   function renderSoloBets() {
     const el = $('#pvp-solo-bets');
     if (!el) return;
-    el.innerHTML = SOLO_PRESETS.map(s =>
-      `<button class="bet-chip ${s === soloWager ? 'selected' : ''}" data-sol="${s}">${s} SOL</button>`).join('');
+    el.innerHTML = SOLO_PRESETS.map(s => {
+      const over = houseMaxBetLamports !== null && Math.round(s * 1e9) > houseMaxBetLamports;
+      return `<button class="bet-chip ${s === soloWager ? 'selected' : ''}" data-sol="${s}" ${over ? 'disabled style="opacity:.35"' : ''}>${s} SOL</button>`;
+    }).join('');
     $$('#pvp-solo-bets .bet-chip').forEach(c => c.onclick = () => { soloWager = +c.dataset.sol; A.click(); renderSoloBets(); });
+  }
+  // Player-readable house errors — never dump raw simulation logs at the
+  // player (the raw SendTransactionError text WAS the BetTooLarge screenshot).
+  function friendlyHouseError(e, what) {
+    const m = String((e && e.message) || e || '');
+    if (/BetTooLarge|0x1773/.test(m)) {
+      return 'That bet is bigger than the house can cover right now' +
+        (houseMaxBetLamports !== null ? ' — max bet is ' + fmtSol(houseMaxBetLamports) + ' SOL.' : '.');
+    }
+    if (/rejected|denied/i.test(m)) return 'Cancelled in your wallet.';
+    if (/insufficient/i.test(m)) return 'Not enough devnet SOL in your wallet.';
+    if (/not connected|provider not available/i.test(m)) return 'Wallet not connected.';
+    return (what === 'settle' ? 'Settle' : 'Bet') + ' failed — please try again.';
   }
   function soloStatus(msg, done) {
     const st = $('#pvp-solo-status');
@@ -3171,6 +3202,15 @@
     if (!W.isConnected) { toast('Connect your wallet first \u{1F45B}', 2200); openWalletModal(); return; }
     if (!SAK.SolanaHouse) { toast('House module not loaded', 2000); return; }
     const btn = soloBetBtn; btn.disabled = true; btn.textContent = 'PLACING BET…';
+    soloStatus('Checking the house max…');
+    await refreshHouseMax();
+    if (houseMaxBetLamports !== null && Math.round(soloWager * 1e9) > houseMaxBetLamports) {
+      const msg = 'That bet is bigger than the house can cover right now — max bet is ' + fmtSol(houseMaxBetLamports) + ' SOL.';
+      soloStatus(msg);
+      toast(msg, 3000);
+      btn.disabled = false; btn.innerHTML = '<img src="assets/hand-icon.png" alt="" style="width:28px;height:28px;vertical-align:-7px;margin-right:4px" /> SMACK-A-KOL';
+      return;
+    }
     soloStatus('Approve the bet in your wallet…');
     try {
       const lamports = Math.round(soloWager * 1e9);
@@ -3184,8 +3224,9 @@
       const ai = Object.assign({}, pick, { pvp: false });
       startFight(ai, 0, { mode: 'classic', soloHouse: activeSoloBet });
     } catch (e) {
-      soloStatus('Bet failed: ' + (e.message || e));
-      toast('Bet failed: ' + (e.message || e), 2600);
+      const msg = friendlyHouseError(e, 'bet');
+      soloStatus(msg);
+      toast(msg, 2800);
     }
     btn.disabled = false; btn.innerHTML = '<img src="assets/hand-icon.png" alt="" style="width:28px;height:28px;vertical-align:-7px;margin-right:4px" /> SMACK-A-KOL';
   });
@@ -3200,7 +3241,7 @@
       activeSoloBet = null;
       return { wagerSol, payout, won, burnSol: 0 }; // SOL skips the 1% burn
     } catch (e) {
-      toast('Settle failed: ' + (e.message || e), 2600);
+      toast(friendlyHouseError(e, 'settle'), 2600);
       return null;
     }
   }

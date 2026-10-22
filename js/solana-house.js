@@ -110,5 +110,34 @@
   }
 
   window.SAK = window.SAK || {};
-  window.SAK.SolanaHouse = { PROGRAM_ID, RPC_URL, placeBet, resolveBet, derivePDAs };
+
+  /** Read the live house config + vault balance and compute the biggest bet
+   *  the vault can cover, using the contract's own rule:
+   *  payout_bps x wager <= max_bet_bps_of_vault x vault_lamports. */
+  async function getHouseState() {
+    const w = web3();
+    const conn = connection();
+    const programId = new w.PublicKey(PROGRAM_ID);
+    const [house] = await w.PublicKey.findProgramAddress([te().encode('house')], programId);
+    const [vault] = await w.PublicKey.findProgramAddress([te().encode('house_vault')], programId);
+    const [hInfo, vaultLamports] = await Promise.all([conn.getAccountInfo(house), conn.getBalance(vault)]);
+    if (!hInfo) throw new Error('House is not initialized');
+    const d = hInfo.data;
+    const dv = new DataView(d.buffer, d.byteOffset || 0, d.byteLength);
+    // House account layout (smack_house `House` struct after 8-byte discriminator):
+    // admin 8..40, treasury 40..72, resolver 72..104, mint 104..136,
+    // player_win_bps u16 @136, payout_bps u64 @138, max_bet_bps_of_vault u16 @146, burn_bps u16 @148
+    const winBps = dv.getUint16(136, true);
+    const payoutBps = Number(dv.getBigUint64(138, true));
+    const maxBetBps = dv.getUint16(146, true);
+    const maxBetLamports = Math.floor(vaultLamports * maxBetBps / payoutBps);
+    return {
+      winBps, payoutBps, maxBetBps,
+      vaultLamports, vaultSol: vaultLamports / 1e9,
+      maxBetLamports, maxBetSol: maxBetLamports / 1e9,
+      vaultAddress: vault.toBase58(),
+    };
+  }
+
+  window.SAK.SolanaHouse = { PROGRAM_ID, RPC_URL, placeBet, resolveBet, derivePDAs, getHouseState };
 })();
