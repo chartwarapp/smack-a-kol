@@ -1301,3 +1301,10 @@ body.on-menu #ticker { display: none; }
 .tier-champion { background: #f5c542; color: #451a03; }
 .kd-tier { padding: 1px 6px; border-radius: 8px; font-weight: 800; white-space: nowrap; }
 #solo-toggle { margin-bottom: 10px; }
+
+/* Solo wager bar: all presets + CUSTOM fit one row, no sideways scroll */
+#solo-bets { display: flex; flex-wrap: nowrap; gap: 5px; overflow: visible; }
+#solo-bets .bet-chip { flex: 1 1 0; min-width: 0; padding: 6px 2px; font-size: 12px; white-space: nowrap; }
+#solo-bets .solo-custom-wrap { flex: 1.2 1 0; min-width: 0; padding: 3px 4px 4px; }
+#solo-bets .solo-custom-wrap input { font-size: 12px; }
+#solo-bets .solo-custom-wrap input::placeholder { font-size: 9.5px; }
