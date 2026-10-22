@@ -2972,27 +2972,9 @@
       }
     }, 5000);
   }
-  function showAcceptedModal(ch, wagerSol) {
-    const old = document.getElementById('chain-accepted-modal');
-    if (old) old.remove();
-    const oppShort = (ch.opponent || '').slice(0, 4) + '…' + (ch.opponent || '').slice(-4);
-    let secs = 60;
-    const modal = document.createElement('div');
-    modal.id = 'chain-accepted-modal';
-    modal.innerHTML =
-      '<div style="position:fixed;inset:0;z-index:9999;background:rgba(5,5,15,0.94);display:flex;align-items:center;justify-content:center;padding:20px;">' +
-      '<div style="background:linear-gradient(160deg,#0f2f1a,#0a1f12);border:2px solid #4ade80;border-radius:20px;padding:28px 24px;max-width:380px;width:100%;text-align:center;box-shadow:0 0 60px rgba(74,222,128,0.3);">' +
-      '<div style="font-size:52px;margin-bottom:8px;">\u{1F525}</div>' +
-      '<div style="font-size:24px;font-weight:800;color:#4ade80;margin-bottom:4px;">OPPONENT ACCEPTED!</div>' +
-      '<div style="font-size:13px;color:#aaa;margin-bottom:16px;">' + oppShort + ' locked ' + wagerSol + ' SOL</div>' +
-      '<div style="font-size:48px;font-weight:800;color:#f5c542;margin:12px 0;" id="chain-join-timer">' + secs + '</div>' +
-      '<div style="font-size:12px;color:#888;margin-bottom:16px;">seconds to join the fight</div>' +
-      '<button id="chain-join-btn" style="display:block;width:100%;padding:16px;margin:8px 0;border:none;border-radius:14px;font-size:18px;font-weight:800;cursor:pointer;background:linear-gradient(180deg,#f5c542,#d4a017);color:#000;">\u{1F94A} JOIN FIGHT</button>' +
-      '</div></div>';
-    document.body.appendChild(modal);
-    try { if (navigator.vibrate) navigator.vibrate([200, 100, 200]); } catch (e) {}
-    A.perfect();
-    const timerEl = document.getElementById('chain-join-timer');
+  // HOISTED 2026-10-22 (marker:spfl-hoist): lobby entry must live at top level —
+  // BOTH accept paths (popup + challenge link) call it; nested inside
+  // showAcceptedModal it was invisible to them (acceptor ReferenceError).
     // v2: Pre-fight lobby — both fighters must be confirmed online
     // simultaneously before the fight starts. Fixes ghost fights when
     // the acceptor joins minutes after the challenger left.
@@ -3075,6 +3057,27 @@
       );
     }
 
+  function showAcceptedModal(ch, wagerSol) {
+    const old = document.getElementById('chain-accepted-modal');
+    if (old) old.remove();
+    const oppShort = (ch.opponent || '').slice(0, 4) + '…' + (ch.opponent || '').slice(-4);
+    let secs = 60;
+    const modal = document.createElement('div');
+    modal.id = 'chain-accepted-modal';
+    modal.innerHTML =
+      '<div style="position:fixed;inset:0;z-index:9999;background:rgba(5,5,15,0.94);display:flex;align-items:center;justify-content:center;padding:20px;">' +
+      '<div style="background:linear-gradient(160deg,#0f2f1a,#0a1f12);border:2px solid #4ade80;border-radius:20px;padding:28px 24px;max-width:380px;width:100%;text-align:center;box-shadow:0 0 60px rgba(74,222,128,0.3);">' +
+      '<div style="font-size:52px;margin-bottom:8px;">\u{1F525}</div>' +
+      '<div style="font-size:24px;font-weight:800;color:#4ade80;margin-bottom:4px;">OPPONENT ACCEPTED!</div>' +
+      '<div style="font-size:13px;color:#aaa;margin-bottom:16px;">' + oppShort + ' locked ' + wagerSol + ' SOL</div>' +
+      '<div style="font-size:48px;font-weight:800;color:#f5c542;margin:12px 0;" id="chain-join-timer">' + secs + '</div>' +
+      '<div style="font-size:12px;color:#888;margin-bottom:16px;">seconds to join the fight</div>' +
+      '<button id="chain-join-btn" style="display:block;width:100%;padding:16px;margin:8px 0;border:none;border-radius:14px;font-size:18px;font-weight:800;cursor:pointer;background:linear-gradient(180deg,#f5c542,#d4a017);color:#000;">\u{1F94A} JOIN FIGHT</button>' +
+      '</div></div>';
+    document.body.appendChild(modal);
+    try { if (navigator.vibrate) navigator.vibrate([200, 100, 200]); } catch (e) {}
+    A.perfect();
+    const timerEl = document.getElementById('chain-join-timer');
     const countdown = setInterval(() => {
       secs--;
       if (timerEl) timerEl.textContent = secs;
