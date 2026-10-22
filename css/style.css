@@ -477,6 +477,14 @@ h2, h3, .prompt, .vs, .level, .fc-name, .banner, .float-text, .result-title {
   display: flex; align-items: center; justify-content: center; gap: 4px;
 }
 .bet-chip.selected { background: var(--yellow); color: var(--ink); border-color: var(--ink); }
+.solo-custom-wrap { flex: none; min-width: 88px; padding: 3px 8px 4px; border-radius: 12px; background: #ffffff1c; border: 2px solid #ffffff33; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.solo-custom-wrap.selected { background: var(--yellow); border-color: var(--ink); }
+.solo-custom-wrap input { width: 100%; background: transparent; border: none; outline: none; color: inherit; font: inherit; font-size: 14px; font-weight: 800; text-align: center; padding: 0; }
+.solo-custom-wrap input::placeholder { color: #cfc4ea; font-size: 11px; font-weight: 800; letter-spacing: .05em; }
+.solo-custom-wrap.selected input { color: var(--ink); }
+.solo-custom-wrap.selected input::placeholder { color: #6b5a2a; }
+.solo-custom-wrap small { font-size: 8px; font-weight: bold; color: #b44dff; letter-spacing: 1px; line-height: 1; }
+.solo-custom-wrap.selected small { color: var(--ink); }
 .bet-chip.free.selected { background: var(--green); }
 .bet-chip.locked { opacity: .45; }
 .modal-card .fine.dark { color: var(--ink); opacity: .75; text-align: center; }

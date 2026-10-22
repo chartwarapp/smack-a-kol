@@ -3202,8 +3202,9 @@
   }
 
   // ---- SOLO VS HOUSE (devnet) ----
-  let soloWager = 0.05;
-  const SOLO_PRESETS = [0.01, 0.02, 0.05, 0.1, 0.5];
+  let soloWager = 0.02;
+  let soloCustom = false;   // true while the wager comes from the CUSTOM box
+  const SOLO_PRESETS = [0.02, 0.12, 0.25, 0.5];
   let activeSoloBet = null; // { bet, nonce, wagerSol }
   // Live house max bet (lamports) from the chain; null = not loaded yet.
   // The contract rejects any bet whose 1.9x payout exceeds 5% of the vault
@@ -3223,11 +3224,33 @@
   function renderSoloBets() {
     const el = $('#solo-bets');
     if (!el) return;
+    // Preserve an in-progress custom entry across re-renders (house-max refresh)
+    const prevInput = $('#solo-custom-amt');
+    const prevDraft = prevInput ? prevInput.value : null;
+    const hadFocus = !!(prevInput && document.activeElement === prevInput);
     el.innerHTML = SOLO_PRESETS.map(s => {
       const over = houseMaxBetLamports !== null && Math.round(s * 1e9) > houseMaxBetLamports;
-      return `<button class="bet-chip ${s === soloWager ? 'selected' : ''}" data-sol="${s}" ${over ? 'disabled style="opacity:.35"' : ''}>${s} SOL</button>`;
-    }).join('');
-    $$('#solo-bets .bet-chip').forEach(c => c.onclick = () => { soloWager = +c.dataset.sol; A.click(); renderSoloBets(); renderSoloChallengeBtn(); });
+      return `<button class="bet-chip ${!soloCustom && s === soloWager ? 'selected' : ''}" data-sol="${s}" ${over ? 'disabled style="opacity:.35"' : ''}>${s} SOL</button>`;
+    }).join('') + `<span class="solo-custom-wrap ${soloCustom ? 'selected' : ''}"><input id="solo-custom-amt" type="number" inputmode="decimal" step="0.01" min="0.01" placeholder="CUSTOM" value="${soloCustom ? soloWager : ''}" /><small>SOL</small></span>`;
+    $$('#solo-bets .bet-chip').forEach(c => c.onclick = () => { soloWager = +c.dataset.sol; soloCustom = false; A.click(); renderSoloBets(); renderSoloChallengeBtn(); });
+    const inp = $('#solo-custom-amt');
+    if (inp) {
+      inp.addEventListener('input', () => {
+        const v = parseFloat(inp.value);
+        if (v > 0) { soloCustom = true; soloWager = v; }
+        else { soloCustom = false; soloWager = SOLO_PRESETS[0]; }
+        // Reflect selection in place (no re-render: keeps focus + caret mid-typing)
+        $$('#solo-bets .bet-chip').forEach(c => c.classList.toggle('selected', !soloCustom && +c.dataset.sol === soloWager));
+        const wrap = inp.closest('.solo-custom-wrap'); if (wrap) wrap.classList.toggle('selected', soloCustom);
+        renderSoloChallengeBtn();
+      });
+      inp.addEventListener('focus', () => inp.select());
+      if (hadFocus) {
+        inp.value = prevDraft;
+        inp.focus();
+        try { const n = inp.value.length; inp.setSelectionRange(n, n); } catch (_) {}
+      }
+    }
   }
   // Player-readable house errors — never dump raw simulation logs at the
   // player (the raw SendTransactionError text WAS the BetTooLarge screenshot).
@@ -3351,7 +3374,7 @@
     const k = soloKols()[soloSelected]; const btn = $('#btn-solo-challenge'); if (!k || !btn) return;
     if (soloMode === 'wager') {
       btn.className = 'btn btn-xl btn-red';
-      btn.innerHTML = `🖐 SMACK · BET ${soloWager} SOL`;
+      btn.innerHTML = `🖐 SMACK · BET ${Math.round(soloWager * 1000) / 1000} SOL`;
     } else {
       const win = Math.round(modePts(k, 'classic') * soloTier(k).mult);
       btn.className = 'btn btn-xl ' + (soloPtsBet ? 'btn-red' : 'btn-yellow');
