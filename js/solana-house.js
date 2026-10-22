@@ -130,14 +130,83 @@
     const winBps = dv.getUint16(136, true);
     const payoutBps = Number(dv.getBigUint64(138, true));
     const maxBetBps = dv.getUint16(146, true);
+    const burnBps = dv.getUint16(148, true);
     const maxBetLamports = Math.floor(vaultLamports * maxBetBps / payoutBps);
     return {
-      winBps, payoutBps, maxBetBps,
+      winBps, payoutBps, maxBetBps, burnBps,
       vaultLamports, vaultSol: vaultLamports / 1e9,
       maxBetLamports, maxBetSol: maxBetLamports / 1e9,
       vaultAddress: vault.toBase58(),
     };
   }
 
-  window.SAK.SolanaHouse = { PROGRAM_ID, RPC_URL, placeBet, resolveBet, derivePDAs, getHouseState };
+  /** Scan the house program's Bet accounts (59 bytes each) and summarise
+   *  gameplay: totals in, what is settled vs still open, and the SOL
+   *  actually sitting in the open bets' bet_vault PDAs. Bet layout after
+   *  the 8-byte discriminator: player 8..40, nonce u64 @40, wager u64 @48,
+   *  state u8 @56 (0 = open, 1 = resolved), bump @57, vault_bump @58. */
+  async function getOpenBetsSummary() {
+    const w = web3();
+    const conn = connection();
+    const programId = new w.PublicKey(PROGRAM_ID);
+    const accts = await conn.getProgramAccounts(programId, { filters: [{ dataSize: 59 }] });
+    let openCount = 0, resolvedCount = 0, openWagerLamports = 0;
+    let totalWagerLamports = 0, maxWagerLamports = 0;
+    const betVaultKeys = [];
+    for (const { account } of accts) {
+      const d = account.data;
+      const dv = new DataView(d.buffer, d.byteOffset || 0, d.byteLength);
+      const wager = Number(dv.getBigUint64(48, true));
+      totalWagerLamports += wager;
+      if (wager > maxWagerLamports) maxWagerLamports = wager;
+      if (dv.getUint8(56) !== 0) { resolvedCount++; continue; }
+      openCount++;
+      openWagerLamports += wager;
+      const player = new w.PublicKey(d.slice(8, 40));
+      const [betVault] = await w.PublicKey.findProgramAddress(
+        [te().encode('bet_vault'), player.toBuffer(), d.slice(40, 48)], programId);
+      betVaultKeys.push(betVault);
+    }
+    let betVaultLamports = 0;
+    if (betVaultKeys.length) {
+      const infos = await conn.getMultipleAccountsInfo(betVaultKeys);
+      for (const info of infos) if (info) betVaultLamports += info.lamports;
+    }
+    return {
+      totalBets: accts.length, openCount, resolvedCount,
+      openWagerLamports, betVaultLamports,
+      totalWagerLamports, maxWagerLamports,
+      avgWagerLamports: accts.length ? Math.floor(totalWagerLamports / accts.length) : 0,
+    };
+  }
+
+  /** Recent money movement on the main vault PDA: for each of the latest
+   *  transactions touching the vault, the signed lamport delta. Callers
+   *  classify: big inflow = funding, small inflow = a lost wager collected,
+   *  outflow = the 0.9x profit paid on a win (stakes move via bet_vaults
+   *  and never touch the main vault). */
+  async function getVaultActivity(limit = 8) {
+    const w = web3();
+    const conn = connection();
+    const programId = new w.PublicKey(PROGRAM_ID);
+    const [vault] = await w.PublicKey.findProgramAddress([te().encode('house_vault')], programId);
+    const vaultStr = vault.toBase58();
+    const sigs = await conn.getSignaturesForAddress(vault, { limit });
+    const out = [];
+    for (const s of sigs) {
+      try {
+        const tx = await conn.getTransaction(s.signature, { maxSupportedTransactionVersion: 0 });
+        if (!tx || !tx.meta) continue;
+        const keys = tx.transaction.message.staticAccountKeys || tx.transaction.message.accountKeys;
+        const idx = keys.findIndex(k => k.toBase58() === vaultStr);
+        if (idx < 0) continue;
+        const delta = tx.meta.postBalances[idx] - tx.meta.preBalances[idx];
+        if (!delta) continue;
+        out.push({ signature: s.signature, blockTime: tx.blockTime || s.blockTime || null, deltaLamports: delta });
+      } catch (e) { /* skip a tx that will not load; the rest still render */ }
+    }
+    return out;
+  }
+
+  window.SAK.SolanaHouse = { PROGRAM_ID, RPC_URL, placeBet, resolveBet, derivePDAs, getHouseState, getOpenBetsSummary, getVaultActivity };
 })();

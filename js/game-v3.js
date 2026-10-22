@@ -3928,6 +3928,58 @@
     ['house_win_bps', 'Player win rate', 'basis points (4500 = 45%)'],
     ['house_payout_bps', 'Win payout', 'basis points (19000 = 1.9x)'],
   ];
+  /* --- vault tracker (admin): live house vault + gameplay stats -------- */
+  async function refreshAdminVault() {
+    const el = $('#admin-vault');
+    if (!el) return;
+    const btn = $('#admin-vault-refresh');
+    if (btn) { btn.disabled = true; btn.textContent = 'LOADING…'; }
+    el.textContent = 'Reading the vault from devnet…';
+    const row = (label, val) => `<div class="vault-row"><span>${label}</span><b>${val}</b></div>`;
+    try {
+      const H = SAK.SolanaHouse;
+      const st = await H.getHouseState();
+      let html =
+        `<div class="vault-row vault-big"><span>Vault balance</span><b>◎ ${fmtSol(st.vaultLamports)} SOL</b></div>` +
+        row('Max bet it can cover', `◎ ${fmtSol(st.maxBetLamports)} SOL`) +
+        row('On-chain config', `Win ${st.winBps / 100}% · Pay ${st.payoutBps / 10000}× · Cap ${st.maxBetBps / 100}% · Burn ${st.burnBps / 100}%`);
+      // Gameplay totals from the Bet accounts — independent read, so a
+      // failure here never blanks the balance above.
+      try {
+        const ob = await H.getOpenBetsSummary();
+        html += `<div class="vault-sub">GAMEPLAY · SOLO VS HOUSE (ALL TIME)</div>` +
+          row('Bets placed', `${ob.totalBets}`) +
+          row('Settled · still open', `${ob.resolvedCount} · ${ob.openCount}`) +
+          row('Total wagered in', `◎ ${fmtSol(ob.totalWagerLamports)} SOL`) +
+          row('Average bet', `◎ ${fmtSol(ob.avgWagerLamports)} SOL`) +
+          row('Biggest bet', `◎ ${fmtSol(ob.maxWagerLamports)} SOL`) +
+          row('SOL locked in open bets', `◎ ${fmtSol(ob.betVaultLamports)} SOL`);
+      } catch (e) { html += `<div class="vault-sub">GAMEPLAY</div>` + row('Bet history', 'unavailable right now'); }
+      // Recent money in/out on the main vault (funding, lost wagers in,
+      // win profits out).
+      try {
+        const acts = await H.getVaultActivity(8);
+        if (acts.length) {
+          html += `<div class="vault-sub">RECENT VAULT MOVES</div>`;
+          for (const a of acts) {
+            const inSol = a.deltaLamports > 0;
+            const label = inSol
+              ? (a.deltaLamports >= 1e9 ? 'Funding / deposit in' : 'Lost wager collected')
+              : 'Win payout out';
+            const when = a.blockTime ? new Date(a.blockTime * 1000).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '';
+            html += `<div class="vault-row ${inSol ? 'vault-move-in' : 'vault-move-out'}"><span>${inSol ? '➕' : '➖'} ${label}${when ? ' · ' + when : ''}</span><b>${inSol ? '+' : '−'}◎ ${fmtSol(Math.abs(a.deltaLamports))}</b></div>`;
+          }
+        }
+      } catch (e) { /* activity is a bonus; the totals above still stand */ }
+      html += row('Vault address', `<code>${st.vaultAddress.slice(0, 4)}…${st.vaultAddress.slice(-4)}</code>`) +
+        row('Last checked', new Date().toLocaleTimeString());
+      el.innerHTML = html;
+    } catch (e) {
+      el.textContent = '⚠️ Could not reach the devnet vault from this device. Check your connection and tap REFRESH VAULT.';
+    }
+    if (btn) { btn.disabled = false; btn.textContent = '🔄 REFRESH VAULT'; }
+  }
+
   async function openAdmin() {
     if (!W.isConnected) { toast('Connect wallet first 👛', 2000); return; }
     const cfg = await SAK.Api.getConfig();
@@ -4038,6 +4090,10 @@
       $('#admin-stats').innerHTML = `Open challenges: <b>${open.length}</b> · Backend: <b>${SAK.Api.name}</b>`;
     } catch (e) { $('#admin-stats').textContent = 'Stats unavailable'; }
     $('#modal-admin').classList.remove('hidden');
+    // Vault tracker: bind refresh + load live state
+    const vb = $('#admin-vault-refresh');
+    if (vb) vb.onclick = () => { A.click(); refreshAdminVault(); };
+    refreshAdminVault();
     // Check contract initialization status
     initContractStatus();
   }
