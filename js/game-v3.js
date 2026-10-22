@@ -393,7 +393,7 @@
     screen = name;
     $$('.screen').forEach(s => s.classList.toggle('active', s.id === 'screen-' + name));
     document.body.classList.toggle('on-menu', name === 'menu');
-    if (Scene) Scene.setMode(name === 'result' ? 'fight' : name);
+    if (Scene) Scene.setMode(name === 'result' ? 'fight' : name === 'solo' ? 'pick' : name);
     if (name === 'menu') renderMenu();
   }
 
@@ -531,11 +531,6 @@
     });
   }
 
-  $('#btn-play').addEventListener('click', () => {
-    A.unlock(); A.click();
-    if (!S.profile) return openFighter(true);   // first run: create your fighter, then play
-    openPicker();
-  });
   $('#btn-fighter').addEventListener('click', () => { A.unlock(); A.click(); openFighter(false); });
 
   /* --- account + character creator ------------------------------------
@@ -784,7 +779,7 @@
       updateLockButton();
     }
   });
-  $('#cr-later').addEventListener('click', () => { closeCreator(); if (playAfterFighter) setTimeout(openPicker, 50); });   // play as guest
+  $('#cr-later').addEventListener('click', () => { closeCreator(); if (playAfterFighter) setTimeout(openSolo, 50); });   // play as guest
   $('#cr-cancel').addEventListener('click', () => { if (crIsNew) showCreatorStep('name'); else closeCreator(); });
   // Manual fighter sync to Supabase for PvP visibility
   const syncBtn = $('#cr-sync');
@@ -901,7 +896,7 @@
         A.click();
         closeCreator();
         renderMenu();
-        if (typeof playAfterFighter !== 'undefined' && playAfterFighter) openPicker();
+        if (typeof playAfterFighter !== 'undefined' && playAfterFighter) openSolo();
       };
       btn.parentNode.insertBefore(done, btn.nextSibling);
     }
@@ -934,7 +929,7 @@
         const fcb = $('#pk-fighter-card'); if (fcb) fcb.remove();
         closeCreator();
         renderMenu();
-        if (playAfterFighter) openPicker();
+        if (playAfterFighter) openSolo();
       };
       const fcb = $('#pk-fighter-card');
       if (fcb && fcb.parentNode) fcb.parentNode.insertBefore(done, fcb.nextSibling);
@@ -1994,6 +1989,11 @@
       if (F.hits > 0) rows.push([`Rounds won (${F.hits})`, F.hits * PR.perHitLanded]);
       pts = PR.lossBase + F.hits * PR.perHitLanded;
     }
+    // Solo Challenge tier bonus: Champion x2 / Pro x1.5 on match PTS (wins only)
+    if (win && F.opts && F.opts.soloLobby) {
+      const tier = soloTier(k);
+      if (tier.mult > 1) { rows.push([`Tier bonus (${tier.name} x${tier.mult})`, pts * (tier.mult - 1)]); pts = pts * tier.mult; }
+    }
     if (boost) rows.push([`Vault boost (${V.tier.name} +${Math.round(boost * 100)}%)`, pts * boost]);
     pts = Math.round(pts * boostMul);
     // Round row values once so displayed lines sum exactly to MATCH PTS (remainder on last row)
@@ -2134,7 +2134,7 @@
           </div>
           <button class="btn btn-yellow" id="r-solo-again" style="flex:1;">🖐 SMACK AGAIN</button>
         </div>` : `<button class="btn btn-yellow" id="r-rematch">↻ RUN IT BACK${reBet ? ` · BET ${fmt(reBet)}` : ' (FREE)'}</button>`}
-        ${win && next && !k.pvp ? `<button class="btn btn-red" id="r-next">APE INTO ${esc(next.name)} →</button>` : ''}
+        ${win && next && !k.pvp && !(F.opts && F.opts.soloLobby) ? `<button class="btn btn-red" id="r-next">APE INTO ${esc(next.name)} →</button>` : ''}
         <div class="row">
           <button class="btn btn-purple" id="r-card">📤 FIGHT CARD</button>
           <button class="btn btn-purple" id="r-xpost">𝕏 POST TO X</button>
@@ -2169,7 +2169,7 @@
           const res = await SAK.SolanaHouse.placeBet(Math.round(amt * 1e9));
           activeSoloBet = { bet: res.bet, nonce: res.nonce, wagerSol: amt };
           toast('Bet locked \u2014 ' + amt + ' SOL vs house \u{1F3E0}', 2400);
-          startFight(k, 0, { mode: F.mode, soloHouse: activeSoloBet });
+          startFight(k, 0, { mode: F.mode, soloHouse: activeSoloBet, soloLobby: 'wager' });
         } catch (e) {
           toast(friendlyHouseError(e, 'bet'), 2800);
           againBtn.disabled = false; againBtn.textContent = oldLabel;
@@ -2241,7 +2241,10 @@
       setTimeout(() => { btn.disabled = false; btn.textContent = old; }, 2500);
     };
     if ($('#r-next')) $('#r-next').onclick = () => { selectedBet = 0; openPicker(idx + 1); };
-    $('#r-pick').onclick = () => { if (k.pvp) { show('menu'); menuScene(); openPvp(); } else openPicker(); };
+    $('#r-pick').onclick = () => {
+      if (F.opts && F.opts.soloLobby) { openSolo(); return; }
+      if (k.pvp) { show('menu'); menuScene(); openPvp(); } else openPicker();
+    };
     $('#r-menu').onclick = () => { show('menu'); menuScene(); };
     F.turn = 'done';
     A.stopMusic(); // battle music ends with the fight
@@ -2271,6 +2274,7 @@
   }
   $('#btn-shop').addEventListener('click', openShop);
   $('#btn-shop-pick').addEventListener('click', openShop);
+  const shopSoloBtn = $('#btn-shop-solo'); if (shopSoloBtn) shopSoloBtn.addEventListener('click', openShop);
   $('#btn-refer').addEventListener('click', async () => {
     A.click();
     const link = myReferralLink();
@@ -2805,8 +2809,6 @@
     renderSolBets();
     renderChainBets();
     renderChainExpiry();
-    renderSoloBets();
-    refreshHouseMax();
     const _ps = $('#pvp-share'); if (_ps) _ps.classList.add('hidden');
     $('#pvp-chain-share').classList.add('hidden');
     updatePendingBar();
@@ -2858,15 +2860,9 @@
     startFight(res.opponent, pvpWager, { mode: pvpMode, pvp: true });
   }
   $('#btn-pvp').addEventListener('click', () => { A.click(); openPvp(); });
-  // B1: ENTER THE RING → Solo vs House (open lobby scrolled to solo)
+  // SMACK-A-KOL -> the Solo Challenge lobby (its own screen since the restructure)
   const enterRing = $('#btn-enter-ring');
-  if (enterRing) enterRing.addEventListener('click', () => {
-    A.click(); openPvp();
-    setTimeout(() => {
-      const solo = document.querySelector('.pvp-card-solo');
-      if (solo) solo.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }, 300);
-  });
+  if (enterRing) enterRing.addEventListener('click', () => { A.unlock(); A.click(); openSolo(); });
   // B1 dock buttons → existing flows
   const dockShop = $('#m1-dock-shop'); if (dockShop) dockShop.onclick = () => { A.click(); $('#btn-shop').click(); };
   const dockStake = $('#m1-dock-stake'); if (dockStake) dockStake.onclick = () => { A.click(); $('#btn-vault').click(); };
@@ -3219,19 +3215,19 @@
     try {
       const st = await SAK.SolanaHouse.getHouseState();
       houseMaxBetLamports = st.maxBetLamports;
-      const mx = $('#pvp-solo-max');
+      const mx = $('#solo-max');
       if (mx) mx.textContent = '🏠 House max bet right now: ' + fmtSol(st.maxBetLamports) + ' SOL';
       renderSoloBets();
     } catch (e) { /* chain unreachable: chips stay live; pre-flight still guards */ }
   }
   function renderSoloBets() {
-    const el = $('#pvp-solo-bets');
+    const el = $('#solo-bets');
     if (!el) return;
     el.innerHTML = SOLO_PRESETS.map(s => {
       const over = houseMaxBetLamports !== null && Math.round(s * 1e9) > houseMaxBetLamports;
       return `<button class="bet-chip ${s === soloWager ? 'selected' : ''}" data-sol="${s}" ${over ? 'disabled style="opacity:.35"' : ''}>${s} SOL</button>`;
     }).join('');
-    $$('#pvp-solo-bets .bet-chip').forEach(c => c.onclick = () => { soloWager = +c.dataset.sol; A.click(); renderSoloBets(); });
+    $$('#solo-bets .bet-chip').forEach(c => c.onclick = () => { soloWager = +c.dataset.sol; A.click(); renderSoloBets(); renderSoloChallengeBtn(); });
   }
   // Player-readable house errors — never dump raw simulation logs at the
   // player (the raw SendTransactionError text WAS the BetTooLarge screenshot).
@@ -3247,45 +3243,155 @@
     return (what === 'settle' ? 'Settle' : 'Bet') + ' failed — please try again.';
   }
   function soloStatus(msg, done) {
-    const st = $('#pvp-solo-status');
+    const st = $('#solo-status');
     if (!st) return;
     st.textContent = msg;
     st.classList.remove('hidden');
     st.classList.toggle('done', !!done);
   }
-  const soloBetBtn = $('#pvp-solo-bet');
-  if (soloBetBtn) soloBetBtn.addEventListener('click', async () => {
+  /* ---- SOLO CHALLENGE LOBBY (the SMACK-A-KOL screen) ----
+   * Solo vs House got its own home in the 2026-10-22 restructure: the 8
+   * named KOLs as premade challenges, banded into tiers (Champion x2 PTS,
+   * Pro x1.5, Contender x1 — harder fighters already carry harder AI via
+   * their difficulty/accuracy data). FREE mode: no SOL, PTS only.
+   * WAGER mode: SOL bet vs the house at a flat 1.9x. The classic
+   * picker (same 8 + fan KOLs) stays reachable from FREE mode. */
+  const SOLO_KOL_IDS = ['kobee', 'murrad', 'arthurhaze', 'tolly', 'mikesailor', 'pattyspice', 'frankienogood', 'ansombull'];
+  const soloKols = () => SOLO_KOL_IDS.map(id => SAK.KOLS.find(k => k.id === id)).filter(Boolean);
+  function soloTier(k) {
+    const lvl = (k && k.level) || 1;
+    if (lvl >= 9) return { key: 'champion', name: 'CHAMPION', mult: 2 };
+    if (lvl >= 6) return { key: 'pro', name: 'PRO', mult: 1.5 };
+    return { key: 'contender', name: 'CONTENDER', mult: 1 };
+  }
+  let soloMode = 'wager';   // 'free' | 'wager'
+  let soloSelected = 0;
+  let soloPtsBet = 0;
+
+  function openSolo() {
+    if (!S.profile) return openFighter(true);   // first run: create your fighter, then play
+    renderSoloLobby();
+    show('solo');
+    selectSoloKol(Math.min(soloSelected, soloKols().length - 1), true);
+    if (soloMode === 'wager') refreshHouseMax();
+  }
+  function renderSoloLobby() {
+    $$('#solo-toggle .mode-btn').forEach(b => b.classList.toggle('selected', b.dataset.sm === soloMode));
+    const wb = $('#solo-wager-bar'); if (wb) wb.classList.toggle('hidden', soloMode !== 'wager');
+    const br = $('#solo-bet-row'); if (br) br.classList.toggle('hidden', soloMode !== 'free');
+    if (soloMode === 'wager') renderSoloBets();
+    renderSoloCards();
+  }
+  function renderSoloCards() {
+    const list = soloKols();
+    $('#solo-kol-list').innerHTML = list.map((k, i) => {
+      const t = soloTier(k);
+      const win = Math.round(modePts(k, 'classic') * t.mult);
+      return `<button class="kol-card ${i === soloSelected ? 'selected' : ''}" data-si="${i}">
+        ${S.beaten[k.id] ? '<span class="beaten">✓</span>' : ''}
+        <span class="kc-tier tier-${t.key}">${t.name}${t.mult > 1 ? ' ×' + t.mult : ''}</span>
+        ${SAK.avatarSVG(k.look)}
+        <div class="kc-name">${esc(k.name)}</div>
+        <div class="kc-stake">${ptsHTML()}+${fmt(win)}</div>
+      </button>`;
+    }).join('') + (soloMode === 'free' ? `
+      <button class="kol-card submit-card-btn" id="btn-solo-roster">
+        <span class="plus">☰</span>
+        <div class="kc-name">FULL ROSTER</div>
+        <small>every fighter + fan KOLs</small>
+      </button>` : '');
+    $$('#solo-kol-list .kol-card[data-si]').forEach(c => c.addEventListener('click', () => { A.click(); selectSoloKol(+c.dataset.si); }));
+    const rb = $('#btn-solo-roster'); if (rb) rb.addEventListener('click', () => { A.click(); openPicker(); });
+  }
+  function selectSoloKol(i, noTaunt) {
+    const list = soloKols(); const k = list[i]; if (!k) return;
+    soloSelected = i;
+    $$('#solo-kol-list .kol-card[data-si]').forEach(c => c.classList.toggle('selected', +c.dataset.si === i));
+    const t = soloTier(k);
+    const win = Math.round(modePts(k, 'classic') * t.mult);
+    const maxHp = 260, maxPow = 28;
+    $('#solo-kol-detail').innerHTML = `
+      <div><div class="kd-name">${esc(k.name)}</div><div class="kd-handle">${esc(k.handle)} · LEVEL ${k.level} · <span class="kd-tier tier-${t.key}">${t.name}${t.mult > 1 ? ' · WIN PTS ×' + t.mult : ''}</span></div></div>
+      <div class="kd-stars">${'★'.repeat(Math.max(0, Math.min(5, k.difficulty)))}<span style="opacity:.3">${'★'.repeat(Math.max(0, 5 - k.difficulty))}</span></div>
+      <div class="kd-tag">“${esc(k.tagline)}”</div>
+      <div class="kd-stats">
+        <span>❤ HP</span><div class="stat-bar"><i style="width:${k.hp / maxHp * 100}%;background:#2ee66b"></i></div><span>${k.hp}</span>
+        <span>✊ POWER</span><div class="stat-bar"><i style="width:${k.power / maxPow * 100}%;background:#ff3b5c"></i></div><span>${k.power}</span>
+      </div>
+      <div class="kd-money">
+        <div>WIN ${ptsHTML()}<b>+${fmt(win)}</b></div>
+        ${soloMode === 'wager'
+          ? `<div>SOL WIN PAYS <b style="color:#2ee66b">×1.9</b></div>`
+          : `<div>BET PAYS <b style="color:#2ee66b">x${k.payout.toFixed(1)}</b></div>`}
+      </div>`;
+    if (soloMode === 'free') { if (soloPtsBet && soloPtsBet < k.minBet) soloPtsBet = 0; renderSoloPtsBets(); }
+    renderSoloChallengeBtn();
+    if (Scene) { Scene.setOpponent(k.look); if (!noTaunt) Scene.taunt(); }
+    const card = $(`#solo-kol-list .kol-card[data-si="${i}"]`); if (card) card.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+  }
+  function renderSoloPtsBets() {
+    const k = soloKols()[soloSelected]; if (!k) return;
+    if (soloPtsBet && !P.canAfford(soloPtsBet)) soloPtsBet = 0;
+    $('#solo-bet-chips').innerHTML = SAK.BETS.map(b => {
+      const free = b === 0, locked = !free && (b < k.minBet || !P.canAfford(b));
+      return `<button class="bet-chip ${free ? 'free' : ''} ${b === soloPtsBet ? 'selected' : ''} ${locked ? 'locked' : ''}" data-sbet="${b}">
+        ${free ? 'FREE' : `${ptsHTML()}${b >= 1000 ? b / 1000 + 'K' : b}`}</button>`;
+    }).join('');
+    $('#solo-bet-hint').textContent = soloPtsBet
+      ? `win → ${fmt(boosted(soloPtsBet * k.payout))} PTS`
+      : `min bet ${fmt(k.minBet)} PTS`;
+    $$('#solo-bet-chips .bet-chip').forEach(c => c.addEventListener('click', () => {
+      const b = +c.dataset.sbet; A.click();
+      if (b && b < k.minBet) return toast(`${k.name} min bet: ${fmt(k.minBet)} PTS`);
+      if (b && !P.canAfford(b)) return toast('Not enough PTS for that bet');
+      soloPtsBet = b; renderSoloPtsBets(); renderSoloChallengeBtn();
+    }));
+  }
+  function renderSoloChallengeBtn() {
+    const k = soloKols()[soloSelected]; const btn = $('#btn-solo-challenge'); if (!k || !btn) return;
+    if (soloMode === 'wager') {
+      btn.className = 'btn btn-xl btn-red';
+      btn.innerHTML = `🖐 SMACK · BET ${soloWager} SOL`;
+    } else {
+      const win = Math.round(modePts(k, 'classic') * soloTier(k).mult);
+      btn.className = 'btn btn-xl ' + (soloPtsBet ? 'btn-red' : 'btn-yellow');
+      btn.innerHTML = soloPtsBet ? `🖐 SEND IT · BET ${fmt(soloPtsBet)} PTS` : `🖐 SEND IT · FREE · +${fmt(win)} PTS`;
+    }
+  }
+  $$('#solo-toggle .mode-btn').forEach(b => b.addEventListener('click', () => {
+    A.click(); soloMode = b.dataset.sm;
+    renderSoloLobby(); selectSoloKol(soloSelected, true);
+    if (soloMode === 'wager') refreshHouseMax();
+  }));
+  const soloChallengeBtn = $('#btn-solo-challenge');
+  if (soloChallengeBtn) soloChallengeBtn.addEventListener('click', async () => {
+    const k = soloKols()[soloSelected]; if (!k) return;
+    A.click();
+    if (soloMode === 'free') { startFight(k, soloPtsBet, { mode: 'classic', soloLobby: 'free' }); return; }
     if (!W.isConnected) { toast('Connect your wallet first \u{1F45B}', 2200); openWalletModal(); return; }
     if (!SAK.SolanaHouse) { toast('House module not loaded', 2000); return; }
-    const btn = soloBetBtn; btn.disabled = true; btn.textContent = 'PLACING BET…';
+    const btn = soloChallengeBtn; btn.disabled = true; const oldLabel = btn.innerHTML; btn.textContent = 'PLACING BET…';
     soloStatus('Checking the house max…');
     await refreshHouseMax();
     if (houseMaxBetLamports !== null && Math.round(soloWager * 1e9) > houseMaxBetLamports) {
       const msg = 'That bet is bigger than the house can cover right now — max bet is ' + fmtSol(houseMaxBetLamports) + ' SOL.';
-      soloStatus(msg);
-      toast(msg, 3000);
-      btn.disabled = false; btn.innerHTML = '<img src="assets/hand-icon.png" alt="" style="width:28px;height:28px;vertical-align:-7px;margin-right:4px" /> SMACK-A-KOL';
-      return;
+      soloStatus(msg); toast(msg, 3000);
+      btn.disabled = false; btn.innerHTML = oldLabel; return;
     }
     soloStatus('Approve the bet in your wallet…');
     try {
-      const lamports = Math.round(soloWager * 1e9);
-      const res = await SAK.SolanaHouse.placeBet(lamports);
+      const res = await SAK.SolanaHouse.placeBet(Math.round(soloWager * 1e9));
       activeSoloBet = { bet: res.bet, nonce: res.nonce, wagerSol: soloWager };
       soloStatus(`Bet locked: ${soloWager} SOL. Fight!`, true);
-      toast(`Bet locked — ${soloWager} SOL vs house \u{1F3E0}`, 2400);
-      // Start a solo fight vs a random practice fighter; resolve on-chain when it ends
-      const kols = (SAK.KOLS && SAK.KOLS.length > 0) ? SAK.KOLS : roster();
-      const pick = kols[Math.floor(Math.random() * kols.length)];
-      const ai = Object.assign({}, pick, { pvp: false });
-      startFight(ai, 0, { mode: 'classic', soloHouse: activeSoloBet });
+      toast(`Bet locked — ${soloWager} SOL vs ${k.name} \u{1F3E0}`, 2400);
+      startFight(k, 0, { mode: 'classic', soloHouse: activeSoloBet, soloLobby: 'wager' });
     } catch (e) {
       const msg = friendlyHouseError(e, 'bet');
-      soloStatus(msg);
-      toast(msg, 2800);
+      soloStatus(msg); toast(msg, 2800);
     }
-    btn.disabled = false; btn.innerHTML = '<img src="assets/hand-icon.png" alt="" style="width:28px;height:28px;vertical-align:-7px;margin-right:4px" /> SMACK-A-KOL';
+    btn.disabled = false; btn.innerHTML = oldLabel;
   });
+
   // Resolve the solo bet after the fight ends. Called from the result screen.
   async function resolveSoloBet(won, betObj) {
     const mine = betObj || activeSoloBet;
@@ -4000,7 +4106,7 @@
     Scene.setOpponent(pick(roster()).look); Scene.resetFight();
   }
 
-  P.onChange(() => { renderPoints(); renderUpgrades(); if (F) renderPowerups(); if (screen === 'menu') renderMenu(); if (screen === 'pick') renderBets(); });
+  P.onChange(() => { renderPoints(); renderUpgrades(); if (F) renderPowerups(); if (screen === 'menu') renderMenu(); if (screen === 'pick') renderBets(); if (screen === 'solo' && soloMode === 'free') { renderSoloPtsBets(); renderSoloChallengeBtn(); } });
   W.onChange(() => {
     renderMenu();
     if (W.isConnected && W.address) {

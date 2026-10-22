@@ -66,8 +66,6 @@
         <button id="btn-enter-ring" class="btn btn-green btn-xl m1-enter">SMACK-A-KOL<small class="btn-sub">Solo vs House · wager SOL</small></button>
         <!-- PVP LOBBY card with pending badge (existing IDs preserved) -->
         <button id="btn-pvp" class="btn btn-red m1-pvp-card">⚔ PVP LOBBY<span id="pvp-btn-badge" class="pvp-btn-badge hidden"></span><small class="btn-sub">Challenge a player · Bo5</small></button>
-        <!-- PRACTICE → free play (existing ID preserved) -->
-        <button id="btn-play" class="btn btn-yellow m1-practice">🎮 FREE PLAY<small class="btn-sub">Simulated fights · just for fun</small></button>
         <!-- Referral card (existing ID preserved) -->
         <button id="btn-refer" class="btn btn-purple m1-refer">🎁 REFER & EARN<small class="btn-sub">Give 250 PTS · Get 250 PTS</small></button>
         <div class="row">
@@ -98,6 +96,35 @@
         <div id="bet-chips" class="bet-chips"></div>
       </div>
       <button id="btn-challenge" class="btn btn-red btn-xl">CHALLENGE</button>
+    </div>
+  </section>
+
+  <!-- ================= SOLO LOBBY (SMACK-A-KOL) ================= -->
+  <section id="screen-solo" class="screen">
+    <div class="pick-header">
+      <button class="icon-btn" data-nav="menu" aria-label="Back">←</button>
+      <h2>SMACK-A-KOL</h2>
+      <button class="icon-btn" id="btn-shop-solo" aria-label="Shop">🛒</button>
+    </div>
+    <div class="pick-sheet">
+      <div id="solo-toggle" class="mode-row">
+        <button type="button" class="mode-btn" data-sm="free"><b>🎮 FREE</b><small>No SOL · earn PTS</small></button>
+        <button type="button" class="mode-btn selected" data-sm="wager"><b>◎ WAGER SOL</b><small>Bet vs the house · win ×1.9</small></button>
+      </div>
+      <div id="solo-wager-bar">
+        <div class="bet-label">YOUR WAGER (SOL) <span class="tag-devnet">DEVNET</span></div>
+        <div id="solo-bets" class="bet-chips"></div>
+        <div id="solo-max" class="fine dark" style="margin:2px 0 4px;"></div>
+        <div id="solo-status" class="fine" style="min-height:14px;color:#ffd23f;font-weight:700"></div>
+      </div>
+      <div id="solo-kol-detail" class="kol-detail"></div>
+      <div id="solo-kol-list" class="kol-list"></div>
+      <div id="solo-bet-row" class="bet-row hidden">
+        <div class="bet-label">OPTIONAL BET (PTS) <span id="solo-bet-hint"></span></div>
+        <div id="solo-bet-chips" class="bet-chips"></div>
+      </div>
+      <button id="btn-solo-challenge" class="btn btn-red btn-xl">🖐 SMACK</button>
+      <p class="fine dark" style="text-align:center;margin-top:8px">Solo Challenge: pick a KOL and beat them. Wagered wins pay ×1.9 SOL from the house. Higher tiers pay bonus PTS — Champions pay double.</p>
     </div>
   </section>
 
@@ -314,15 +341,6 @@
               <button class="btn btn-grey" id="ppb-cancel">CANCEL & REFUND</button>
             </div>
           </div>
-        </div>
-        <div class="pvp-card pvp-card-solo">
-          <div class="pvp-card-head"><span class="pvp-card-icon">🏠</span><div><div class="pvp-card-title">SOLO VS HOUSE</div><div class="pvp-card-sub">45% win · 1.9× payout</div></div><span class="tag-devnet">DEVNET</span></div>
-          <div class="bet-label dark-lbl">BET (SOL)</div>
-          <div id="pvp-solo-bets" class="bet-chips light"></div>
-          <div id="pvp-solo-max" class="fine dark" style="margin:2px 0 6px;"></div>
-          <button class="btn btn-yellow" id="pvp-solo-bet"><img src="assets/hand-icon.png" alt="" style="width:28px;height:28px;vertical-align:-7px;margin-right:4px" /> SMACK-A-KOL</button>
-          <div id="pvp-solo-status" class="pvp-status hidden"></div>
-          <p class="fine dark">Bet locks in the house contract. Win pays 1.9×. SOL bets skip the 1% burn.</p>
         </div>
         <button class="btn btn-grey" data-close>CLOSE</button>
       </div>

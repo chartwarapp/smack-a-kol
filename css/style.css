@@ -582,9 +582,6 @@ h2, h3, .prompt, .vs, .level, .fc-name, .banner, .float-text, .result-title {
 .pvp-card { border-radius: 18px; padding: 14px 12px; margin: 14px 0; border: 2px solid; }
 .pvp-card-link { background: #fdf2f8; border-color: #f9a8d4; }
 .pvp-card-chain { background: #f5f3ff; border-color: #c4b5fd; }
-.pvp-card-solo { background: #f0fdf4; border-color: #86efac; }
-.pvp-card-solo #pvp-solo-bet { margin-bottom: 12px; }
-.pvp-card-solo .fine.dark { margin-top: 12px; clear: both; }
 .pvp-card-head { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
 .pvp-card-icon { font-size: 28px; line-height: 1; }
 .pvp-card-title { font-family: var(--font); font-size: 18px; color: var(--ink); letter-spacing: .5px; }
@@ -1286,3 +1283,11 @@ body.on-menu #ticker { display: none; }
 .mc-cancel:active { transform: translateY(2px); box-shadow: none; }
 .mc-cancel:disabled { opacity: .5; }
 .mc-empty { text-align: center; color: #888; font-size: 13px; padding: 12px; }
+
+/* ---- Solo Challenge tiers (2026-10-22 restructure) ---- */
+.kol-card .kc-tier { position: absolute; top: 2px; left: 2px; font-size: 9px; font-weight: 800; padding: 2px 5px; border-radius: 8px; letter-spacing: .02em; text-shadow: none; }
+.tier-contender { background: #38bdf8; color: #082f49; }
+.tier-pro { background: #a78bfa; color: #2e1065; }
+.tier-champion { background: #f5c542; color: #451a03; }
+.kd-tier { padding: 1px 6px; border-radius: 8px; font-weight: 800; white-space: nowrap; }
+#solo-toggle { margin-bottom: 10px; }
