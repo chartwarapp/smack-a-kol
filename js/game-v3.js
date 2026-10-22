@@ -2406,7 +2406,7 @@
       '</div></div>';
     document.body.appendChild(modal);
     try { if (navigator.vibrate) navigator.vibrate([200, 100, 200]); } catch (e) {}
-    modal.querySelector('#incoming-dismiss').onclick = () => closePopup();
+    modal.querySelector('#incoming-dismiss').onclick = () => { dismissIncomingForever(c.challenge_addr); closePopup(); };
     // Fill in the real challenger name/avatar asynchronously (non-blocking)
     (async () => {
       try {
@@ -2636,6 +2636,61 @@
     }
   }
 
+  // Persistent dismissals for incoming challenges — the session-only seen
+  // set is why dismissed popups came back on every game open.
+  function dismissedIncoming() {
+    try { return JSON.parse(localStorage.getItem('sak_dismissed_incoming') || '{}'); } catch (e) { return {}; }
+  }
+  function dismissIncomingForever(addr) {
+    try {
+      const d = dismissedIncoming();
+      d[addr] = Date.now();
+      const cutoff = Date.now() - 7 * 24 * 60 * 60 * 1000;
+      Object.keys(d).forEach(k => { if (!d[k] || d[k] < cutoff) delete d[k]; });
+      localStorage.setItem('sak_dismissed_incoming', JSON.stringify(d));
+    } catch (e) {}
+  }
+
+  // Popup gate (marker:incoming-gate): a challenge only earns a popup if the
+  // CHAIN still says Open and unexpired — the DB row alone goes stale
+  // (expired TTLs, on-chain cancels, accepts from another device were all
+  // re-popping on game open). Stale rows are synced in the DB so they stop
+  // matching the poll entirely. Unverifiable -> stay silent, retry next poll.
+  const _incomingChainCache = new Map(); // addr -> { at, ch }
+  async function maybeShowIncoming(c) {
+    const addr = c.challenge_addr;
+    if (!addr) return;
+    if (window._seenIncomingChallenges && window._seenIncomingChallenges.has(addr)) return;
+    if (dismissedIncoming()[addr]) return;
+    if (window._incomingVerifyBusy) return;
+    let ch = null;
+    const cached = _incomingChainCache.get(addr);
+    if (cached && Date.now() - cached.at < 30000) ch = cached.ch;
+    else if (SAK.SolanaEscrow && SAK.SolanaEscrow.getChallenge) {
+      window._incomingVerifyBusy = true;
+      try { ch = await SAK.SolanaEscrow.getChallenge(addr); } catch (e) { ch = null; }
+      window._incomingVerifyBusy = false;
+      if (ch) _incomingChainCache.set(addr, { at: Date.now(), ch });
+    }
+    if (!ch) return;
+    if (ch.stateName !== 'Open') {
+      window._seenIncomingChallenges.add(addr);
+      const map = { Accepted: 'accepted', Cancelled: 'cancelled', Resolved: 'completed' };
+      if (SAK.PvpSync && map[ch.stateName]) SAK.PvpSync.updateChallengeStatus(addr, map[ch.stateName]);
+      return;
+    }
+    if (ch.expiry && Date.now() / 1000 > ch.expiry) {
+      window._seenIncomingChallenges.add(addr);
+      if (SAK.PvpSync) SAK.PvpSync.updateChallengeStatus(addr, 'expired');
+      return;
+    }
+    // Real, live challenge. If another popup is up, stay unseen — a later
+    // poll offers it again instead of it being swallowed.
+    if (window._incomingPopupOpen) return;
+    window._seenIncomingChallenges.add(addr);
+    showIncomingChallengePopup(c);
+  }
+
   function ensureGlobalChallengeWatch() {
     if (!SAK.PvpSync || !W.address || window._globalChallengeWatch) return;
     window._globalChallengeWatch = true;
@@ -2658,14 +2713,10 @@
           }
         }
       } catch (e) {}
-      // Incoming direct challenge popup — works from any screen
+      // Incoming direct challenge popup — works from any screen.
+      // Gated by maybeShowIncoming: chain-verified Open + unexpired only.
       try {
-        (incoming || []).forEach(c => {
-          const addr = c.challenge_addr;
-          if (!addr || window._seenIncomingChallenges.has(addr)) return;
-          window._seenIncomingChallenges.add(addr);
-          showIncomingChallengePopup(c);
-        });
+        (incoming || []).forEach(c => { maybeShowIncoming(c); });
       } catch (e) {}
     });
   }
