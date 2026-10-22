@@ -27,23 +27,31 @@
     return web3Promise;
   }
 
+  // Byte helpers use Uint8Array/DataView like the rest of the codebase —
+  // browsers have no global `Buffer`, so the old Buffer.* calls threw
+  // "undefined is not an object" the moment this file actually ran.
+  function concatBytes(...arrs) {
+    const t = new Uint8Array(arrs.reduce((s, a) => s + a.length, 0));
+    let o = 0; for (const a of arrs) { t.set(a, o); o += a.length; }
+    return t;
+  }
+
   async function findPDA(web3, seeds, programId) {
-    const seedBuffers = seeds.map(s => typeof s === 'string' ? Buffer.from(s) : s);
-    const [pda] = await web3.PublicKey.findProgramAddress(seedBuffers, new web3.PublicKey(programId));
+    const seedBytes = seeds.map(s => typeof s === 'string' ? new TextEncoder().encode(s) : s);
+    const [pda] = await web3.PublicKey.findProgramAddress(seedBytes, new web3.PublicKey(programId));
     return pda;
   }
 
   function encodeU16(n) {
-    const b = Buffer.alloc(2);
-    b.writeUInt16LE(n, 0);
+    const b = new Uint8Array(2);
+    new DataView(b.buffer).setUint16(0, n, true);
     return b;
   }
 
   function encodeU64(n) {
-    const b = Buffer.alloc(8);
+    const b = new Uint8Array(8);
     // n is a JS number, may exceed 32 bits
-    const big = BigInt(n);
-    b.writeBigUInt64LE(big, 0);
+    new DataView(b.buffer).setBigUint64(0, BigInt(n), true);
     return b;
   }
 
@@ -54,10 +62,10 @@
     const configPDA = await findPDA(web3, ['config'], ESCROW_PROGRAM);
 
     // Build initialize instruction: discriminator + fee_bps (u16, 500 = 5%)
-    const data = Buffer.concat([
-      Buffer.from(INIT_DISCRIMINATOR),
+    const data = concatBytes(
+      Uint8Array.from(INIT_DISCRIMINATOR),
       encodeU16(500) // 5% platform fee
-    ]);
+    );
 
     const ix = new web3.TransactionInstruction({
       programId,
@@ -93,13 +101,13 @@
 
     // Args: player_win_bps (u16, 4500 = 45%), payout_bps (u64, 19000 = 1.9x),
     //       max_bet_bps_of_vault (u16, 500 = 5%), burn_bps (u16, 100 = 1%)
-    const data = Buffer.concat([
-      Buffer.from(INIT_DISCRIMINATOR),
+    const data = concatBytes(
+      Uint8Array.from(INIT_DISCRIMINATOR),
       encodeU16(4500),
       encodeU64(19000),
       encodeU16(500),
       encodeU16(100)
-    ]);
+    );
 
     const ix = new web3.TransactionInstruction({
       programId,

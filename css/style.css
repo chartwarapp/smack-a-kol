@@ -118,6 +118,9 @@ h2, h3, .prompt, .vs, .level, .fc-name, .banner, .float-text, .result-title {
 .tunable small { display: block; color: #2a0a4a99; font-size: 11px; font-weight: 400; }
 .tunable input { width: 90px; padding: 8px; border-radius: 8px; border: 2px solid #ffffff33; background: #0e0218; color: #fff; font-size: 15px; text-align: right; }
 #admin-vault { color: var(--ink); font-size: 14px; }
+.admin-card p.fine { margin-top: 10px; line-height: 1.55; }
+#admin-vault-refresh { margin-top: 10px; }
+#contract-status { line-height: 1.55; }
 .vt-hero { background: #f1edff; border-radius: 14px; padding: 12px; text-align: center; margin-bottom: 8px; }
 .vt-hero-label { display: block; font-size: 11px; letter-spacing: 1.5px; color: #2a0a4a99; }
 .vt-hero-val { display: block; font-size: 27px; color: #0a7a4a; margin: 2px 0; font-variant-numeric: tabular-nums; }
@@ -129,10 +132,10 @@ h2, h3, .prompt, .vs, .level, .fc-name, .banner, .float-text, .result-title {
 .vt-tiles b { display: block; font-size: 16px; font-variant-numeric: tabular-nums; }
 .vt-tiles small { display: block; font-size: 10px; letter-spacing: .6px; color: #2a0a4a99; margin-top: 1px; }
 .vt-sub { margin: 14px 0 2px; font-size: 12px; letter-spacing: 1.2px; color: #2a0a4a; border-bottom: 2px solid #ffd23f; padding-bottom: 3px; }
-.vt-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 7px 2px; border-bottom: 1px solid #1a0b3a14; }
+.vt-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 9px 2px; border-bottom: 1px solid #1a0b3a14; }
 .vt-row span { color: #2a0a4a; }
 .vt-row b { font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
-.vt-move { display: flex; align-items: center; gap: 9px; padding: 7px 2px; border-bottom: 1px solid #1a0b3a14; }
+.vt-move { display: flex; align-items: center; gap: 9px; padding: 9px 2px; border-bottom: 1px solid #1a0b3a14; }
 .vt-arrow { flex: 0 0 auto; width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font-size: 11px; }
 .vt-arrow.in { background: #0a7a4a1f; color: #0a7a4a; }
 .vt-arrow.out { background: #c62f3b1f; color: #c62f3b; }

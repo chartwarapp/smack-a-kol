@@ -4113,11 +4113,14 @@
       const web3 = await window.SAKContracts.loadWeb3();
       const connection = new web3.Connection(window.SAKContracts.RPC_URL, 'confirmed');
       const status = await window.SAKContracts.checkInitialized(web3, connection);
+      if (status.error) throw new Error(status.error);
       el.innerHTML = `Escrow: <b>${status.escrow ? '✅ Initialized' : '❌ Not initialized'}</b><br/>House: <b>${status.house ? '✅ Initialized' : '❌ Not initialized'}</b>`;
       const btn = $('#btn-init-contracts');
       if (btn) btn.style.display = (status.escrow && status.house) ? 'none' : '';
     } catch (e) {
-      el.textContent = 'Status check failed: ' + e.message;
+      // Plain language only — never dump the raw JS error into the panel.
+      console.warn('[SAK] contract status check failed', e);
+      el.textContent = 'Status check unavailable right now — reopen the panel to retry.';
     }
   }
 
