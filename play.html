@@ -301,7 +301,8 @@
         <div class="pvp-head"><span>🟢 ONLINE DEGENS</span><span id="pvp-count"></span></div>
         <div id="pvp-list" class="pvp-list"></div>
         <div class="smack-talk" id="smack-talk">
-          <div class="st-head">💬 SMACK TALK <span class="st-live"><span class="st-dot"></span>LIVE</span></div>
+          <div class="st-head">💬 SMACK TALK <span class="st-live"><span class="st-dot"></span>LIVE</span><button type="button" class="st-toggle" id="st-toggle" aria-label="Minimize chat">▾</button></div>
+          <div id="st-body">
           <div class="st-messages" id="st-messages"></div>
           <div class="st-taunts" id="st-taunts"></div>
           <div class="st-reply-bar hidden" id="st-reply-bar">
@@ -311,6 +312,7 @@
           <div class="st-input-row">
             <input class="st-input" id="st-input" placeholder="Talk your trash…" maxlength="200" />
             <button class="st-send" id="st-send">SEND</button>
+          </div>
           </div>
         </div>
         <button class="btn btn-yellow" id="pvp-quick">⚡ QUICK MATCH (AI)</button>

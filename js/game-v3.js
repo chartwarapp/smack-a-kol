@@ -3591,6 +3591,27 @@
     if (cancelBtn) cancelBtn.onclick = stCancelReply;
   }
 
+  // Smack Talk minimize/expand — collapses everything under the header;
+  // the choice persists so the lobby reopens the way the player left it.
+  const stToggleBtn = $('#st-toggle');
+  if (stToggleBtn) {
+    const applyStCollapsed = c => {
+      const body = $('#st-body');
+      if (body) body.classList.toggle('hidden', c);
+      stToggleBtn.textContent = c ? '▸' : '▾';
+      stToggleBtn.setAttribute('aria-label', c ? 'Expand chat' : 'Minimize chat');
+    };
+    let stCollapsed = false;
+    try { stCollapsed = localStorage.getItem('sak_st_collapsed') === '1'; } catch (_) {}
+    applyStCollapsed(stCollapsed);
+    stToggleBtn.addEventListener('click', () => {
+      stCollapsed = !stCollapsed;
+      applyStCollapsed(stCollapsed);
+      try { localStorage.setItem('sak_st_collapsed', stCollapsed ? '1' : '0'); } catch (_) {}
+      A.click();
+    });
+  }
+
   async function initSmackTalk() {
     if (!SAK.PvpSync) return;
     // Load existing messages

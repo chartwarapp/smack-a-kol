@@ -1140,6 +1140,8 @@ body.on-menu #ticker { display: none; }
 /* ============ SMACK TALK board ============ */
 .smack-talk { margin: 14px 0; border: 2px solid #2d1b4e; border-radius: 14px; background: #faf8ff; overflow: hidden; }
 .st-head { background: linear-gradient(135deg, #7c3aed, #a855f7); color: #fff; padding: 10px 14px; font-size: 15px; font-weight: bold; display: flex; align-items: center; gap: 8px; font-family: var(--font); }
+.st-toggle { margin-left: 8px; background: rgba(255,255,255,.18); border: 2px solid rgba(255,255,255,.4); color: #fff; border-radius: 10px; width: 32px; height: 26px; font-size: 13px; line-height: 1; cursor: pointer; flex: none; }
+.st-toggle:active { transform: scale(.94); }
 .st-live { margin-left: auto; font-size: 10px; background: #22c55e; padding: 3px 8px; border-radius: 20px; display: flex; align-items: center; gap: 4px; }
 .st-dot { width: 6px; height: 6px; background: #fff; border-radius: 50%; animation: st-blink 1.5s infinite; }
 @keyframes st-blink { 0%,100% { opacity: 1; } 50% { opacity: .3; } }
