@@ -2816,7 +2816,14 @@ SAK.Scene3D = (function () {
     billboard(chart.tex, 3.2, 2.0, 302, 8.6, 4.2);
     // Solana memecoin degen dressing
     billboard(textPanel('DIAMOND HANDS 💎🙌', '#39ff88', ['#12002b', '#1a3a2e'], 768, 200), 4.6, 1.2, 218, 8.8, 3.4);
-    billboard(textPanel('PUMP.FUN', '#39ff88', ['#0b2e1a', '#1a5e3a'], 640, 200), 3.8, 1.15, 262, 8.6, 4.0);
+    // SOLANA + PUMP.FUN billboards — restored at LT's request
+    // (2026-10-23) on the fascia band above the crowd (y≈2.2): the fight
+    // cameras only frame the back arc up to ~y3.5, so the old high
+    // center-billboard slots never show during a fight. Pink Solana
+    // left, green Pump.fun right, flanking the fight axis. Only these
+    // two — no other removed panels return.
+    billboard(textPanel('SOLANA', '#ff5ca8', ['#2e0b1e', '#5e1a3a'], 640, 200), 4.8, 1.15, 218, 8.6, 2.2);
+    billboard(textPanel('PUMP.FUN', '#39ff88', ['#0b2e1a', '#1a5e3a'], 640, 200), 4.8, 1.15, 246, 8.6, 1.95);
     billboard(textPanel('FOMO', '#ffd23f', ['#2e1a0b', '#5e3a1a'], 512, 200), 3.0, 1.15, 285, 8.6, 3.6);
     // (The 158° Pump.fun panel was removed with the other camera-side
     // billboards — LT 2026-10-23 foreground cleanup.)
