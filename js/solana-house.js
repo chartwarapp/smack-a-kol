@@ -84,29 +84,59 @@
     return { signature, bet: bet.toBase58(), nonce, wagerSol: lamports / 1e9 };
   }
 
-  /** Resolve a bet. playerWon=true pays 1.9x, false keeps wager in vault. Resolver must sign (devnet: admin wallet). */
-  async function resolveBet(betAddr, playerAddr, nonce, playerWon) {
+  /** Build one resolve_bet instruction. playerWon=true pays the player
+   *  their full payout, false returns the wager to the house vault. */
+  async function buildResolveIx(playerAddr, nonce, playerWon, resolverAddr) {
     const w = web3();
-    const { address } = getSigner();
     const playerPk = new w.PublicKey(playerAddr);
     const { house, vault, bet, betVault } = await derivePDAs(playerPk, nonce);
     const data = concat(new Uint8Array(DISC.resolve_bet), new Uint8Array([playerWon ? 1 : 0]));
-    const ix = new w.TransactionInstruction({
+    return new w.TransactionInstruction({
       programId: new w.PublicKey(PROGRAM_ID),
       keys: [
         { pubkey: house, isSigner: false, isWritable: false },
         { pubkey: vault, isSigner: false, isWritable: true },
         { pubkey: bet, isSigner: false, isWritable: true },
         { pubkey: betVault, isSigner: false, isWritable: true },
-        { pubkey: new w.PublicKey(address), isSigner: true, isWritable: false },
+        { pubkey: new w.PublicKey(resolverAddr), isSigner: true, isWritable: false },
         { pubkey: playerPk, isSigner: false, isWritable: true },
         { pubkey: new w.PublicKey(TOKEN_PROGRAM), isSigner: false, isWritable: false },
         { pubkey: w.SystemProgram.programId, isSigner: false, isWritable: false },
       ],
       data,
     });
+  }
+
+  /** Resolve a bet. playerWon=true pays 1.9x, false keeps wager in vault. Resolver must sign (devnet: admin wallet). */
+  async function resolveBet(betAddr, playerAddr, nonce, playerWon) {
+    const { address } = getSigner();
+    const ix = await buildResolveIx(playerAddr, nonce, playerWon, address);
     const signature = await buildAndSend([ix], address);
     return { signature };
+  }
+
+  /** Settle many open bets as LOSS in batched transactions (8 resolve
+   *  instructions per tx — a legacy transaction cannot fit many more).
+   *  Returns { settled, signatures }; if a batch fails midway, the
+   *  thrown error carries .settled so the caller can report partial
+   *  progress truthfully instead of pretending nothing happened. */
+  async function resolveAllLoss(bets) {
+    const { address } = getSigner();
+    let settled = 0;
+    const signatures = [];
+    for (let i = 0; i < bets.length; i += 8) {
+      const chunk = bets.slice(i, i + 8);
+      const ixs = [];
+      for (const b of chunk) ixs.push(await buildResolveIx(b.player, b.nonce, false, address));
+      try {
+        signatures.push(await buildAndSend(ixs, address));
+        settled += chunk.length;
+      } catch (e) {
+        e.settled = settled;
+        throw e;
+      }
+    }
+    return { settled, signatures };
   }
 
   window.SAK = window.SAK || {};
@@ -232,5 +262,5 @@
     return out;
   }
 
-  window.SAK.SolanaHouse = { PROGRAM_ID, RPC_URL, placeBet, resolveBet, derivePDAs, getHouseState, getOpenBetsSummary, getOpenBets, getVaultActivity };
+  window.SAK.SolanaHouse = { PROGRAM_ID, RPC_URL, placeBet, resolveBet, resolveAllLoss, derivePDAs, getHouseState, getOpenBetsSummary, getOpenBets, getVaultActivity };
 })();

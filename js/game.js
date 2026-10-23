@@ -4016,6 +4016,9 @@
       } else {
         const total = bets.reduce((sum, b) => sum + b.wagerLamports, 0);
         let html = `<div class="vt-row"><span>${bets.length} open · locked in bet vaults</span><b>◎ ${fmtSol(total)} SOL</b></div>`;
+        if (bets.length >= 2) {
+          html += `<button class="btn btn-red" id="ob-settle-all">🧹 SETTLE ALL ${bets.length} AS LOSS · ◎ ${fmtSol(total)} → VAULT</button>`;
+        }
         bets.forEach((b, i) => {
           const mine = W.address && b.player === W.address;
           const who = `${b.player.slice(0, 4)}…${b.player.slice(-4)}${mine ? ' · YOU' : ''}`;
@@ -4030,6 +4033,8 @@
         });
         el.innerHTML = html;
         el.querySelectorAll('.ob-btn').forEach(btnEl => { btnEl.onclick = () => settleOpenBet(btnEl); });
+        const allBtn = $('#ob-settle-all');
+        if (allBtn) allBtn.onclick = () => settleAllOpenBets(allBtn);
       }
     } catch (e) {
       el.textContent = '⚠️ Could not reach devnet from this device. Check your connection and tap REFRESH OPEN BETS.';
@@ -4066,6 +4071,36 @@
       toast(/reject|declined|cancel/i.test(msg) ? 'Settle cancelled in wallet — the bet is still open' : '⚠️ Settle failed — the bet is still open, try again', 3200);
       refreshAdminOpenBets();
     }
+  }
+
+  // Bulk cleanup: settle every open bet as LOSS. Same two-tap arm as the
+  // per-bet buttons; the data layer batches 8 resolves per transaction,
+  // so a long list takes a couple of wallet signatures, not one per bet.
+  async function settleAllOpenBets(btnEl) {
+    if (!openBetsCache.length) return;
+    if (!btnEl.classList.contains('armed')) {
+      btnEl.classList.add('armed');
+      btnEl.dataset.label = btnEl.textContent;
+      btnEl.textContent = `SURE? SETTLE ALL ${openBetsCache.length} AS LOSS`;
+      setTimeout(() => { if (btnEl.isConnected && btnEl.classList.contains('armed')) { btnEl.classList.remove('armed'); btnEl.textContent = btnEl.dataset.label; } }, 3500);
+      return;
+    }
+    const bets = openBetsCache.slice();
+    const total = bets.reduce((sum, b) => sum + b.wagerLamports, 0);
+    btnEl.disabled = true;
+    btnEl.textContent = 'SETTLING…';
+    document.querySelectorAll('.ob-btn').forEach(x => { x.disabled = true; });
+    try {
+      const r = await SAK.SolanaHouse.resolveAllLoss(bets);
+      toast(`✅ ${r.settled} bets settled as LOSS — ◎ ${fmtSol(total)} returned to the vault`, 3600);
+    } catch (e) {
+      const done = (e && e.settled) || 0;
+      const msg = (e && e.message) || '';
+      if (done > 0) toast(`⚠️ Settled ${done} of ${bets.length} — the rest are still open, tap REFRESH OPEN BETS`, 3600);
+      else toast(/reject|declined|cancel/i.test(msg) ? 'Settle-all cancelled in wallet — nothing was settled' : '⚠️ Settle-all failed — no bets were settled, try again', 3200);
+    }
+    refreshAdminOpenBets();
+    refreshAdminVault();
   }
 
   async function openAdmin() {
