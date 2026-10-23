@@ -2125,7 +2125,7 @@
             <div class="fine" style="font-size:11px;color:#888;">⏳ The house settles this automatically — no wallet step needed</div>`;
         })() : ''}
       </div>`;
-    if (!F.bet && win) html += `<p class="fine">💡 Bet PTS next time for x${k.payout.toFixed(1)}. Scared money don't make money.</p>`;
+    if (!F.bet && win && !k.pvp) html += `<p class="fine">💡 Bet PTS next time for x${k.payout.toFixed(1)}. Scared money don't make money.</p>`;
     const total = pts + betTotal;
     setTimeout(() => {
       const sb = $('#chain-settle-btn');
@@ -2163,7 +2163,7 @@
             <span style="font-weight:800;font-size:12px;color:#f5c542;white-space:nowrap;">${F.opts.soloHouse.currency === 'SMACK' ? '$SMACK' : 'SOL'}</span>
           </div>
           <button class="btn btn-yellow" id="r-solo-again" style="flex:1 1 42%;min-width:0;">🖐 SMACK AGAIN</button>
-        </div>` : `<button class="btn btn-yellow" id="r-rematch">↻ RUN IT BACK${reBet ? ` · BET ${fmt(reBet)}` : ' (FREE)'}</button>`}
+        </div>` : k.pvp ? '' : `<button class="btn btn-yellow" id="r-rematch">↻ RUN IT BACK${reBet ? ` · BET ${fmt(reBet)}` : ' (FREE)'}</button>`}
         ${win && next && !k.pvp && !(F.opts && F.opts.soloLobby) ? `<button class="btn btn-red" id="r-next">APE INTO ${esc(next.name)} →</button>` : ''}
         <div class="row">
           <button class="btn btn-purple" id="r-card">📤 FIGHT CARD</button>
@@ -2563,11 +2563,9 @@
           // Directly enter the lobby via the standard accept path
           const ch = await SAK.SolanaEscrow.getChallenge(c.challenge_addr);
           if (ch && typeof startPvpFightWithLobby === 'function') {
-            const shadow = Object.assign({}, roster()[0], { name: 'Challenger', pvp: true });
-            try {
-              const snaps = await SAK.PvpSync.getFighterSnapshots(c.challenge_addr);
-              if (snaps && snaps.challengerLook) shadow.look = snaps.challengerLook;
-            } catch (e) {}
+            let snaps = null;
+            try { snaps = await SAK.PvpSync.getFighterSnapshots(c.challenge_addr); } catch (e) {}
+            const shadow = await resolvePvpShadow(ch.challenger, snaps && snaps.challengerLook);
             startPvpFightWithLobby(shadow,
               { mode: 'classic', pvp: true, chainChallenge: c.challenge_addr, chainWagerSol: ch.wagerSol, chainRole: 'acceptor', chainOpponentWallet: ch.challenger },
               c.challenge_addr, W.address, ch.challenger);
@@ -2617,6 +2615,7 @@
 
   // v2: Challenge a real online player — creates an on-chain challenge
   // with the entered SOL wager, targeted at their wallet.
+  const challengeSendsInFlight = new Set();
   async function challengeRealPlayer(player) {
     if (!player || !player.wallet) return;
     if (!W.isConnected) { openWalletModal(); toast('Connect wallet to challenge 👛', 2200); return; }
@@ -2624,6 +2623,24 @@
     let wagerSol = parseFloat(input && input.value) || 0.05;
     if (wagerSol < 0.01) { toast('Min wager is 0.01 SOL', 2000); return; }
     if (!SAK.SolanaEscrow) { toast('Escrow module not loaded', 2000); return; }
+    if (challengeSendsInFlight.has(player.wallet)) return; // double-tap guard
+    // One live challenge per pair (LT 2026-10-23): duplicates pile up
+    // popups on the opponent's phone and conflict. Check both directions
+    // — my open/accepted challenges to them, theirs open to me, and a
+    // fight with them already accepted.
+    if (SAK.PvpSync && SAK.PvpSync.getMyChallenges) {
+      try {
+        const mine = await SAK.PvpSync.getMyChallenges(W.address);
+        const outOpen = (mine.awaiting || []).find(c => c.opponent === player.wallet);
+        const outAccepted = (mine.accepted || []).find(c => c.opponent === player.wallet);
+        const inAccepted = (mine.acceptedAsOpponent || []).find(c => c.challenger === player.wallet);
+        const inOpen = (mine.incoming || []).find(c => c.challenger === player.wallet);
+        if (outAccepted || inAccepted) { toast(`⚠️ Your fight with ${player.name} is already on — check the lobby!`, 3000); return; }
+        if (outOpen) { toast(`⚠️ You already have a challenge out to ${player.name} — cancel it in MY CHALLENGES first`, 3200); return; }
+        if (inOpen) { toast(`⚠️ ${player.name} already challenged you — accept it from the popup`, 3000); return; }
+      } catch (e) {}
+    }
+    challengeSendsInFlight.add(player.wallet);
     try {
       toast(`Challenging ${player.name} — approve ${wagerSol} SOL in wallet…`, 2600);
       const lamports = Math.round(wagerSol * 1e9);
@@ -2641,6 +2658,8 @@
     } catch (e) {
       console.warn('[PvP] direct challenge failed', e);
       toast('Challenge failed: ' + (e.message || e), 2600);
+    } finally {
+      challengeSendsInFlight.delete(player.wallet);
     }
   }
 
@@ -3117,6 +3136,26 @@
       }
     }, 5000);
   }
+  // Build the opponent ("shadow") fighter for a PvP bout (LT 2026-10-23):
+  // the peer's published snapshot look wins; their NAME comes from their
+  // profile and is fetched UNCONDITIONALLY — the older paths only fetched
+  // it when the snapshot was missing, so the VS header, portraits, taunts
+  // and result commentary stuck at 'Challenger' / 'Opponent xxxx'.
+  async function resolvePvpShadow(opponentWallet, snapshotLook) {
+    const shadow = Object.assign({}, roster()[0], {
+      name: opponentWallet ? 'Fighter ' + opponentWallet.slice(0, 4) : 'Challenger', pvp: true,
+    });
+    if (snapshotLook) shadow.look = snapshotLook;
+    if (opponentWallet && SAK.Api && SAK.Api.getProfile) {
+      try {
+        const op = await SAK.Api.getProfile(opponentWallet);
+        if (op && op.name) shadow.name = op.name;
+        if ((!shadow.look || !shadow.look.body) && op && op.fighter_look) shadow.look = op.fighter_look;
+      } catch (e) {}
+    }
+    return shadow;
+  }
+
   // HOISTED 2026-10-22 (marker:spfl-hoist): lobby entry must live at top level —
   // BOTH accept paths (popup + challenge link) call it; nested inside
   // showAcceptedModal it was invisible to them (acceptor ReferenceError).
@@ -3238,21 +3277,12 @@
       const m = document.getElementById('chain-accepted-modal');
       if (m) m.remove();
       chainStatus('Fighting!', true);
-      const shadow = Object.assign({}, roster()[0], { name: 'Opponent ' + (ch.opponent || '').slice(0, 4), pvp: true });
       // v2: prefer the acceptor's published snapshot (identical on both phones)
+      let snapsB = null;
       if (SAK.PvpSync && SAK.PvpSync.getFighterSnapshots) {
-        try {
-          const snaps = await SAK.PvpSync.getFighterSnapshots(ch.address);
-          if (snaps && snaps.acceptorLook) shadow.look = snaps.acceptorLook;
-        } catch (e) {}
+        try { snapsB = await SAK.PvpSync.getFighterSnapshots(ch.address); } catch (e) {}
       }
-      if ((!shadow.look || !shadow.look.body) && SAK.Api && SAK.Api.getProfile && ch.opponent) {
-        try {
-          const op = await SAK.Api.getProfile(ch.opponent);
-          if (op && op.name) shadow.name = op.name;
-          if (op && op.fighter_look) shadow.look = op.fighter_look;
-        } catch (e) {}
-      }
+      const shadow = await resolvePvpShadow(ch.opponent, snapsB && snapsB.acceptorLook);
       // Challenger fights; winner settles via SETTLE & CLAIM
       // v2: lobby handshake — wait until acceptor is confirmed online
       activeChainChallenge = null; updatePendingBar();
@@ -3982,24 +4012,12 @@
         if (SAK.PvpSync) SAK.PvpSync.updateChallengeStatus(ch.address, 'accepted');
         // v2: publish my fighter look snapshot
         if (SAK.PvpSync && S.profile && S.profile.avatar) SAK.PvpSync.publishFighterSnapshot(ch.address, 'acceptor', S.profile.avatar);
-        const shadow = Object.assign({}, roster()[0], { name: 'Challenger ' + ch.challenger.slice(0, 4), pvp: true });
-        // v2: prefer the challenger's published snapshot (identical on both phones);
-        // fall back to the profile fetch only if no snapshot exists yet
-      if (SAK.PvpSync && SAK.PvpSync.getFighterSnapshots) {
-        try {
-          const snaps = await SAK.PvpSync.getFighterSnapshots(ch.address);
-          if (snaps && snaps.challengerLook) shadow.look = snaps.challengerLook;
-        } catch (e) {}
-      }
-      if (!shadow.look || !shadow.look.body) {
-      if (SAK.Api && SAK.Api.getProfile) {
-        try {
-          const cp = await SAK.Api.getProfile(ch.challenger);
-          if (cp && cp.name) shadow.name = cp.name;
-          if (cp && cp.fighter_look) shadow.look = cp.fighter_look;
-        } catch (e) {}
-      }
-      }
+        // v2: prefer the challenger's published snapshot (identical on both phones)
+        let snapsC = null;
+        if (SAK.PvpSync && SAK.PvpSync.getFighterSnapshots) {
+          try { snapsC = await SAK.PvpSync.getFighterSnapshots(ch.address); } catch (e) {}
+        }
+        const shadow = await resolvePvpShadow(ch.challenger, snapsC && snapsC.challengerLook);
       // v2: lobby handshake — wait until challenger is confirmed online.
       // No more ghost fights when accepting minutes after the challenge.
       startPvpFightWithLobby(shadow,
@@ -4062,10 +4080,12 @@
     }
   }
 
-  // AI stand-in wearing the challenger's wallet tag (until realtime PvP).
+  // AI stand-in for the legacy ?challenge=CODE path: use the challenger's
+  // real fighter name when the challenge row carries one.
   function pvpShadowKOL(ch) {
     const base = roster()[0];
-    return Object.assign({}, base, { name: 'Challenger ' + ch.challenger_wallet.slice(0, 4), pvp: true });
+    const nm = ch.challenger_name || ch.name || ('Challenger ' + ch.challenger_wallet.slice(0, 4));
+    return Object.assign({}, base, { name: nm, pvp: true });
   }
 
   /* --- input: private local meter lock ----------------------------------- */

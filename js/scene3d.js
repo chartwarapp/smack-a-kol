@@ -3581,8 +3581,14 @@ SAK.Scene3D = (function () {
 
   function setOpponent(look) {
     if (kol) kol.dispose();
-    kol = new Fighter(look, +1, +1);      // KOL slaps with left hand (camera side)
+    kol = new Fighter(SAK.PLAYER.look, +1, +1);      // KOL slaps with left hand (camera side)
     scene.add(kol.root);
+    // Convert through applyAvatar, exactly like setPlayer: PvP snapshots
+    // and profile looks arrive as avatar params ({ hairColor, ... }).
+    // Building the Fighter straight from params left look.hair undefined,
+    // so the opponent's hair rendered WHITE and the shades dark on the
+    // other phone while skin/shirt (same key in both dialects) matched.
+    applyAvatar(kol, look || SAK.PLAYER.look);
   }
 
   function setMode(m) { mode = m; frameCamera(); }
