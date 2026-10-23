@@ -2650,16 +2650,9 @@ SAK.Scene3D = (function () {
     const capCols = ['#ff3b5c', '#2e9dff', '#39ff88', '#ffd23f', '#f5f5f5', '#ff4fd8'];
     // Seeded pseudo-random: deterministic per index, looks organic
     const srand = (seed) => { const x = Math.sin(seed * 127.1 + 311.7) * 43758.5453; return x - Math.floor(x); };
-    // Memecoin mascots sit at spread-out seats in the crowd (Doge's seat
-    // moved from 48° to 132° in the foreground cleanup below)
-    const MASCOTS = { 11: 'doge', 14: 'pepe', 24: 'bonk' };
+    // Memecoin mascots sit at spread-out seats in the crowd
+    const MASCOTS = { 4: 'doge', 14: 'pepe', 24: 'bonk' };
     for (let i = 0; i < 30; i++) {
-      // Foreground cleanup (LT 2026-10-23): no crowd on the camera-side
-      // arc (304°–106°) — those seats sit between the fight/menu/brace
-      // cameras and the ring, and their heads cropped into the bottom of
-      // the frame over the stage. The back-arc crowd stays as background.
-      const seatDeg = i * 12;
-      if (seatDeg >= 304 || seatDeg <= 106) continue;
       const ang = (i / 30) * Math.PI * 2;
       const r = 5.6 + (srand(i * 3 + 1) > 0.5 ? 0.8 : 0);
       const g = new T.Group();
