@@ -303,6 +303,154 @@ SAK.Scene3D = (function () {
     jerseyTex.offset.x = 0.5;
     return jerseyTex;
   }
+  // --- Signature outfit designs (LT 2026-10-23) ---
+  // Canvas-drawn prints/designs wrapped on the torso, same technique as
+  // the hawaiian/jersey textures: cached, shared, centerFront centers the
+  // design on the chest. Portraits keep flat colors (icons only).
+  function mkTex(c, centerFront) {
+    const t = new T.CanvasTexture(c);
+    if ('colorSpace' in t) t.colorSpace = T.SRGBColorSpace;
+    t.wrapS = t.wrapT = T.RepeatWrapping;
+    if (centerFront) t.offset.x = 0.5;
+    return t;
+  }
+  function cnv(bg) {
+    const c = document.createElement('canvas'); c.width = c.height = 256;
+    const x = c.getContext('2d');
+    x.fillStyle = bg; x.fillRect(0, 0, 256, 256);
+    return [c, x];
+  }
+  let teeTex = null, tankTex = null, camoTex = null, giTex = null, pinTex = null,
+    sparkTex = null, capeTex = null, chartTex = null, flameTex = null, moneyTex = null;
+  function teeTexture() { // white graphic tee: red slap hand + SLAP!
+    if (teeTex) return teeTex;
+    const [c, x] = cnv('#f5f5f5');
+    x.lineCap = 'round';
+    const finger = (x1, y1, x2, y2, w, col) => { x.strokeStyle = col; x.lineWidth = w; x.beginPath(); x.moveTo(x1, y1); x.lineTo(x2, y2); x.stroke(); };
+    // hand: black pass slightly thicker = cartoon outline, red pass on top
+    for (const [w, col] of [[19, '#1a1a1a'], [13, '#ff3b5c']]) {
+      finger(104, 78, 100, 40, w, col); finger(120, 74, 120, 32, w, col);
+      finger(136, 74, 140, 34, w, col); finger(150, 78, 158, 44, w, col);
+      finger(102, 108, 84, 122, w, col); // thumb
+      x.fillStyle = col; x.beginPath(); x.ellipse(128, 106, 31, 35, 0, 0, Math.PI * 2); x.fill();
+    }
+    x.fillStyle = '#1a1a1a'; x.font = 'bold 46px Arial'; x.textAlign = 'center';
+    x.fillText('SLAP!', 128, 196);
+    return teeTex = mkTex(c, true);
+  }
+  function tankTexture() { // racer stripes across the chest
+    if (tankTex) return tankTex;
+    const [c, x] = cnv('#f5f5f5');
+    x.fillStyle = '#ff3b5c'; x.fillRect(0, 88, 256, 26);
+    x.fillStyle = '#2a4a8a'; x.fillRect(0, 122, 256, 26);
+    return tankTex = mkTex(c);
+  }
+  function camoTexture() { // classic 4-tone camo blobs
+    if (camoTex) return camoTex;
+    const [c, x] = cnv('#5a6b3f');
+    const cols = ['#3f4f2a', '#7a8a52', '#2e3a1e', '#8a7a52'];
+    for (let i = 0; i < 16; i++) {
+      const bx = (i * 67 + 30) % 256, by = (i * 97 + 20) % 256, r = 24 + (i % 4) * 11;
+      x.fillStyle = cols[i % cols.length];
+      x.beginPath(); x.ellipse(bx, by, r * 1.5, r * 0.75, i * 1.1, 0, Math.PI * 2); x.fill();
+      x.beginPath(); x.ellipse(bx + r * 0.7, by + r * 0.3, r * 0.7, r * 0.4, i * 2.3, 0, Math.PI * 2); x.fill();
+    }
+    return camoTex = mkTex(c);
+  }
+  function giTexture() { // lapel emblem: red ring + SLAP
+    if (giTex) return giTex;
+    const [c, x] = cnv('#f5f5f5');
+    x.strokeStyle = '#c8102e'; x.lineWidth = 9;
+    x.beginPath(); x.arc(128, 118, 52, 0, Math.PI * 2); x.stroke();
+    x.fillStyle = '#1a1a1a'; x.font = 'bold 37px Arial'; x.textAlign = 'center';
+    x.fillText('SLAP', 128, 131);
+    return giTex = mkTex(c);
+  }
+  function pinstripeTexture() { // suit jacket pinstripes
+    if (pinTex) return pinTex;
+    const [c, x] = cnv('#23233a');
+    x.fillStyle = 'rgba(255,255,255,0.5)';
+    for (let sx = 0; sx < 256; sx += 16) x.fillRect(sx, 0, 2, 256);
+    return pinTex = mkTex(c);
+  }
+  function sparkleTexture() { // gold lamé sparkle print
+    if (sparkTex) return sparkTex;
+    const [c, x] = cnv('#ffd23f');
+    const star = (cx, cy, r, col) => {
+      x.fillStyle = col; x.beginPath();
+      for (let p = 0; p < 8; p++) {
+        const a = p / 8 * Math.PI * 2, rr = p % 2 ? r * 0.32 : r;
+        const px = cx + Math.cos(a) * rr, py = cy + Math.sin(a) * rr;
+        p ? x.lineTo(px, py) : x.moveTo(px, py);
+      }
+      x.closePath(); x.fill();
+    };
+    for (let i = 0; i < 18; i++) star((i * 53 + 20) % 256, (i * 89 + 16) % 256, 6 + (i % 3) * 4, i % 3 ? '#ffffff' : '#fff3b0');
+    return sparkTex = mkTex(c);
+  }
+  function capeTexture() { // royal cape: gold crowns on deep purple
+    if (capeTex) return capeTex;
+    const [c, x] = cnv('#6b1d5e');
+    const crown = (cx, cy, s) => {
+      x.fillStyle = '#ffd23f'; x.beginPath();
+      x.moveTo(cx - s, cy + s * 0.6); x.lineTo(cx - s, cy - s * 0.3); x.lineTo(cx - s * 0.5, cy + s * 0.1);
+      x.lineTo(cx, cy - s * 0.65); x.lineTo(cx + s * 0.5, cy + s * 0.1); x.lineTo(cx + s, cy - s * 0.3);
+      x.lineTo(cx + s, cy + s * 0.6); x.closePath(); x.fill();
+    };
+    for (const [cx, cy] of [[48, 52], [150, 40], [222, 66], [88, 128], [196, 138], [36, 196], [140, 208], [228, 200]]) crown(cx, cy, 17);
+    x.fillStyle = 'rgba(255,210,63,0.5)';
+    for (let i = 0; i < 12; i++) { x.beginPath(); x.arc((i * 71 + 30) % 256, (i * 113 + 60) % 256, 3, 0, Math.PI * 2); x.fill(); }
+    return capeTex = mkTex(c);
+  }
+  function chartTexture() { // candlestick chart print, trending up
+    if (chartTex) return chartTex;
+    const [c, x] = cnv('#f2f5ff');
+    x.strokeStyle = 'rgba(40,60,120,0.15)'; x.lineWidth = 1;
+    for (let g = 0; g <= 256; g += 32) { x.beginPath(); x.moveTo(g, 0); x.lineTo(g, 256); x.stroke(); x.beginPath(); x.moveTo(0, g); x.lineTo(256, g); x.stroke(); }
+    const up = [158, 140, 146, 118, 104, 84, 66];
+    for (let i = 0; i < 7; i++) {
+      const cx = 30 + i * 33, cy = up[i], grn = i % 3 !== 2, h = 40 + (i % 3) * 12;
+      x.strokeStyle = grn ? '#14c38e' : '#ff3b5c'; x.lineWidth = 5;
+      x.beginPath(); x.moveTo(cx, cy - h * 0.75); x.lineTo(cx, cy + h * 0.75); x.stroke();
+      x.fillStyle = x.strokeStyle; x.fillRect(cx - 12, cy - h / 2, 24, h);
+    }
+    x.strokeStyle = '#14c38e'; x.lineWidth = 8; x.beginPath();
+    x.moveTo(6, 208); x.lineTo(86, 168); x.lineTo(158, 178); x.lineTo(250, 62); x.stroke();
+    return chartTex = mkTex(c, true);
+  }
+  function flamesTexture() { // flames rising from the hem
+    if (flameTex) return flameTex;
+    const [c, x] = cnv('#14141c');
+    const flame = (cx, base, h, col) => {
+      x.fillStyle = col; x.beginPath();
+      x.moveTo(cx - h * 0.34, base);
+      x.bezierCurveTo(cx - h * 0.36, base - h * 0.55, cx - h * 0.08, base - h * 0.72, cx, base - h);
+      x.bezierCurveTo(cx + h * 0.14, base - h * 0.66, cx + h * 0.36, base - h * 0.5, cx + h * 0.34, base);
+      x.closePath(); x.fill();
+    };
+    for (let i = 0; i < 8; i++) {
+      const cx = 16 + i * 32, h = 92 + (i % 3) * 26;
+      flame(cx, 258, h, '#ff7a1a');
+      flame(cx, 258, h * 0.62, '#ffd23f');
+    }
+    return flameTex = mkTex(c);
+  }
+  function moneyTexture() { // scattered bills + coins
+    if (moneyTex) return moneyTex;
+    const [c, x] = cnv('#1e7a46');
+    for (let i = 0; i < 9; i++) {
+      const bx = (i * 83 + 26) % 210, by = (i * 61 + 18) % 220, a = (i % 5 - 2) * 0.22;
+      x.save(); x.translate(bx + 30, by + 16); x.rotate(a);
+      x.fillStyle = '#2e9e5b'; x.fillRect(-30, -16, 60, 32);
+      x.strokeStyle = '#bff0d0'; x.lineWidth = 2; x.strokeRect(-30, -16, 60, 32);
+      x.fillStyle = '#dff7e6'; x.font = 'bold 21px Arial'; x.textAlign = 'center';
+      x.fillText('$', 0, 8);
+      x.restore();
+    }
+    x.fillStyle = '#ffd23f';
+    for (let i = 0; i < 10; i++) { x.beginPath(); x.arc((i * 97 + 14) % 256, (i * 41 + 30) % 256, 5, 0, Math.PI * 2); x.fill(); }
+    return moneyTex = mkTex(c);
+  }
   const wait = s => new Promise(r => setTimeout(r, s * 1000));
 
   /* Slapstick KO landing poses — cartoon meme energy, no gore.
@@ -394,31 +542,31 @@ SAK.Scene3D = (function () {
       windupMul: 1.1, squash: 1.04,
       wind:   { lift: 3.3, swing: 1.7, elbow: 1.8, twist: 0.95, lean: -0.24 },
       strike: { lift: 1.9, swing: -2.7, elbow: 0.05, twist: -0.95, lean: 0.34, lunge: 0.5 },
-      strikeDur: 0.14, hand: [1.15, 0.8, 1.25], peak: 0.3, fx: 0, hop: 0
+      strikeDur: 0.14, hand: [0.98, 0.68, 1.06], peak: 0.3, fx: 0, hop: 0
     },
     limp: { // weak / red zone: half-hearted, floppy wrist
       windupMul: 0.75, squash: 1.03,
       wind:   { lift: 2.2, swing: 0.7, elbow: 1.1, twist: 0.4, lean: -0.08 },
       strike: { lift: 2.45, swing: -1.5, elbow: 0.5, twist: -0.3, lean: 0.1, lunge: 0.1 },
-      strikeDur: 0.2, hand: [1.15, 0.85, 1.25], peak: 0.5, fx: 0.5, hop: 0
+      strikeDur: 0.2, hand: [0.98, 0.72, 1.06], peak: 0.5, fx: 0.5, hop: 0
     },
     standard: { // good outer: solid readable slap
       windupMul: 1.0, squash: 1.07,
       wind:   { lift: 3.15, swing: 1.25, elbow: 1.55, twist: 0.8, lean: -0.18 },
       strike: { lift: 2.3, swing: -2.15, elbow: 0.1, twist: -0.62, lean: 0.24, lunge: 0.38 },
-      strikeDur: 0.15, hand: [1.35, 0.55, 1.5], peak: 0.55, fx: 1, hop: 0
+      strikeDur: 0.15, hand: [1.15, 0.47, 1.28], peak: 0.55, fx: 1, hop: 0
     },
     heavy: { // good inner: deep coil, big twist, driving lunge
       windupMul: 1.2, squash: 1.1,
       wind:   { lift: 3.4, swing: 1.5, elbow: 1.7, twist: 1.05, lean: -0.24 },
       strike: { lift: 2.35, swing: -2.35, elbow: 0.08, twist: -0.85, lean: 0.3, lunge: 0.6 },
-      strikeDur: 0.13, hand: [1.45, 0.5, 1.6], peak: 0.65, fx: 1.5, hop: 0.12
+      strikeDur: 0.13, hand: [1.23, 0.43, 1.36], peak: 0.65, fx: 1.5, hop: 0.12
     },
     devastating: { // perfect dead-center: maximum everything, hop into the hit
       windupMul: 1.35, squash: 1.12,
       wind:   { lift: 3.6, swing: 1.65, elbow: 1.8, twist: 1.2, lean: -0.3 },
       strike: { lift: 2.4, swing: -2.5, elbow: 0.05, twist: -1.0, lean: 0.36, lunge: 0.85 },
-      strikeDur: 0.12, hand: [1.55, 0.45, 1.7], peak: 0.7, fx: 2, hop: 0.22
+      strikeDur: 0.12, hand: [1.32, 0.38, 1.45], peak: 0.7, fx: 2, hop: 0.22
     }
   };
 
@@ -651,7 +799,7 @@ SAK.Scene3D = (function () {
         const handMat = mat(L.skin, {}); // own material so it can turn golden
         // Open palm with individual fingers (Slap Kings-style readability) —
         // a Group so the slap squash-scale still flattens the whole hand.
-        const hand = new T.Group(); hand.position.set(0, -0.46, 0); hand.scale.setScalar(2.34); elbow.add(hand); // big smooth cartoon slap hands — no boxes, no Minecraft
+        const hand = new T.Group(); hand.position.set(0, -0.46, 0); hand.scale.setScalar(1.99); elbow.add(hand); // big smooth cartoon slap hands — no boxes, no Minecraft (2.34 → 1.99 = LT's −15%, 2026-10-23)
         const palm = mesh(new T.SphereGeometry(0.13, 24, 18), handMat, 0, -0.02, 0);
         palm.scale.set(1.05, 0.85, 0.55); hand.add(palm); // big meaty palm, smooth
         outline(palm, 1.14);
@@ -781,7 +929,6 @@ SAK.Scene3D = (function () {
     /** NFT trait: outfit variants layered over the base torso. */
     buildOutfit() {
       const outfit = (this.look && this.look.outfit) || 'tee';
-      if (outfit === 'tee') return; // default shirt is the tee
       const om = (c, opts) => mat(c, opts);
       const add = (geo, material, x, y, z) => {
         const m = mesh(geo, material, x, y, z);
@@ -793,50 +940,70 @@ SAK.Scene3D = (function () {
         const m = mesh(geo, material, x, y, z);
         m.userData.outfit = true; arm.shoulder.add(m); return m;
       };
+      // Shared torso-print overlay: a textured cylinder sized from THIS
+      // fighter's body so it sits ~0.035 proud of the torso all around
+      // (the old fixed 0.4-radius overlays were buried inside the 0.5-
+      // radius body — the hawaiian/jersey prints never actually showed).
+      const B = this.body || { w: 1, h: 1, d: 1, taper: 1 };
+      const printOverlay = (tex, material) => {
+        const rT = 0.5 * B.w * Math.min(1.25, B.taper) + 0.035;
+        const rB = 0.42 * B.w / Math.max(1, B.taper * 0.85) + 0.035;
+        const ov = add(new T.CylinderGeometry(rT, rB, 0.88 * B.h * 0.99, 20), material || om('#ffffff', { map: tex }), 0, 0.44 * B.h, 0);
+        ov.scale.z = 0.68 * B.d; outline(ov, 1.03);
+        return ov;
+      };
       switch (outfit) {
+        case 'tee': {
+          // Graphic tee — red slap hand + SLAP! on white
+          printOverlay(teeTexture());
+          break;
+        }
         case 'tank': {
-          // Tank top — trim the shoulders (visual: white trim on collar/arms)
+          // Tank top — racer-stripe print + trim the shoulders
+          printOverlay(tankTexture());
           add(new T.TorusGeometry(0.16, 0.025, 6, 16), om('#ffffff'), 0, 0.82, 0).rotation.x = Math.PI / 2;
           break;
         }
         case 'hoodie': {
-          // Hoodie — hood resting on back + pocket + drawstrings
-          const hood = add(new T.SphereGeometry(0.24, 10, 8, 0, Math.PI * 2, 0, Math.PI * 0.6), om('#3a3a4a'), 0, 0.78, -0.3);
+          // Hoodie — camo print + hood resting on back + pocket + drawstrings
+          printOverlay(camoTexture());
+          const hood = add(new T.SphereGeometry(0.24, 10, 8, 0, Math.PI * 2, 0, Math.PI * 0.6), om('#4a5c3a'), 0, 0.78, -0.3);
           hood.rotation.x = 0.5;
-          add(new T.BoxGeometry(0.3, 0.18, 0.06), om('#2a2a35'), 0, 0.25, 0.32); // kangaroo pocket
+          add(new T.BoxGeometry(0.3, 0.18, 0.06), om('#3d4c2c'), 0, 0.25, 0.32); // kangaroo pocket
           for (const sx of [-0.08, 0.08])
             add(new T.CylinderGeometry(0.012, 0.012, 0.18, 5), om('#ffffff'), sx, 0.68, 0.33); // drawstrings
           break;
         }
         case 'gi': {
-          // Fight gi — white with black belt
-          add(new T.BoxGeometry(0.5, 0.5, 0.06), om('#f5f5f5'), 0, 0.55, 0.28); // gi lapel
+          // Fight gi — white with black belt + SLAP emblem on the lapel
+          add(new T.BoxGeometry(0.5, 0.5, 0.06), om('#ffffff', { map: giTexture() }), 0, 0.55, 0.33); // gi lapel (emblem face proud of the torso)
           add(new T.BoxGeometry(0.9, 0.12, 0.45), om('#1a1a1a'), 0, 0.05, 0); // black belt
           const knot = add(new T.BoxGeometry(0.12, 0.12, 0.08), om('#1a1a1a'), 0, 0.05, 0.24);
           break;
         }
         case 'suit': {
-          // Suit — blazer with lapels, dress shirt, tie, pocket square
-          add(new T.BoxGeometry(0.3, 0.55, 0.05), om('#f5f5f5'), 0, 0.55, 0.28); // dress shirt
+          // Suit — pinstripe jacket print + blazer lapels, dress shirt, tie, pocket square
+          printOverlay(pinstripeTexture());
+          add(new T.BoxGeometry(0.3, 0.55, 0.05), om('#f5f5f5'), 0, 0.55, 0.34); // dress shirt (proud of the pinstripe overlay)
           for (const sx of [-1, 1]) {
-            const lapel = add(new T.BoxGeometry(0.14, 0.4, 0.04), om('#1f1f2e'), sx * 0.12, 0.6, 0.3);
+            const lapel = add(new T.BoxGeometry(0.14, 0.4, 0.04), om('#1f1f2e'), sx * 0.12, 0.6, 0.36);
             lapel.rotation.z = sx * 0.25; outline(lapel, 1.05);
           }
-          add(new T.BoxGeometry(0.09, 0.35, 0.03), om('#ff3b5c'), 0, 0.58, 0.32); // tie
-          add(new T.BoxGeometry(0.06, 0.08, 0.02), om('#ff3b5c'), 0, 0.78, 0.32); // tie knot
-          add(new T.BoxGeometry(0.1, 0.06, 0.02), om('#ffffff'), -0.22, 0.68, 0.33); // pocket square
+          add(new T.BoxGeometry(0.09, 0.35, 0.03), om('#ff3b5c'), 0, 0.58, 0.38); // tie
+          add(new T.BoxGeometry(0.06, 0.08, 0.02), om('#ff3b5c'), 0, 0.78, 0.38); // tie knot
+          add(new T.BoxGeometry(0.1, 0.06, 0.02), om('#ffffff'), -0.22, 0.68, 0.39); // pocket square
           break;
         }
         case 'gold': {
-          // Gold lamé — shiny metallic gold overlay
-          const goldMat = new T.MeshStandardMaterial({ color: '#ffd23f', metalness: 0.9, roughness: 0.2 });
-          const overlay = add(new T.CylinderGeometry(0.42, 0.36, 0.7, 8), goldMat, 0, 0.44, 0);
-          overlay.scale.z = 0.7;
+          // Gold lamé — sparkle print on bright gold. Toon material like
+          // the other prints: the old MeshStandardMaterial at metalness
+          // 0.9 read muddy brown under the arena lights (no env map).
+          printOverlay(sparkleTexture());
           break;
         }
         case 'royal': {
           // Royal robe — flowing cape + fur trim + gold chain
-          const cape = add(new T.PlaneGeometry(0.9, 1.1), new T.MeshStandardMaterial({ color: '#6b1d5e', roughness: 0.8, side: T.DoubleSide }), 0, 0.3, -0.35);
+          const cape = add(new T.PlaneGeometry(0.9, 1.1), new T.MeshStandardMaterial({ color: '#ffffff', map: capeTexture(), roughness: 0.8, side: T.DoubleSide }), 0, 0.3, -0.35);
           cape.rotation.x = 0.15;
           add(new T.TorusGeometry(0.2, 0.05, 6, 14), om('#ffffff'), 0, 0.82, 0).rotation.x = Math.PI / 2; // fur collar
           add(new T.TorusGeometry(0.18, 0.02, 6, 16), om('#ffd23f'), 0, 0.65, 0.15).rotation.x = Math.PI / 2.3; // gold chain
@@ -936,8 +1103,7 @@ SAK.Scene3D = (function () {
         case 'hawaiian': {
           // Hawaiian shirt — flower canvas texture overlay
           const hwMat = new T.MeshToonMaterial({ map: hawaiianShirtTexture() });
-          const overlay = add(new T.CylinderGeometry(0.4, 0.35, 0.68, 12), hwMat, 0, 0.46, 0);
-          overlay.scale.z = 0.72; outline(overlay, 1.04);
+          printOverlay(null, hwMat);
           add(new T.BoxGeometry(0.1, 0.3, 0.04), hwMat, -0.08, 0.68, 0.3).rotation.z = 0.2; // open collar L
           add(new T.BoxGeometry(0.1, 0.3, 0.04), hwMat, 0.08, 0.68, 0.3).rotation.z = -0.2; // open collar R
           break;
@@ -945,10 +1111,25 @@ SAK.Scene3D = (function () {
         case 'jersey': {
           // Basketball jersey — sleeveless with number, trim
           const jMat = new T.MeshToonMaterial({ map: jerseyTexture() });
-          const overlay = add(new T.CylinderGeometry(0.38, 0.34, 0.66, 12), jMat, 0, 0.47, 0);
-          overlay.scale.z = 0.72; outline(overlay, 1.04);
+          printOverlay(null, jMat);
           for (const sx of [-1, 1])
             add(new T.TorusGeometry(0.13, 0.025, 6, 12), om('#ffffff'), sx * 0.34, 0.72, 0).rotation.y = Math.PI / 2; // armhole trim
+          break;
+        }
+        case 'chart': {
+          // Chart Print — candlesticks pumping across the chest
+          printOverlay(chartTexture());
+          break;
+        }
+        case 'flames': {
+          // Flames — fire rising from the hem, all the way around
+          printOverlay(flamesTexture());
+          break;
+        }
+        case 'money': {
+          // Money Print — bills + coins all over, plus a gold chain
+          printOverlay(moneyTexture());
+          add(new T.TorusGeometry(0.18, 0.02, 6, 16), om('#ffd23f'), 0, 0.65, 0.3).rotation.x = Math.PI / 2.3;
           break;
         }
         case 'tactical': {
@@ -1942,7 +2123,7 @@ SAK.Scene3D = (function () {
       const m = this.arms[this.armSide].handMat;
       if (on) { m.color.set('#ffc21a'); m.emissive.set('#ff6a00'); m.emissiveIntensity = 0.9; }
       else { m.color.set(this.look.skin); m.emissive.set('#000000'); }
-      const HS = 2.34; // base hand scale — both hands match
+      const HS = 1.99; // base hand scale — both hands match (−15%, 2026-10-23)
       this.slapHand.scale.set(on ? HS * 1.1 : HS, on ? HS * 1.5 : HS, on ? HS * 1.6 : HS);
     }
 

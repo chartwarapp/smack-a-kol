@@ -102,7 +102,10 @@ SAK.Traits = (() => {
       { id: 'hoodie', label: 'Hoodie', rarity: 'uncommon' },
       { id: 'gi', label: 'Fight Gi', rarity: 'uncommon' },
       { id: 'suit', label: 'Suit', rarity: 'rare' },
+      { id: 'chart', label: 'Chart Print 📈', rarity: 'rare' },
       { id: 'gold', label: 'Gold Lamé', rarity: 'epic' },
+      { id: 'flames', label: 'Flames 🔥', rarity: 'epic' },
+      { id: 'money', label: 'Money Print 💵', rarity: 'epic' },
       { id: 'royal', label: 'Royal Robe', rarity: 'legendary' },
     ],
     accessory: [
