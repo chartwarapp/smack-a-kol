@@ -8,6 +8,7 @@
   const DISC = {
     place_bet: [222, 62, 67, 220, 63, 166, 126, 33],
     resolve_bet: [137, 132, 33, 97, 48, 208, 30, 159],
+    set_resolver: [137, 108, 27, 51, 202, 16, 33, 119],
   };
 
   function web3() { return window.solanaWeb3; }
@@ -164,6 +165,9 @@
     const maxBetLamports = Math.floor(vaultLamports * maxBetBps / payoutBps);
     return {
       winBps, payoutBps, maxBetBps, burnBps,
+      admin: new w.PublicKey(d.slice(8, 40)).toBase58(),
+      treasury: new w.PublicKey(d.slice(40, 72)).toBase58(),
+      resolver: new w.PublicKey(d.slice(72, 104)).toBase58(),
       vaultLamports, vaultSol: vaultLamports / 1e9,
       maxBetLamports, maxBetSol: maxBetLamports / 1e9,
       vaultAddress: vault.toBase58(),
@@ -262,7 +266,31 @@
     return out;
   }
 
-  window.SAK.SolanaHouse = { PROGRAM_ID, RPC_URL, placeBet, resolveBet, resolveAllLoss, derivePDAs, getHouseState, getOpenBetsSummary, getOpenBets, getVaultActivity };
+  /** Admin only: rotate the house resolver to a new wallet — the
+   *  settlement service. The connected wallet must be the house admin.
+   *  After this, only the new resolver can sign resolve_bet. */
+  async function setResolver(newResolverAddr) {
+    const w = web3();
+    const { address } = getSigner();
+    const [house] = await w.PublicKey.findProgramAddress([te().encode('house')], new w.PublicKey(PROGRAM_ID));
+    const data = concat(new Uint8Array(DISC.set_resolver), new w.PublicKey(newResolverAddr).toBuffer());
+    const ix = new w.TransactionInstruction({
+      programId: new w.PublicKey(PROGRAM_ID),
+      keys: [
+        { pubkey: house, isSigner: false, isWritable: true },
+        { pubkey: new w.PublicKey(address), isSigner: true, isWritable: false },
+      ],
+      data,
+    });
+    const signature = await buildAndSend([ix], address);
+    return { signature };
+  }
+
+  window.SAK.SolanaHouse = { PROGRAM_ID, RPC_URL, placeBet, resolveBet, resolveAllLoss, setResolver, derivePDAs, getHouseState, getOpenBetsSummary, getOpenBets, getVaultActivity };
+  // The house operations wallet that runs the settlement service. Once a
+  // house's resolver points here, the service settles every player's bet
+  // server-side and players never sign a settle transaction.
+  window.SAK.SETTLEMENT_SERVICE_WALLET = '2jTwTUH6hQWzZeoXJe4RJZCEtJCa3FyHMsP9iyYgkUMs';
 })();
 
 /* Second house instance for the $SMACK token (LT's dual-currency design,
@@ -285,6 +313,7 @@
     initialize: [175, 175, 109, 31, 13, 152, 155, 237],
     place_bet: [222, 62, 67, 220, 63, 166, 126, 33],
     resolve_bet: [137, 132, 33, 97, 48, 208, 30, 159],
+    set_resolver: [137, 108, 27, 51, 202, 16, 33, 119],
   };
 
   function web3() { return window.solanaWeb3; }
@@ -501,5 +530,21 @@
   }
 
   window.SAK = window.SAK || {};
-  window.SAK.SolanaTokenHouse = { PROGRAM_ID, MINT, DECIMALS, RPC_URL, getState, getTokenBalance, getAta, initialize, placeBet, resolveBet, resolveAllLoss, getOpenBets, derivePDAs };
+  /** Admin only: rotate the token house resolver to the settlement
+   *  service wallet. The connected wallet must be the house admin. */
+  async function setResolver(newResolverAddr) {
+    const w = web3();
+    const { address } = getSigner();
+    const { house } = await derivePDAs();
+    const data = concat(new Uint8Array(DISC.set_resolver), new w.PublicKey(newResolverAddr).toBuffer());
+    const ix = new w.TransactionInstruction({
+      programId: new w.PublicKey(PROGRAM_ID),
+      keys: [K(house, false, true), K(new w.PublicKey(address), true, false)],
+      data,
+    });
+    const signature = await buildAndSend([ix], address);
+    return { signature };
+  }
+
+  window.SAK.SolanaTokenHouse = { PROGRAM_ID, MINT, DECIMALS, RPC_URL, getState, getTokenBalance, getAta, initialize, placeBet, resolveBet, resolveAllLoss, setResolver, getOpenBets, derivePDAs };
 })();

@@ -2103,7 +2103,7 @@
             return `<div class="bd-head" style="margin-top:8px;">🪙 SOLO VS $SMACK HOUSE (DEVNET)</div>
               <div><span>Wagered</span><b>${fmtTokAmt(wT)} $SMACK</b></div>
               ${burnLine}
-              <div class="fine" style="font-size:11px;color:#888;">Settling… approve in wallet</div>`;
+              <div class="fine" style="font-size:11px;color:#888;">⏳ The house settles this automatically — no wallet step needed</div>`;
           }
           const w = parseFloat(F.opts.soloHouse.wagerSol || 0);
           // SOL skips the 1% burn — only SPL burns
@@ -2122,7 +2122,7 @@
           return `<div class="bd-head" style="margin-top:8px;">🏠 SOLO VS HOUSE (DEVNET)</div>
             <div><span>Wagered</span><b>${w} SOL</b></div>
             ${burnLine}
-            <div class="fine" style="font-size:11px;color:#888;">Settling… approve in wallet</div>`;
+            <div class="fine" style="font-size:11px;color:#888;">⏳ The house settles this automatically — no wallet step needed</div>`;
         })() : ''}
       </div>`;
     if (!F.bet && win) html += `<p class="fine">💡 Bet PTS next time for x${k.payout.toFixed(1)}. Scared money don't make money.</p>`;
@@ -3607,17 +3607,69 @@
   });
 
   // Resolve the solo bet after the fight ends. Called from the result screen.
+  /* --- Solo settlement ---------------------------------------------------
+   * The house contract accepts a settle ONLY from its resolver wallet.
+   * If the connected wallet is the resolver (LT), settle directly.
+   * Everyone else: the result is queued in Supabase and the settlement
+   * service (server-side resolver wallet) signs it — the player never
+   * sees a settle popup (the old flow asked their wallet to sign a
+   * transaction that could never land, and Phantom flagged it unsafe).
+   * We poll the queue briefly so the result card can confirm; if it
+   * takes longer, the payout still lands on its own. */
+  async function sbQueue(path, method, body) {
+    const B = SAK.BACKEND;
+    if (!B || !B.url || !B.anonKey) throw new Error('no backend');
+    const headers = { apikey: B.anonKey, Authorization: 'Bearer ' + B.anonKey, 'Content-Type': 'application/json' };
+    if (method === 'POST') headers.Prefer = 'resolution=ignore-duplicates';
+    const r = await fetch(B.url.replace(/\/$/, '') + '/rest/v1' + path, {
+      method, headers, body: body ? JSON.stringify(body) : undefined,
+    });
+    if (!r.ok) throw new Error('queue HTTP ' + r.status);
+    return r.status === 204 ? null : r.json().catch(() => null);
+  }
+
+  /** Queue a finished solo bet for the settlement service. Returns true
+   *  once the service confirms it settled, false if still pending. */
+  async function queueSoloSettlement(house, betObj, won) {
+    await sbQueue('/solo_settlements', 'POST', {
+      house, bet: betObj.bet, player: W.address, nonce: String(betObj.nonce), won,
+      wager: house === 'SMACK' ? (betObj.wagerTokens || null) : (betObj.wagerSol || null),
+    });
+    for (let i = 0; i < 20; i++) {
+      await new Promise(r => setTimeout(r, 2000));
+      try {
+        const rows = await sbQueue('/solo_settlements?bet=eq.' + encodeURIComponent(betObj.bet) + '&select=status', 'GET');
+        if (rows && rows[0] && rows[0].status === 'settled') return true;
+        if (rows && rows[0] && rows[0].status === 'failed') return false;
+      } catch (e) { /* transient — keep polling */ }
+    }
+    return false;
+  }
+
   async function resolveSoloBet(won, betObj) {
     const mine = betObj || activeSoloBet;
     if (!mine) return null;
     if (mine.currency === 'SMACK') {
       if (!SAK.SolanaTokenHouse) return null;
+      const payoutTokens = won ? mine.wagerTokens * 0.99 * 1.9 : 0;
+      const out = { currency: 'SMACK', wagerTokens: mine.wagerTokens, payoutTokens, won, burnTokens: mine.wagerTokens * 0.01 };
       try {
+        const st = await SAK.SolanaTokenHouse.getState().catch(() => null);
+        if (st && st.resolver && st.resolver !== W.address) {
+          toast('⏳ House is settling your bet — no wallet step needed', 2800);
+          try {
+            const settled = await queueSoloSettlement('SMACK', mine, won);
+            if (!settled) toast('⏳ Settlement queued — your payout lands automatically', 2800);
+          } catch (e) {
+            toast('Bet is safe on-chain — the house will settle it shortly', 3000);
+          }
+          if (activeSoloBet === mine) activeSoloBet = null;
+          return out;
+        }
         toast('Settle — approve in wallet…', 2400);
         await SAK.SolanaTokenHouse.resolveBet(mine.bet, W.address, mine.nonce, won);
-        const payoutTokens = won ? mine.wagerTokens * 0.99 * 1.9 : 0;
         if (activeSoloBet === mine) activeSoloBet = null;
-        return { currency: 'SMACK', wagerTokens: mine.wagerTokens, payoutTokens, won, burnTokens: mine.wagerTokens * 0.01 };
+        return out;
       } catch (e) {
         toast(friendlyTokenError(e, 'settle'), 2600);
         return null;
@@ -3625,12 +3677,24 @@
     }
     if (!SAK.SolanaHouse) return null;
     const { bet, nonce, wagerSol } = mine;
+    const outSol = { wagerSol, payout: won ? (wagerSol * 1.9) : 0, won, burnSol: 0 }; // SOL skips the 1% burn
     try {
-      toast('Settle win — approve in wallet…', 2400);
+      const st = await SAK.SolanaHouse.getHouseState().catch(() => null);
+      if (st && st.resolver && st.resolver !== W.address) {
+        toast('⏳ House is settling your bet — no wallet step needed', 2800);
+        try {
+          const settled = await queueSoloSettlement('SOL', mine, won);
+          if (!settled) toast('⏳ Settlement queued — your payout lands automatically', 2800);
+        } catch (e) {
+          toast('Bet is safe on-chain — the house will settle it shortly', 3000);
+        }
+        if (activeSoloBet === mine) activeSoloBet = null;
+        return outSol;
+      }
+      toast('Settle — approve in wallet…', 2400);
       await SAK.SolanaHouse.resolveBet(bet, W.address, nonce, won);
-      const payout = won ? (wagerSol * 1.9) : 0;
       if (activeSoloBet === mine) activeSoloBet = null;
-      return { wagerSol, payout, won, burnSol: 0 }; // SOL skips the 1% burn
+      return outSol;
     } catch (e) {
       toast(friendlyHouseError(e, 'settle'), 2600);
       return null;
@@ -4184,9 +4248,30 @@
           }
         }
       } catch (e) { /* activity is a bonus; the totals above still stand */ }
+      // Settlement service: who is allowed to sign resolve_bet right now.
+      const svcW = SAK.SETTLEMENT_SERVICE_WALLET;
+      const svcOn = !!svcW && st.resolver === svcW;
+      html += `<div class="vt-sub">SETTLEMENT</div>` +
+        row('Resolver', `<code>${st.resolver ? st.resolver.slice(0, 4) + '…' + st.resolver.slice(-4) : '—'}</code>`) +
+        (svcOn
+          ? `<div class="fine" style="margin:4px 0;">✅ The settlement service settles every player's bets automatically — nobody signs a settle popup.</div>`
+          : `<button class="btn btn-gold" id="admin-handover-sol" style="width:100%;margin:4px 0;">🤖 HAND SETTLEMENT TO THE SERVICE</button>` +
+            `<div class="fine" style="margin:2px 0 4px;">One tap: the service wallet becomes the resolver, so every player's bet settles automatically after their fight. You stay admin and can take it back any time. (Needs the hourly contract update — live from ~12:00 PM today.)</div>`);
       html += row('Vault address', `<code>${st.vaultAddress.slice(0, 4)}…${st.vaultAddress.slice(-4)}</code>`) +
         `<div class="vt-foot">Last checked ${new Date().toLocaleTimeString()} · devnet</div>`;
       el.innerHTML = html;
+      const hoBtn = $('#admin-handover-sol');
+      if (hoBtn) hoBtn.onclick = async () => {
+        hoBtn.disabled = true; hoBtn.textContent = 'APPROVE IN WALLET…';
+        try {
+          await SAK.SolanaHouse.setResolver(SAK.SETTLEMENT_SERVICE_WALLET);
+          toast('🤖 Settlement service is live for the SOL house', 3200);
+        } catch (e) {
+          const m = String((e && e.message) || '');
+          toast(/reject|denied|cancel/i.test(m) ? 'Handover cancelled in wallet' : '⚠️ Handover failed — the contract update may still be deploying; try again shortly', 3400);
+        }
+        refreshAdminVault();
+      };
     } catch (e) {
       el.textContent = '⚠️ Could not reach the devnet vault from this device. Check your connection and tap REFRESH VAULT.';
     }
@@ -4346,6 +4431,14 @@
         row('Admin', short(st.admin)) + row('Resolver', short(st.resolver)) +
         row('Win rate / payout', `${(st.winBps / 100).toFixed(0)}% · ×${(st.payoutBps / 10000).toFixed(2)}`) +
         row('Vault cap / burn', `${(st.maxBetBps / 100).toFixed(0)}% · ${(st.burnBps / 100).toFixed(0)}%`);
+      // Settlement service: who is allowed to sign resolve_bet right now.
+      const svcWT = SAK.SETTLEMENT_SERVICE_WALLET;
+      const svcOnT = !!svcWT && st.resolver === svcWT;
+      html += `<div class="vt-sub">SETTLEMENT</div>` +
+        (svcOnT
+          ? `<div class="fine" style="margin:4px 0;">✅ The settlement service settles every player's $SMACK bets automatically — nobody signs a settle popup.</div>`
+          : `<button class="btn btn-gold" id="th-handover" style="width:100%;margin:4px 0;">🤖 HAND SETTLEMENT TO THE SERVICE</button>` +
+            `<div class="fine" style="margin:2px 0 4px;">One tap: the service wallet becomes the resolver, so every player's bet settles automatically after their fight. You stay admin and can take it back any time.</div>`);
       if (!open.length) {
         html += row('Open bets', 'None 🎉');
       } else {
@@ -4366,6 +4459,18 @@
         });
       }
       el.innerHTML = html;
+      const hoBtnT = $('#th-handover');
+      if (hoBtnT) hoBtnT.onclick = async () => {
+        hoBtnT.disabled = true; hoBtnT.textContent = 'APPROVE IN WALLET…';
+        try {
+          await TH.setResolver(SAK.SETTLEMENT_SERVICE_WALLET);
+          toast('🤖 Settlement service is live for the $SMACK house', 3200);
+        } catch (e) {
+          const m = String((e && e.message) || '');
+          toast(/reject|denied|cancel/i.test(m) ? 'Handover cancelled in wallet' : '⚠️ Handover failed — try again', 3000);
+        }
+        refreshAdminTokenHouse();
+      };
       el.querySelectorAll('.th-btn').forEach(btnEl => { btnEl.onclick = () => settleTokenOpenBet(btnEl); });
       const allBtn = $('#th-settle-all');
       if (allBtn) allBtn.onclick = () => settleAllTokenOpenBets(allBtn);
