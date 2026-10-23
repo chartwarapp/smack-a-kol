@@ -320,24 +320,8 @@ SAK.Scene3D = (function () {
     x.fillStyle = bg; x.fillRect(0, 0, 256, 256);
     return [c, x];
   }
-  let teeTex = null, tankTex = null, camoTex = null, giTex = null, pinTex = null,
+  let tankTex = null, camoTex = null, giTex = null, pinTex = null,
     sparkTex = null, capeTex = null, chartTex = null, flameTex = null, moneyTex = null;
-  function teeTexture() { // white graphic tee: red slap hand + SLAP!
-    if (teeTex) return teeTex;
-    const [c, x] = cnv('#f5f5f5');
-    x.lineCap = 'round';
-    const finger = (x1, y1, x2, y2, w, col) => { x.strokeStyle = col; x.lineWidth = w; x.beginPath(); x.moveTo(x1, y1); x.lineTo(x2, y2); x.stroke(); };
-    // hand: black pass slightly thicker = cartoon outline, red pass on top
-    for (const [w, col] of [[19, '#1a1a1a'], [13, '#ff3b5c']]) {
-      finger(104, 78, 100, 40, w, col); finger(120, 74, 120, 32, w, col);
-      finger(136, 74, 140, 34, w, col); finger(150, 78, 158, 44, w, col);
-      finger(102, 108, 84, 122, w, col); // thumb
-      x.fillStyle = col; x.beginPath(); x.ellipse(128, 106, 31, 35, 0, 0, Math.PI * 2); x.fill();
-    }
-    x.fillStyle = '#1a1a1a'; x.font = 'bold 46px Arial'; x.textAlign = 'center';
-    x.fillText('SLAP!', 128, 196);
-    return teeTex = mkTex(c, true);
-  }
   function tankTexture() { // racer stripes across the chest
     if (tankTex) return tankTex;
     const [c, x] = cnv('#f5f5f5');
@@ -929,6 +913,10 @@ SAK.Scene3D = (function () {
     /** NFT trait: outfit variants layered over the base torso. */
     buildOutfit() {
       const outfit = (this.look && this.look.outfit) || 'tee';
+      // Plain tee = the default shirt, no print overlay (LT 2026-10-23:
+      // the SLAP graphic printed on EVERY creator randomize because tee
+      // is the default outfit — the print came off the tee entirely).
+      if (outfit === 'tee') return;
       const om = (c, opts) => mat(c, opts);
       const add = (geo, material, x, y, z) => {
         const m = mesh(geo, material, x, y, z);
@@ -953,11 +941,6 @@ SAK.Scene3D = (function () {
         return ov;
       };
       switch (outfit) {
-        case 'tee': {
-          // Graphic tee — red slap hand + SLAP! on white
-          printOverlay(teeTexture());
-          break;
-        }
         case 'tank': {
           // Tank top — racer-stripe print + trim the shoulders
           printOverlay(tankTexture());
