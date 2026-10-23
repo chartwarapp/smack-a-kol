@@ -1339,8 +1339,15 @@
     $('#fight-level').textContent = tag;
     const M = SAK.MODES[mode];
     const chainWager = opts.chainWagerSol;
+    // Solo vs House wagers arrive as opts.soloHouse (the placed house bet);
+    // they were never read here, so wagered solo fights fell through to
+    // the FREE label even though real SOL was locked.
+    const soloWager = !chainWager && opts.soloHouse && opts.soloHouse.wagerSol;
+    const fmtSolAmt = n => (Math.round(n * 10000) / 10000).toString();
     $('#stake-tag').innerHTML = `${M.icon} ${M.label} · Bo${bestOf} · ` + (chainWager
       ? `⛓ ${chainWager} SOL <span class="escrow-badge">ON-CHAIN · DEVNET</span>`
+      : soloWager
+      ? `🏠 BET ◎ ${fmtSolAmt(soloWager)} → WIN ◎ ${fmtSolAmt(soloWager * 1.9)}`
       : bet
       ? `BET ${ptsHTML()} ${fmt(bet)} → ${fmt(boosted(bet * kol.payout))}`
       : `FREE · WIN ${ptsHTML()} +${fmt(modePts(kol, mode))}`);
