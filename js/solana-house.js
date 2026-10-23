@@ -529,6 +529,81 @@
     return out;
   }
 
+  /** Gameplay totals across every Bet account of the token house —
+   *  the $SMACK mirror of the SOL house's getOpenBetsSummary. Amounts
+   *  are base units (6 decimals). betVaultBase sums the token balances
+   *  still locked inside open bets' vaults. */
+  async function getOpenBetsSummary() {
+    const w = web3();
+    const conn = connection();
+    const programId = new w.PublicKey(PROGRAM_ID);
+    const accts = await conn.getProgramAccounts(programId, { filters: [{ dataSize: 59 }] });
+    let openCount = 0, resolvedCount = 0, openWagerBase = 0;
+    let totalWagerBase = 0, maxWagerBase = 0;
+    const betVaultKeys = [];
+    for (const { account } of accts) {
+      const d = account.data;
+      const dv = new DataView(d.buffer, d.byteOffset || 0, d.byteLength);
+      const wager = Number(dv.getBigUint64(48, true));
+      totalWagerBase += wager;
+      if (wager > maxWagerBase) maxWagerBase = wager;
+      if (dv.getUint8(56) !== 0) { resolvedCount++; continue; }
+      openCount++;
+      openWagerBase += wager;
+      const player = new w.PublicKey(d.slice(8, 40));
+      const [betVault] = await w.PublicKey.findProgramAddress(
+        [te().encode('bet_vault'), player.toBuffer(), d.slice(40, 48)], programId);
+      betVaultKeys.push(betVault);
+    }
+    let betVaultBase = 0;
+    if (betVaultKeys.length) {
+      const infos = await conn.getMultipleAccountsInfo(betVaultKeys);
+      for (const info of infos) {
+        if (info && info.data && info.data.length >= 72) {
+          const vd = new DataView(info.data.buffer, info.data.byteOffset || 0, info.data.byteLength);
+          betVaultBase += Number(vd.getBigUint64(64, true)); // token amount @64
+        }
+      }
+    }
+    return {
+      totalBets: accts.length, openCount, resolvedCount,
+      openWagerBase, betVaultBase,
+      totalWagerBase, maxWagerBase,
+      avgWagerBase: accts.length ? Math.floor(totalWagerBase / accts.length) : 0,
+    };
+  }
+
+  /** Recent token movement on the vault: the vault PDA is itself the
+   *  vault token account, so each transaction touching it yields a
+   *  signed token delta from pre/post token balances. Callers classify:
+   *  big inflow = funding, small inflow = a lost wager collected,
+   *  outflow = the 0.9x profit paid on a win (stakes move via bet_vaults
+   *  and never touch the main vault). */
+  async function getVaultActivity(limit = 8) {
+    const w = web3();
+    const conn = connection();
+    const { vault } = await derivePDAs();
+    const vaultStr = vault.toBase58();
+    const sigs = await conn.getSignaturesForAddress(vault, { limit });
+    const out = [];
+    for (const s of sigs) {
+      try {
+        const tx = await conn.getTransaction(s.signature, { maxSupportedTransactionVersion: 0 });
+        if (!tx || !tx.meta) continue;
+        const keys = tx.transaction.message.staticAccountKeys || tx.transaction.message.accountKeys;
+        const idx = keys.findIndex(k => k.toBase58() === vaultStr);
+        if (idx < 0) continue;
+        const pre = (tx.meta.preTokenBalances || []).find(b => b.accountIndex === idx);
+        const post = (tx.meta.postTokenBalances || []).find(b => b.accountIndex === idx);
+        if (!pre && !post) continue;
+        const delta = Number(BigInt(post ? post.uiTokenAmount.amount : '0') - BigInt(pre ? pre.uiTokenAmount.amount : '0'));
+        if (!delta) continue;
+        out.push({ signature: s.signature, blockTime: tx.blockTime || s.blockTime || null, deltaBase: delta });
+      } catch (e) { /* skip a tx that will not load; the rest still render */ }
+    }
+    return out;
+  }
+
   window.SAK = window.SAK || {};
   /** Admin only: rotate the token house resolver to the settlement
    *  service wallet. The connected wallet must be the house admin. */
@@ -546,5 +621,5 @@
     return { signature };
   }
 
-  window.SAK.SolanaTokenHouse = { PROGRAM_ID, MINT, DECIMALS, RPC_URL, getState, getTokenBalance, getAta, initialize, placeBet, resolveBet, resolveAllLoss, setResolver, getOpenBets, derivePDAs };
+  window.SAK.SolanaTokenHouse = { PROGRAM_ID, MINT, DECIMALS, RPC_URL, getState, getTokenBalance, getAta, initialize, placeBet, resolveBet, resolveAllLoss, setResolver, getOpenBets, getOpenBetsSummary, getVaultActivity, derivePDAs };
 })();

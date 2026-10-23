@@ -4426,11 +4426,27 @@
       let html =
         `<div class="vt-hero"><span class="vt-hero-label">$SMACK VAULT BALANCE</span>` +
         `<span class="vt-hero-val">${fmtTok(st.vaultBase)} <small>$SMACK</small></span>` +
-        `<span class="vt-hero-sub">Max bet it can cover: ${fmtTok(st.maxBetBase)} $SMACK</span></div>` +
-        `<div class="vt-sub">ON-CHAIN CONFIG</div>` +
-        row('Admin', short(st.admin)) + row('Resolver', short(st.resolver)) +
-        row('Win rate / payout', `${(st.winBps / 100).toFixed(0)}% · ×${(st.payoutBps / 10000).toFixed(2)}`) +
-        row('Vault cap / burn', `${(st.maxBetBps / 100).toFixed(0)}% · ${(st.burnBps / 100).toFixed(0)}%`);
+        `<span class="vt-hero-sub">Max bet it can cover: ${fmtTok(st.maxBetBase)} $SMACK</span></div>`;
+      // Gameplay totals from the Bet accounts — the bet tracker proper,
+      // mirroring the SOL vault tracker. Independent read: a failure here
+      // never blanks the balance above.
+      try {
+        const ob = await TH.getOpenBetsSummary();
+        html += `<div class="vt-tiles">` +
+          `<div><b>${ob.totalBets}</b><small>BETS PLACED</small></div>` +
+          `<div><b>${ob.resolvedCount} · ${ob.openCount}</b><small>SETTLED · OPEN</small></div>` +
+          `<div><b>${fmtTok(ob.totalWagerBase)}</b><small>WAGERED IN ($SMACK)</small></div></div>` +
+          `<div class="vt-sub">DETAILS</div>` +
+          row('Average bet', `${fmtTok(ob.avgWagerBase)} $SMACK`) +
+          row('Biggest bet', `${fmtTok(ob.maxWagerBase)} $SMACK`) +
+          row('$SMACK locked in open bets', `${fmtTok(ob.betVaultBase)} $SMACK`);
+      } catch (e) { html += `<div class="vt-sub">DETAILS</div>` + row('Bet history', 'unavailable right now'); }
+      html += `<div class="vt-sub">ON-CHAIN CONFIG</div><div class="vt-tiles four">` +
+        `<div><b>${(st.winBps / 100).toFixed(0)}%</b><small>WIN RATE</small></div>` +
+        `<div><b>×${(st.payoutBps / 10000).toFixed(2)}</b><small>PAYOUT</small></div>` +
+        `<div><b>${(st.maxBetBps / 100).toFixed(0)}%</b><small>RISK CAP</small></div>` +
+        `<div><b>${(st.burnBps / 100).toFixed(0)}%</b><small>BURN</small></div></div>` +
+        row('Admin', short(st.admin)) + row('Resolver', short(st.resolver));
       // Settlement service: who is allowed to sign resolve_bet right now.
       const svcWT = SAK.SETTLEMENT_SERVICE_WALLET;
       const svcOnT = !!svcWT && st.resolver === svcWT;
@@ -4439,12 +4455,34 @@
           ? `<div class="fine" style="margin:4px 0;">✅ The settlement service settles every player's $SMACK bets automatically — nobody signs a settle popup.</div>`
           : `<button class="btn btn-gold" id="th-handover" style="width:100%;margin:4px 0;">🤖 HAND $SMACK SETTLEMENTS TO THE SERVICE</button>` +
             `<div class="fine" style="margin:2px 0 4px;">One tap: the service wallet becomes the resolver, so every player's bet settles automatically after their fight. You stay admin and can take it back any time.</div>`);
+      // Recent token movement on the vault (funding in, lost wagers in,
+      // win profits out) — mirrors the SOL tracker's moves list.
+      try {
+        const acts = await TH.getVaultActivity(8);
+        if (acts.length) {
+          html += `<div class="vt-sub">RECENT VAULT MOVES</div>`;
+          for (const a of acts) {
+            const inTok = a.deltaBase > 0;
+            const label = inTok
+              ? (a.deltaBase >= 1e12 ? 'Funding / deposit in' : 'Lost wager collected')
+              : 'Win payout out';
+            const when = a.blockTime ? new Date(a.blockTime * 1000).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '';
+            html += `<div class="vt-move"><span class="vt-arrow ${inTok ? 'in' : 'out'}">${inTok ? '▲' : '▼'}</span>` +
+              `<span class="vt-move-main"><span class="vt-move-label">${label}</span>${when ? `<span class="vt-move-time">${when}</span>` : ''}</span>` +
+              `<b class="vt-move-amt ${inTok ? 'in' : 'out'}">${inTok ? '+' : '−'}${fmtTok(Math.abs(a.deltaBase))} $SMACK</b></div>`;
+          }
+        }
+      } catch (e) { /* activity is a bonus; the totals above still stand */ }
       if (!open.length) {
         html += row('Open bets', 'None 🎉');
       } else {
         const total = open.reduce((s, b) => s + b.wagerBase, 0);
         html += row('Open bets', `${open.length} · ${fmtTok(total)} $SMACK locked`);
-        if (open.length >= 2) html += `<button class="btn btn-red" id="th-settle-all" style="width:100%;">🧹 SETTLE ALL ${open.length} AS LOSS</button>`;
+        if (svcOnT) {
+          html += `<div class="fine" style="margin:2px 0 4px;">Settlement is automatic now — an open bet clears when its fight result comes in, so the manual settle buttons have retired.</div>`;
+        } else if (open.length >= 2) {
+          html += `<button class="btn btn-red" id="th-settle-all" style="width:100%;">🧹 SETTLE ALL ${open.length} AS LOSS</button>`;
+        }
         open.forEach((b, i) => {
           const mine = W.address && b.player === W.address;
           const who = `${b.player.slice(0, 4)}…${b.player.slice(-4)}${mine ? ' · YOU' : ''}`;
@@ -4452,12 +4490,16 @@
           html += `<div class="ob-row"><div class="ob-head">` +
             `<span class="vt-move-label">${fmtTok(b.wagerBase)} $SMACK — ${who}</span>` +
             `<span class="vt-move-time">Placed ${when}</span></div>` +
-            `<div class="ob-actions">` +
-            `<button class="ob-btn win th-btn" data-th="${i}" data-won="1">SETTLE WIN</button>` +
-            `<button class="ob-btn loss th-btn" data-th="${i}" data-won="0">SETTLE LOSS</button>` +
-            `</div></div>`;
+            (svcOnT ? '' :
+              `<div class="ob-actions">` +
+              `<button class="ob-btn win th-btn" data-th="${i}" data-won="1">SETTLE WIN</button>` +
+              `<button class="ob-btn loss th-btn" data-th="${i}" data-won="0">SETTLE LOSS</button>` +
+              `</div>`) +
+            `</div>`;
         });
       }
+      html += row('Vault address', `<code>${short(st.vaultAddress)}</code>`) +
+        `<div class="vt-foot">Last checked ${new Date().toLocaleTimeString()} · devnet</div>`;
       el.innerHTML = html;
       const hoBtnT = $('#th-handover');
       if (hoBtnT) hoBtnT.onclick = async () => {
