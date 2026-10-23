@@ -4268,7 +4268,7 @@
           toast('🤖 Settlement service is live for the SOL house', 3200);
         } catch (e) {
           const m = String((e && e.message) || '');
-          toast(/reject|denied|cancel/i.test(m) ? 'Handover cancelled in wallet' : '⚠️ Handover failed: ' + (m ? m.slice(0, 90) : 'unknown error'), 4600);
+          toast(/reject|denied|cancel/i.test(m) ? 'Handover cancelled in wallet' : '⚠️ Handover failed: ' + (m ? m.slice(-110) : 'unknown error'), 6500);
         }
         refreshAdminVault();
       };
@@ -4467,7 +4467,7 @@
           toast('🤖 Settlement service is live for the $SMACK house', 3200);
         } catch (e) {
           const m = String((e && e.message) || '');
-          toast(/reject|denied|cancel/i.test(m) ? 'Handover cancelled in wallet' : '⚠️ Handover failed: ' + (m ? m.slice(0, 90) : 'unknown error'), 4600);
+          toast(/reject|denied|cancel/i.test(m) ? 'Handover cancelled in wallet' : '⚠️ Handover failed: ' + (m ? m.slice(-110) : 'unknown error'), 6500);
         }
         refreshAdminTokenHouse();
       };
