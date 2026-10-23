@@ -2156,11 +2156,13 @@
     const isSoloHouse = !!(F.opts && F.opts.soloHouse);
     html += `<div class="result-btns">
         ${isSoloHouse ? `<div style="display:flex;gap:8px;align-items:stretch;">
-          <div style="flex:0 0 42%;display:flex;align-items:center;gap:6px;background:#1a0b3a;border:3px solid var(--ink);border-radius:14px;padding:0 12px;box-sizing:border-box;">
-            <input id="r-solo-amount" type="number" inputmode="decimal" step="${F.opts.soloHouse.currency === 'SMACK' ? '100' : '0.01'}" min="${F.opts.soloHouse.currency === 'SMACK' ? '100' : '0.01'}" value="${F.opts.soloHouse.currency === 'SMACK' ? (F.opts.soloHouse.wagerTokens || 1000) : parseFloat(F.opts.soloHouse.wagerSol || 0.05)}" style="width:100%;background:transparent;border:none;outline:none;color:#fff;font:inherit;font-size:20px;font-weight:800;text-align:right;" />
-            <span style="font-weight:800;color:#f5c542;">${F.opts.soloHouse.currency === 'SMACK' ? '$SMACK' : 'SOL'}</span>
+          <div style="flex:1 1 58%;min-width:0;display:flex;align-items:center;gap:5px;background:#1a0b3a;border:3px solid var(--ink);border-radius:14px;padding:0 8px;box-sizing:border-box;">
+            ${F.opts.soloHouse.currency === 'SMACK'
+              ? `<input id="r-solo-amount" type="text" inputmode="numeric" value="${(F.opts.soloHouse.wagerTokens || 1000).toLocaleString('en-US')}" style="flex:1 1 auto;width:100%;min-width:0;background:transparent;border:none;outline:none;color:#fff;font:inherit;font-size:18px;font-weight:800;text-align:right;" />`
+              : `<input id="r-solo-amount" type="number" inputmode="decimal" step="0.01" min="0.01" value="${parseFloat(F.opts.soloHouse.wagerSol || 0.05)}" style="flex:1 1 auto;width:100%;min-width:0;background:transparent;border:none;outline:none;color:#fff;font:inherit;font-size:18px;font-weight:800;text-align:right;" />`}
+            <span style="font-weight:800;font-size:12px;color:#f5c542;white-space:nowrap;">${F.opts.soloHouse.currency === 'SMACK' ? '$SMACK' : 'SOL'}</span>
           </div>
-          <button class="btn btn-yellow" id="r-solo-again" style="flex:1;">🖐 SMACK AGAIN</button>
+          <button class="btn btn-yellow" id="r-solo-again" style="flex:1 1 42%;min-width:0;">🖐 SMACK AGAIN</button>
         </div>` : `<button class="btn btn-yellow" id="r-rematch">↻ RUN IT BACK${reBet ? ` · BET ${fmt(reBet)}` : ' (FREE)'}</button>`}
         ${win && next && !k.pvp && !(F.opts && F.opts.soloLobby) ? `<button class="btn btn-red" id="r-next">APE INTO ${esc(next.name)} →</button>` : ''}
         <div class="row">
@@ -2179,12 +2181,20 @@
     const againBtn = $('#r-solo-again');
     if (againBtn) {
       const amtEl0 = $('#r-solo-amount');
-      if (amtEl0) amtEl0.addEventListener('focus', () => amtEl0.select());
+      if (amtEl0) {
+        amtEl0.addEventListener('focus', () => amtEl0.select());
+        // $SMACK amounts are comma-formatted text (1,000 / 100,000) so the
+        // full number stays readable in the box; regroup on blur.
+        if (F.opts.soloHouse.currency === 'SMACK') amtEl0.addEventListener('blur', () => {
+          const n = parseFloat(String(amtEl0.value).replace(/[^0-9.]/g, ''));
+          if (n > 0) amtEl0.value = Math.floor(n).toLocaleString('en-US');
+        });
+      }
       againBtn.onclick = async () => {
         if (!W.isConnected) { toast('Connect your wallet first \u{1F45B}', 2200); openWalletModal(); return; }
         if (!SAK.SolanaHouse) { toast('House module not loaded', 2000); return; }
         const amtEl = $('#r-solo-amount');
-        const amt = amtEl ? parseFloat(amtEl.value) : NaN;
+        const amt = amtEl ? parseFloat(String(amtEl.value).replace(/,/g, '')) : NaN;
         if (!amt || !(amt > 0)) { toast('Enter a bet amount first', 2200); return; }
         againBtn.disabled = true; const oldLabel = againBtn.textContent; againBtn.textContent = 'PLACING BET\u2026';
         if (F.opts.soloHouse.currency === 'SMACK') {
