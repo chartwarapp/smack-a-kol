@@ -91,7 +91,7 @@ SAK.avatarSVG = function (look, opts) {
   const sp = look.species || 'human';
   if (sp === 'bear') {
     speciesFx = `<g><circle cx="28" cy="24" r="9" fill="${s}" stroke="#0003" stroke-width="2"/><circle cx="72" cy="24" r="9" fill="${s}" stroke="#0003" stroke-width="2"/><circle cx="28" cy="24" r="4" fill="#e8b98a"/><circle cx="72" cy="24" r="4" fill="#e8b98a"/><ellipse cx="50" cy="63" rx="10" ry="7" fill="#f0d0a8"/></g>`;
-  } else if (sp === 'bull' && look.parody !== 'patty' && look.parody !== 'ansom') {
+  } else if (sp === 'bull' && look.parody !== 'ansom') {
     speciesFx = `<g><path d="M30 26 Q20 8 28 0 Q32 10 38 20 Z" fill="#e8dcc8" stroke="#0003" stroke-width="1.5"/><path d="M70 26 Q80 8 72 0 Q68 10 62 20 Z" fill="#e8dcc8" stroke="#0003" stroke-width="1.5"/><rect x="38" y="55" width="24" height="9" rx="4" fill="${s}" stroke="#0003" stroke-width="1.5"/></g>`;
   } else if (sp === 'ape') {
     speciesFx = `<g><rect x="28" y="36" width="44" height="8" rx="4" fill="${s}" stroke="#0003" stroke-width="1.5"/><rect x="35" y="66" width="30" height="10" rx="5" fill="${s}" stroke="#0003" stroke-width="1.5"/></g>`;

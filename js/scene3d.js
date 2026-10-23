@@ -357,9 +357,11 @@ SAK.Scene3D = (function () {
     for (let sx = 0; sx < 256; sx += 16) x.fillRect(sx, 0, 2, 256);
     return pinTex = mkTex(c);
   }
-  function sparkleTexture() { // gold lamé sparkle print
-    if (sparkTex) return sparkTex;
-    const [c, x] = cnv('#ffd23f');
+  const sparkTexCache = {};
+  function sparkleTexture(base) { // lamé sparkle print — gold by default, any base color on request
+    const key = base || '#ffd23f';
+    if (sparkTexCache[key]) return sparkTexCache[key];
+    const [c, x] = cnv(key);
     const star = (cx, cy, r, col) => {
       x.fillStyle = col; x.beginPath();
       for (let p = 0; p < 8; p++) {
@@ -369,8 +371,9 @@ SAK.Scene3D = (function () {
       }
       x.closePath(); x.fill();
     };
-    for (let i = 0; i < 18; i++) star((i * 53 + 20) % 256, (i * 89 + 16) % 256, 6 + (i % 3) * 4, i % 3 ? '#ffffff' : '#fff3b0');
-    return sparkTex = mkTex(c);
+    const pale = base ? '#bfe6ff' : '#fff3b0';
+    for (let i = 0; i < 18; i++) star((i * 53 + 20) % 256, (i * 89 + 16) % 256, 6 + (i % 3) * 4, i % 3 ? '#ffffff' : pale);
+    return sparkTexCache[key] = mkTex(c);
   }
   function capeTexture() { // royal cape: gold crowns on deep purple
     if (capeTex) return capeTex;
@@ -978,10 +981,12 @@ SAK.Scene3D = (function () {
           break;
         }
         case 'gold': {
-          // Gold lamé — sparkle print on bright gold. Toon material like
-          // the other prints: the old MeshStandardMaterial at metalness
-          // 0.9 read muddy brown under the arena lights (no env map).
-          printOverlay(sparkleTexture());
+          // Lamé — sparkle print, gold by default or the look's own
+          // outfitColor (Patty Spice wears the blue lamé, LT 2026-10-23).
+          // Toon material like the other prints: the old
+          // MeshStandardMaterial at metalness 0.9 read muddy brown
+          // under the arena lights (no env map).
+          printOverlay(sparkleTexture(this.look.outfitColor || undefined));
           break;
         }
         case 'royal': {
@@ -1419,23 +1424,9 @@ SAK.Scene3D = (function () {
           o.material = crystal;
         }
       });
-      // Bull horns — curved, using stacked cones for the curl
-      const hornMat = new T.MeshStandardMaterial({ color: '#7fd4ff', metalness: 0.3, roughness: 0.25, emissive: new T.Color('#2a9fd8'), emissiveIntensity: 0.3 });
-      for (const sx of [-1, 1]) {
-        // Horn base curves up and out
-        const h1 = add(new T.ConeGeometry(0.13, 0.5, 8), hornMat, sx * 0.42, 0.95, -0.05, m => {
-          m.rotation.z = sx * -0.55; // tilt outward
-        });
-        outline(h1, 1.14); // V5: bold comic outline
-        const h2 = add(new T.ConeGeometry(0.09, 0.4, 8), hornMat, sx * 0.62, 1.22, -0.05, m => {
-          m.rotation.z = sx * -1.0; // curl more
-        });
-        outline(h2, 1.16); // V5: bold comic outline
-        const tip = add(new T.ConeGeometry(0.05, 0.25, 8), hornMat, sx * 0.72, 1.42, -0.05, m => {
-          m.rotation.z = sx * -1.35;
-        });
-        outline(tip, 1.2); // V5: bold comic outline
-      }
+      // Horns: Patty wears the species bull trait now (LT 2026-10-23) —
+      // speciesBull builds the new single-tube horns + wide nose; the
+      // old stacked-cone crystal horns that used to live here are gone.
       // Bull ears (wider, on sides)
       for (const sx of [-1, 1]) {
         const ear = add(new T.SphereGeometry(0.16, 14, 10), crystal, sx * 0.58, 0.42, -0.05, m => {
@@ -1565,8 +1556,9 @@ SAK.Scene3D = (function () {
      * Default 'human' (or unset) = no extra geometry. Simple low-poly
      * primitives matching the cartoon style. All species meshes are tagged
      * userData.species; rebuild() disposes everything and rebuilds clean.
-     * Parody presets that already add horns (patty, ansom) skip the bull
-     * horns so nothing doubles up — the wider bull nose still applies.
+     * Ansom's parody preset adds its own horns, so it skips the bull
+     * horns to avoid doubling up — the wider bull nose still applies.
+     * Patty uses the bull horns (his parody horns were removed 2026-10-23).
      * ===================================================================== */
     buildSpecies() {
       const S = (this.look && this.look.species) || 'human';
@@ -1604,10 +1596,12 @@ SAK.Scene3D = (function () {
       add(new T.SphereGeometry(0.05, 10, 8), dark, 0, 0.31, 0.62);
     }
 
-    /** Bull: curved horns (skipped if a parody preset already added horns) + wide nose. V4: smooth. V5: outlined horns. */
+    /** Bull: curved horns (skipped only for ansom, whose parody preset
+     *  adds its own; patty uses these horns since 2026-10-23) + wide
+     *  nose. V4: smooth. V5: outlined horns. */
     speciesBull(add, skin, dark) {
       const P = this.look.parody;
-      if (P !== 'patty' && P !== 'ansom') {
+      if (P !== 'ansom') {
         // ONE long horn per side (LT 2026-10-23): a single tapered tube
         // swept along a quadratic curve — out from the head, then curling
         // up to a point. Replaces the old 3 stacked cones, which read as

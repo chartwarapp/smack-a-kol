@@ -64,7 +64,7 @@ SAK.KOLS = [
     id: 'pattyspice', name: 'Patty Spice', handle: '@PattySpiceSlaps', level: 9,
     tagline: 'Blue crystal bull. Horns up. Visor down.',
     difficulty: 5, hp: 260, power: 27, accuracy: 0.85, winPts: 1000, minBet: 1000, payout: 3.2,
-    look: { skin: '#4fb8ff', shirt: '#1a3a5c', hair: '#1a1a1a', pants: '#0f1f2e', accessory: 'visor', accent: '#22d3ee', body: 'gymbro', hairStyle: 'spiky', eyes: 'angry', eyeColor: '#0ea5e9', parody: 'patty', gloves: 'diamond', outfit: 'gold' },
+    look: { skin: '#4fb8ff', shirt: '#1a3a5c', hair: '#1a1a1a', pants: '#0f1f2e', accessory: 'visor', accent: '#22d3ee', body: 'gymbro', hairStyle: 'spiky', eyes: 'angry', eyeColor: '#0ea5e9', parody: 'patty', gloves: 'diamond', outfit: 'gold', outfitColor: '#2f7fe0', species: 'bull' },
     taunts: ['Feel the crystal sting.', 'Horns up, hands faster.', 'You just got iced. 🧊']
   },
   {
