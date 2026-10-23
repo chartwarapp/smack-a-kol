@@ -4255,7 +4255,7 @@
         row('Resolver', `<code>${st.resolver ? st.resolver.slice(0, 4) + '…' + st.resolver.slice(-4) : '—'}</code>`) +
         (svcOn
           ? `<div class="fine" style="margin:4px 0;">✅ The settlement service settles every player's bets automatically — nobody signs a settle popup.</div>`
-          : `<button class="btn btn-gold" id="admin-handover-sol" style="width:100%;margin:4px 0;">🤖 HAND SETTLEMENT TO THE SERVICE</button>` +
+          : `<button class="btn btn-gold" id="admin-handover-sol" style="width:100%;margin:4px 0;">🤖 HAND SOL SETTLEMENTS TO THE SERVICE</button>` +
             `<div class="fine" style="margin:2px 0 4px;">One tap: the service wallet becomes the resolver, so every player's bet settles automatically after their fight. You stay admin and can take it back any time. (Needs the hourly contract update — live from ~12:00 PM today.)</div>`);
       html += row('Vault address', `<code>${st.vaultAddress.slice(0, 4)}…${st.vaultAddress.slice(-4)}</code>`) +
         `<div class="vt-foot">Last checked ${new Date().toLocaleTimeString()} · devnet</div>`;
@@ -4268,7 +4268,7 @@
           toast('🤖 Settlement service is live for the SOL house', 3200);
         } catch (e) {
           const m = String((e && e.message) || '');
-          toast(/reject|denied|cancel/i.test(m) ? 'Handover cancelled in wallet' : '⚠️ Handover failed: ' + (m ? m.slice(-110) : 'unknown error'), 6500);
+          toast(/reject|denied|cancel/i.test(m) ? 'Handover cancelled in wallet' : '⚠️ SOL handover failed: ' + (m ? m.slice(-110) : 'unknown error'), 6500);
         }
         refreshAdminVault();
       };
@@ -4437,7 +4437,7 @@
       html += `<div class="vt-sub">SETTLEMENT</div>` +
         (svcOnT
           ? `<div class="fine" style="margin:4px 0;">✅ The settlement service settles every player's $SMACK bets automatically — nobody signs a settle popup.</div>`
-          : `<button class="btn btn-gold" id="th-handover" style="width:100%;margin:4px 0;">🤖 HAND SETTLEMENT TO THE SERVICE</button>` +
+          : `<button class="btn btn-gold" id="th-handover" style="width:100%;margin:4px 0;">🤖 HAND $SMACK SETTLEMENTS TO THE SERVICE</button>` +
             `<div class="fine" style="margin:2px 0 4px;">One tap: the service wallet becomes the resolver, so every player's bet settles automatically after their fight. You stay admin and can take it back any time.</div>`);
       if (!open.length) {
         html += row('Open bets', 'None 🎉');
@@ -4467,7 +4467,7 @@
           toast('🤖 Settlement service is live for the $SMACK house', 3200);
         } catch (e) {
           const m = String((e && e.message) || '');
-          toast(/reject|denied|cancel/i.test(m) ? 'Handover cancelled in wallet' : '⚠️ Handover failed: ' + (m ? m.slice(-110) : 'unknown error'), 6500);
+          toast(/reject|denied|cancel/i.test(m) ? 'Handover cancelled in wallet' : '⚠️ $SMACK handover failed: ' + (m ? m.slice(-110) : 'unknown error'), 6500);
         }
         refreshAdminTokenHouse();
       };
