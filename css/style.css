@@ -203,6 +203,12 @@ h2, h3, .prompt, .vs, .level, .fc-name, .banner, .float-text, .result-title {
   position: absolute; left: 0; right: 0; bottom: 0; padding: 14px 14px calc(16px + var(--safe-bot));
   background: linear-gradient(180deg, #2a1068f2, #1a0b3af8); border-radius: 26px 26px 0 0; border-top: 4px solid #ffffff44;
 }
+/* in-sheet nav row (solo): the sheet is tall enough on phones to cover
+   the floating pick-header, burying its back/shop buttons — these pills
+   live inside the sheet so MENU and SHOP are always reachable */
+.sheet-toprow { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+.sheet-pill { font-size: 15px; font-weight: 700; color: #fff; background: #ffffff1f; border: 2px solid #ffffff40; border-radius: 999px; padding: 6px 14px; cursor: pointer; }
+.sheet-pill:active { transform: scale(.96); }
 .kol-detail { display: grid; grid-template-columns: 1fr auto; gap: 4px 10px; margin-bottom: 10px; }
 .kol-detail .kd-name { font-size: 30px; line-height: 1; }
 .kol-detail .kd-handle { font-family: var(--font); font-size: 13px; opacity: .75; }

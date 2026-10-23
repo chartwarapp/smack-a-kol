@@ -10,7 +10,7 @@
   <!-- Chunky game font (optional – falls back to system fonts offline) -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Lilita+One&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/style.css?v=open-bets-2" />
+  <link rel="stylesheet" href="css/style.css?v=solo-back-1" />
 </head>
 <body>
 <div id="app">
@@ -104,9 +104,12 @@
     <div class="pick-header">
       <button class="icon-btn" data-nav="menu" aria-label="Back">←</button>
       <h2>SMACK-A-KOL</h2>
-      <button class="icon-btn" id="btn-shop-solo" aria-label="Shop">🛒</button>
     </div>
     <div class="pick-sheet">
+      <div class="sheet-toprow">
+        <button type="button" class="sheet-pill" data-nav="menu">← MENU</button>
+        <button type="button" class="sheet-pill" id="btn-shop-solo" aria-label="Shop">🛒 SHOP</button>
+      </div>
       <div id="solo-toggle" class="mode-row">
         <button type="button" class="mode-btn" data-sm="free"><b>🎮 FREE</b><small>No SOL · earn PTS</small></button>
         <button type="button" class="mode-btn selected" data-sm="wager"><b>◎ WAGER SOL</b><small>Bet vs the house · win ×1.9</small></button>
