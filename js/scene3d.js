@@ -2700,11 +2700,15 @@ SAK.Scene3D = (function () {
     }
     // CHART DOME centerpiece: giant pumping candlestick chart arcing behind the ring.
     // Big green candles climbing up — the degen battleground.
+    // 12 candles, not 14 (LT 2026-10-22): the last two arc positions (332°
+    // and 343°) wrap around in front of the brace camera — only ~8 units
+    // from it vs ~18 for the fighters — and filled the left of the frame
+    // as a giant foreground candle during brace rounds.
     chartDomeCandles = [];
     let domePrice = 2.5;
     const domeGreen = new T.MeshBasicMaterial({ color: '#14f195' });
     const domeRed = new T.MeshBasicMaterial({ color: '#ff3b5c' });
-    for (let i = 0; i < 14; i++) {
+    for (let i = 0; i < 12; i++) {
       const up = i < 10 ? Math.random() > 0.25 : Math.random() > 0.6; // mostly pumping
       const h = 1.2 + Math.random() * 2.4;
       domePrice += up ? h * 0.45 : -h * 0.35;
