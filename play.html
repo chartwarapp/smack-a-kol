@@ -10,7 +10,7 @@
   <!-- Chunky game font (optional – falls back to system fonts offline) -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Lilita+One&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/style.css?v=solo-back-1" />
+  <link rel="stylesheet" href="css/style.css?v=snd-fold-1" />
 </head>
 <body>
 <div id="app">
@@ -493,9 +493,11 @@
             <div class="snd-toggle-row"><label>Funny reactions on slaps<small>Random boing/whistle over every face slap</small></label><button class="btn btn-small" id="snd-react-toggle">ON</button></div>
             <div class="snd-toggle-row"><label>Defeat sounds on loss<small>Random dizzy/trombone/boom when you lose</small></label><button class="btn btn-small" id="snd-defeat-toggle">ON</button></div>
             <div class="snd-preview">
-              <h5>PREVIEW &amp; REPLACE SOUNDS</h5>
-              <p class="fine dark" style="margin:0 0 8px">Tap a sound to hear it. Use 📁 to upload your own recording, ↩ to go back to the default.</p>
-              <div class="snd-list" id="snd-list"></div>
+              <button type="button" class="snd-fold-head" id="snd-fold-head" aria-expanded="false">🎵 PREVIEW &amp; REPLACE SOUNDS <span class="snd-fold-arrow" id="snd-fold-arrow">▸</span></button>
+              <div class="snd-fold-body" id="snd-fold-body" hidden>
+                <p class="fine dark" style="margin:0 0 8px">Tap a sound to hear it. Use 📁 to upload your own recording, ↩ to go back to the default.</p>
+                <div class="snd-list" id="snd-list"></div>
+              </div>
             </div>
           </div>
           <p class="fine dark">Changes save automatically and apply immediately.</p>
@@ -577,6 +579,6 @@
 <script src="js/pvp-sync.js?v=realtime-1"></script>
 <script src="js/solana-house.js?v=7"></script>
 <script src="js/contracts.js?v=1"></script>
-<script src="js/game-v3.js?v=th-tracker-1"></script>
+<script src="js/game-v3.js?v=snd-fold-1"></script>
 </body>
 </html>

@@ -4624,6 +4624,23 @@
       ['defeat_silly', '💥 Silly Boom', 'defeat + KO layer', true],
       ['ko', '🥊 KO Impact', 'final knockout hit (layered)', false],
     ];
+    // Collapsible folder for the preview/replace editor: collapsed by
+    // default, remembers LT's choice across panel opens.
+    const sndFoldHead = $('#snd-fold-head'), sndFoldBody = $('#snd-fold-body'), sndFoldArrow = $('#snd-fold-arrow');
+    if (sndFoldHead && sndFoldBody) {
+      const paintFold = () => {
+        const open = !sndFoldBody.hidden;
+        if (sndFoldArrow) sndFoldArrow.textContent = open ? '▾' : '▸';
+        sndFoldHead.setAttribute('aria-expanded', open ? 'true' : 'false');
+      };
+      try { if (localStorage.getItem('sak_snd_fold') === 'open') sndFoldBody.hidden = false; } catch (e) {}
+      paintFold();
+      sndFoldHead.onclick = () => {
+        sndFoldBody.hidden = !sndFoldBody.hidden;
+        try { localStorage.setItem('sak_snd_fold', sndFoldBody.hidden ? 'closed' : 'open'); } catch (e) {}
+        paintFold();
+      };
+    }
     const sndList = $('#snd-list');
     if (sndList && !sndList.dataset.built) {
       sndList.dataset.built = '1';
