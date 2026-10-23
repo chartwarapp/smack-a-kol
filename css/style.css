@@ -1119,6 +1119,31 @@ body.on-menu #ticker { display: none; }
 .snd-preview { margin-top: 12px; }
 /* Preview & replace sounds live in a collapsible folder (LT 2026-10-23):
    the 8-row editor stays tucked away until the header is tapped */
+/* Fight history tracker (profile section) — same lavender-tile language
+   as the admin vault trackers */
+.fh-section { margin-top: 14px; border-top: 2px solid #2a0a4a14; padding-top: 10px; }
+.fh-title { font-size: 13px; letter-spacing: 1px; color: #2a0a4a; margin: 0 0 8px; }
+.fh-tiles { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+.fh-tile { background: #f1edff; border-radius: 12px; padding: 8px 6px; text-align: center; }
+.fh-tile b { display: block; font-size: 17px; color: #2a0a4a; }
+.fh-tile span { font-size: 9px; font-weight: 800; letter-spacing: 1px; color: #2a0a4a99; }
+.fh-money { display: grid; gap: 5px; margin-top: 8px; }
+.fh-money-row { display: flex; align-items: center; gap: 8px; background: #f1edff; border-radius: 10px; padding: 6px 10px; font-size: 12px; color: #2a0a4a; }
+.fh-money-row span:first-child { font-weight: 800; font-size: 10px; letter-spacing: .5px; color: #2a0a4a99; }
+.fh-money-row b { margin-left: auto; }
+.fh-list { display: grid; gap: 6px; margin-top: 8px; max-height: 300px; overflow-y: auto; }
+.fh-row { display: flex; align-items: center; gap: 9px; background: #2a0a4a08; border-radius: 10px; padding: 7px 9px; }
+.fh-badge { flex: none; width: 22px; height: 22px; border-radius: 7px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 900; color: #fff; }
+.fh-badge.w { background: #1fb855; }
+.fh-badge.l { background: #e63946; }
+.fh-main { flex: 1 1 auto; min-width: 0; }
+.fh-opp { font-size: 13px; font-weight: 800; color: #2a0a4a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fh-meta { font-size: 10px; color: #2a0a4a99; }
+.fh-net { flex: none; text-align: right; font-size: 13px; font-weight: 800; }
+.fh-wager { font-size: 10px; font-weight: 400; color: #2a0a4a99; }
+.fh-pos { color: #0a7a3a; }
+.fh-neg { color: #c22744; }
+
 .snd-fold-head { display: flex; justify-content: space-between; align-items: center; width: 100%; background: #2a0a4a10; border: 2px solid #2a0a4a26; border-radius: 10px; padding: 9px 12px; font-size: 13px; font-weight: 800; letter-spacing: 1px; color: #2a0a4a; cursor: pointer; }
 .snd-fold-head:active { transform: scale(.99); }
 .snd-fold-arrow { font-size: 15px; color: #2a0a4a99; }

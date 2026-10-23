@@ -10,7 +10,7 @@
   <!-- Chunky game font (optional – falls back to system fonts offline) -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Lilita+One&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/style.css?v=snd-fold-1" />
+  <link rel="stylesheet" href="css/style.css?v=fight-history-1" />
 </head>
 <body>
 <div id="app">
@@ -416,6 +416,14 @@
           <button type="button" class="btn btn-blue" id="cr-sync" title="Push fighter to Supabase for PvP">🔄 SYNC</button>
           <button type="submit" class="btn btn-green" id="cr-save">SAVE · LFG 🚀</button>
         </div>
+
+        <!-- Fight history tracker (player-facing) -->
+        <div class="fh-section" id="fh-section">
+          <h4 class="fh-title">📜 FIGHT HISTORY</h4>
+          <div class="fh-tiles" id="fh-tiles"></div>
+          <div class="fh-money" id="fh-money"></div>
+          <div class="fh-list" id="fh-list"><p class="fine dark" style="margin:4px 0">Loading…</p></div>
+        </div>
       </div>
     </form>
   </div>
@@ -570,8 +578,8 @@
 <script src="js/avatars.js?v=patty-bull-1"></script>
 <script src="js/scene3d.js?v=pvp-look-1"></script>
 <script src="js/meter.js?v=https-fix-2"></script>
-<script src="js/api.js?v=https-fix-2"></script>
-<script src="js/api-supabase.js?v=https-fix-2"></script>
+<script src="js/api.js?v=fight-history-1"></script>
+<script src="js/api-supabase.js?v=fight-history-1"></script>
 <script src="js/fightcard.js?v=https-fix-2"></script>
 <script src="js/fighter-lock.js?v=1"></script>
 <script src="js/solana-escrow.js?v=1"></script>
@@ -579,6 +587,6 @@
 <script src="js/pvp-sync.js?v=pvp-guard-1"></script>
 <script src="js/solana-house.js?v=7"></script>
 <script src="js/contracts.js?v=1"></script>
-<script src="js/game-v3.js?v=pvp-names-1"></script>
+<script src="js/game-v3.js?v=fight-history-1"></script>
 </body>
 </html>

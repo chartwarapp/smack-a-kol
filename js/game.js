@@ -575,6 +575,63 @@
     const fcb = $('#pk-fighter-card'); if (fcb) fcb.remove();
     $('#modal-fighter').classList.remove('hidden');
     if (crIsNew) showCreatorStep('name'); else showCreatorStep('look');
+    refreshFightHistory();
+  }
+
+  // ---- Fight history tracker (profile section) ----
+  function fhMoney(n, cur) {
+    if (cur === 'SMACK' || cur === 'PTS') return Math.round(n).toLocaleString('en-US');
+    return String(Math.round(n * 1000) / 1000);
+  }
+  async function refreshFightHistory() {
+    const list = document.getElementById('fh-list');
+    if (!list) return;
+    const tiles = document.getElementById('fh-tiles');
+    const money = document.getElementById('fh-money');
+    if (!W.address || !SAK.Api || !SAK.Api.getFightHistory) {
+      if (tiles) tiles.innerHTML = '';
+      if (money) money.innerHTML = '';
+      list.innerHTML = '<p class="fine dark" style="margin:4px 0">Connect your wallet to track your fights.</p>';
+      return;
+    }
+    let rows = [];
+    try { rows = await SAK.Api.getFightHistory(W.address, 200); } catch (e) { rows = []; }
+    if (!rows || !rows.length) {
+      if (tiles) tiles.innerHTML = '';
+      if (money) money.innerHTML = '';
+      list.innerHTML = '<p class="fine dark" style="margin:4px 0">No fights recorded yet — history starts with your next fight.</p>';
+      return;
+    }
+    const wins = rows.filter(r => r.won).length, losses = rows.length - wins;
+    if (tiles) tiles.innerHTML =
+      `<div class="fh-tile"><b>${rows.length}</b><span>FIGHTS</span></div>` +
+      `<div class="fh-tile"><b>${wins}–${losses}</b><span>W – L</span></div>` +
+      `<div class="fh-tile"><b>${Math.round(wins / rows.length * 100)}%</b><span>WIN RATE</span></div>`;
+    const agg = {};
+    rows.forEach(r => {
+      if (!r.currency || r.currency === 'FREE') return;
+      const a = agg[r.currency] = agg[r.currency] || { w: 0, net: 0 };
+      a.w += Number(r.wager) || 0; a.net += (Number(r.payout) || 0) - (Number(r.wager) || 0);
+    });
+    if (money) money.innerHTML = Object.keys(agg).map(cur => {
+      const a = agg[cur];
+      const netTxt = (a.net >= 0 ? '+' : '−') + fhMoney(Math.abs(a.net), cur);
+      return `<div class="fh-money-row"><span>${cur === 'SMACK' ? '🪙 $SMACK' : cur === 'SOL' ? '◎ SOL' : '⭐ PTS'} WAGERED</span><b>${fhMoney(a.w, cur)}</b><span class="${a.net >= 0 ? 'fh-pos' : 'fh-neg'}">${netTxt} net</span></div>`;
+    }).join('');
+    const modeTag = r => r.mode === 'solo' ? '🏠 SOLO' : r.mode === 'pvp' ? '⚔️ PVP' : (r.currency === 'PTS' ? '⭐ PTS BET' : '🆓 FREE');
+    list.innerHTML = rows.slice(0, 30).map(r => {
+      const net = (Number(r.payout) || 0) - (Number(r.wager) || 0);
+      const unit = r.currency === 'SOL' ? ' SOL' : r.currency === 'SMACK' ? ' $SMACK' : r.currency === 'PTS' ? ' PTS' : '';
+      const netHtml = r.currency === 'FREE'
+        ? `<span class="fh-pos">+${r.pts || 0} PTS</span>`
+        : `<span class="${net >= 0 ? 'fh-pos' : 'fh-neg'}">${net >= 0 ? '+' : '−'}${fhMoney(Math.abs(net), r.currency)}${unit}</span>`;
+      return `<div class="fh-row">
+        <span class="fh-badge ${r.won ? 'w' : 'l'}">${r.won ? 'W' : 'L'}</span>
+        <div class="fh-main"><div class="fh-opp">${esc(r.opponent_name || 'Fighter')}</div>
+        <div class="fh-meta">${modeTag(r)}${r.score ? ' · ' + esc(r.score) : ''} · ${timeAgo(r.created_at)}</div></div>
+        <div class="fh-net">${netHtml}${r.currency === 'FREE' ? '' : `<div class="fh-wager">wager ${fhMoney(Number(r.wager) || 0, r.currency)}${unit}</div>`}</div>
+      </div>`;
+    }).join('');
   }
   function showCreatorStep(step) {
     $('#cr-step-name').classList.toggle('hidden', step !== 'name');
@@ -2049,6 +2106,39 @@
     checkAchievements(win, !!F.wasKoWin);
     checkReferralReward(win);
     SAK.Storage.save();
+
+    // Fight history (player tracker in the profile section, LT 2026-10-23):
+    // one row per finished fight across ALL modes — solo house wagers
+    // (SOL + $SMACK), on-chain PvP, PTS bets and free fights. Payout is
+    // the gross amount the winner receives (solo 1.9x; PvP pot minus the
+    // 5% fee = 1.9x wager; PTS bet pays betTotal). Fire-and-forget.
+    if (!draw && W.address && SAK.Api && SAK.Api.recordFightHistory) {
+      try {
+        const sh = F.opts && F.opts.soloHouse;
+        let fhMode = 'free', fhCurrency = 'FREE', fhWager = 0, fhPayout = 0;
+        if (sh) {
+          fhMode = 'solo'; fhCurrency = sh.currency;
+          if (sh.currency === 'SMACK') { fhWager = sh.wagerTokens || 0; fhPayout = win ? Math.floor(fhWager * 0.99 * 1.9) : 0; }
+          else { fhWager = parseFloat(sh.wagerSol || 0); fhPayout = win ? fhWager * 1.9 : 0; }
+        } else if (k.pvp) {
+          fhMode = 'pvp'; fhCurrency = 'SOL';
+          fhWager = parseFloat((F.opts && F.opts.chainWagerSol) || 0);
+          fhPayout = win ? fhWager * 1.9 : 0;
+        } else if (F.bet) {
+          fhCurrency = 'PTS'; fhWager = F.bet; fhPayout = win ? betTotal : 0;
+        }
+        const fhc = F.challenge;
+        SAK.Api.recordFightHistory({
+          wallet: W.address,
+          opponent_name: k.name || 'Fighter',
+          opponent_wallet: (F.opts && F.opts.chainOpponentWallet) || null,
+          mode: fhMode, currency: fhCurrency, wager: fhWager, payout: fhPayout,
+          won: !!win, pts: pts || 0,
+          score: fhc ? (fhc.pWins + '-' + fhc.kWins) : null,
+          ref: (F.opts && (F.opts.chainChallenge || (sh && sh.bet))) || null,
+        }).catch(() => {});
+      } catch (e) {}
+    }
 
     const C = SAK.COPY, sub = t => esc(t.replace('{k}', k.name).replace('{t}', pick(k.taunts)));
     let html = draw

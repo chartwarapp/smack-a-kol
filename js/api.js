@@ -39,6 +39,8 @@ SAK.Api = (function () {
     resolveChallenge(id, w, ...a) { return backend.resolveChallenge(id, w, ...a); },
     listChallenges(s, ...a) { return backend.listChallenges(s, ...a); },
     recordMatch(d, ...a) { return backend.recordMatch(d, ...a); },
+    recordFightHistory(d, ...a) { return backend.recordFightHistory ? backend.recordFightHistory(d, ...a) : Promise.resolve(null); },
+    getFightHistory(w, ...a) { return backend.getFightHistory ? backend.getFightHistory(w, ...a) : Promise.resolve([]); },
     audit(w, act, det, ...a) { return backend.audit(w, act, det, ...a); },
     recordReferral(d, ...a) { return backend.recordReferral ? backend.recordReferral(d, ...a) : Promise.resolve(null); },
     _req(...a) { return backend._req ? backend._req(...a) : Promise.reject(new Error('Backend does not support _req')); },
@@ -116,6 +118,18 @@ SAK.Api.MockBackend = function () {
       const d = db();
       const m = Object.assign({ id: uid(), status: 'complete', created_at: new Date().toISOString() }, data);
       d.matches.push(m); persist(d); return m;
+    },
+    async recordFightHistory(data) {
+      const d = db();
+      d.fights = d.fights || [];
+      d.fights.push(Object.assign({ id: uid(), created_at: new Date().toISOString() }, data));
+      persist(d); return data;
+    },
+    async getFightHistory(wallet, limit) {
+      const d = db();
+      return (d.fights || []).filter(f => f.wallet === wallet)
+        .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+        .slice(0, limit || 200);
     },
     async audit(adminWallet, action, details) {
       // mock: no-op (real backend writes to admin_audit)

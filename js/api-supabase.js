@@ -114,6 +114,17 @@ SAK.Api.SupabaseBackend = function (url, anonKey) {
         'return=representation');
       return one(rows);
     },
+    // Player fight-history tracker (profile section): one row per
+    // finished fight — mode, wager, payout, result, PTS, score.
+    async recordFightHistory(data) {
+      await req('POST', '/fight_history', data, 'return=minimal');
+      return data;
+    },
+    async getFightHistory(wallet, limit) {
+      const rows = await req('GET',
+        `/fight_history?wallet=eq.${encodeURIComponent(wallet)}&select=*&order=created_at.desc&limit=${limit || 200}`);
+      return rows || [];
+    },
     async audit(adminWallet, action, details) {
       await req('POST', '/admin_audit', {
         admin_wallet: adminWallet, action, details: details || {},
