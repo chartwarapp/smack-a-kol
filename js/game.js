@@ -3994,6 +3994,80 @@
     if (btn) { btn.disabled = false; btn.textContent = '🔄 REFRESH VAULT'; }
   }
 
+  let openBetsCache = [];
+  function betAge(ms) {
+    const s = Math.max(0, Math.floor((Date.now() - ms) / 1000));
+    if (s < 3600) return Math.max(1, Math.floor(s / 60)) + 'm ago';
+    if (s < 172800) return (s / 3600).toFixed(1).replace(/\.0$/, '') + 'h ago';
+    return (s / 86400).toFixed(1).replace(/\.0$/, '') + 'd ago';
+  }
+
+  async function refreshAdminOpenBets() {
+    const el = $('#admin-openbets');
+    if (!el) return;
+    const btn = $('#admin-openbets-refresh');
+    if (btn) { btn.disabled = true; btn.textContent = 'LOADING…'; }
+    el.textContent = 'Reading open bets from devnet…';
+    try {
+      const bets = await SAK.SolanaHouse.getOpenBets();
+      openBetsCache = bets;
+      if (!bets.length) {
+        el.innerHTML = `<div class="vt-row"><span>No open bets</span><b>All settled 🎉</b></div>`;
+      } else {
+        const total = bets.reduce((sum, b) => sum + b.wagerLamports, 0);
+        let html = `<div class="vt-row"><span>${bets.length} open · locked in bet vaults</span><b>◎ ${fmtSol(total)} SOL</b></div>`;
+        bets.forEach((b, i) => {
+          const mine = W.address && b.player === W.address;
+          const who = `${b.player.slice(0, 4)}…${b.player.slice(-4)}${mine ? ' · YOU' : ''}`;
+          const when = new Date(b.nonce).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+          html += `<div class="ob-row"><div class="ob-head">` +
+            `<span class="vt-move-label">◎ ${fmtSol(b.wagerLamports)} SOL — ${who}</span>` +
+            `<span class="vt-move-time">Placed ${when} · ${betAge(b.nonce)}</span></div>` +
+            `<div class="ob-actions">` +
+            `<button class="ob-btn win" data-ob="${i}" data-won="1">SETTLE WIN</button>` +
+            `<button class="ob-btn loss" data-ob="${i}" data-won="0">SETTLE LOSS</button>` +
+            `</div></div>`;
+        });
+        el.innerHTML = html;
+        el.querySelectorAll('.ob-btn').forEach(btnEl => { btnEl.onclick = () => settleOpenBet(btnEl); });
+      }
+    } catch (e) {
+      el.textContent = '⚠️ Could not reach devnet from this device. Check your connection and tap REFRESH OPEN BETS.';
+    }
+    if (btn) { btn.disabled = false; btn.textContent = '🔄 REFRESH OPEN BETS'; }
+  }
+
+  // Two-tap confirm: first tap arms the button ("SURE?"), second settles.
+  // The wallet signature prompt is the final gate either way.
+  async function settleOpenBet(btnEl) {
+    const b = openBetsCache[Number(btnEl.dataset.ob)];
+    if (!b) return;
+    const label = won => won ? 'SETTLE WIN' : 'SETTLE LOSS';
+    if (!btnEl.classList.contains('armed')) {
+      document.querySelectorAll('.ob-btn.armed').forEach(x => { x.classList.remove('armed'); x.textContent = label(x.dataset.won === '1'); });
+      btnEl.classList.add('armed');
+      btnEl.textContent = 'SURE?';
+      setTimeout(() => { if (btnEl.isConnected && btnEl.classList.contains('armed')) { btnEl.classList.remove('armed'); btnEl.textContent = label(btnEl.dataset.won === '1'); } }, 3500);
+      return;
+    }
+    const won = btnEl.dataset.won === '1';
+    const row = btnEl.closest('.ob-row');
+    if (row) row.querySelectorAll('.ob-btn').forEach(x => { x.disabled = true; });
+    btnEl.textContent = 'SETTLING…';
+    try {
+      await SAK.SolanaHouse.resolveBet(b.bet, b.player, b.nonce, won);
+      toast(won
+        ? `✅ Settled as a WIN — player receives ◎ ${fmtSol(Math.round(b.wagerLamports * 1.9))} total`
+        : `✅ Settled as a LOSS — ◎ ${fmtSol(b.wagerLamports)} returned to the vault`, 3400);
+      refreshAdminOpenBets();
+      refreshAdminVault();
+    } catch (e) {
+      const msg = (e && e.message) || '';
+      toast(/reject|declined|cancel/i.test(msg) ? 'Settle cancelled in wallet — the bet is still open' : '⚠️ Settle failed — the bet is still open, try again', 3200);
+      refreshAdminOpenBets();
+    }
+  }
+
   async function openAdmin() {
     if (!W.isConnected) { toast('Connect wallet first 👛', 2000); return; }
     const cfg = await SAK.Api.getConfig();
@@ -4108,6 +4182,9 @@
     const vb = $('#admin-vault-refresh');
     if (vb) vb.onclick = () => { A.click(); refreshAdminVault(); };
     refreshAdminVault();
+    const obBtn = $('#admin-openbets-refresh');
+    if (obBtn) obBtn.onclick = () => { A.click(); refreshAdminOpenBets(); };
+    refreshAdminOpenBets();
     // Check contract initialization status
     initContractStatus();
   }

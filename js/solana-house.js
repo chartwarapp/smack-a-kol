@@ -180,6 +180,30 @@
     };
   }
 
+  /** List every OPEN Bet account (state 0) for the admin settle tool.
+   *  The nonce is the placement time (placeBet uses Date.now()), so rows
+   *  sort oldest first — the longest-stuck bets surface at the top. */
+  async function getOpenBets() {
+    const w = web3();
+    const conn = connection();
+    const programId = new w.PublicKey(PROGRAM_ID);
+    const accts = await conn.getProgramAccounts(programId, { filters: [{ dataSize: 59 }] });
+    const out = [];
+    for (const { pubkey, account } of accts) {
+      const d = account.data;
+      const dv = new DataView(d.buffer, d.byteOffset || 0, d.byteLength);
+      if (dv.getUint8(56) !== 0) continue;
+      out.push({
+        bet: pubkey.toBase58(),
+        player: new w.PublicKey(d.slice(8, 40)).toBase58(),
+        nonce: Number(dv.getBigUint64(40, true)),
+        wagerLamports: Number(dv.getBigUint64(48, true)),
+      });
+    }
+    out.sort((a, b) => a.nonce - b.nonce);
+    return out;
+  }
+
   /** Recent money movement on the main vault PDA: for each of the latest
    *  transactions touching the vault, the signed lamport delta. Callers
    *  classify: big inflow = funding, small inflow = a lost wager collected,
@@ -208,5 +232,5 @@
     return out;
   }
 
-  window.SAK.SolanaHouse = { PROGRAM_ID, RPC_URL, placeBet, resolveBet, derivePDAs, getHouseState, getOpenBetsSummary, getVaultActivity };
+  window.SAK.SolanaHouse = { PROGRAM_ID, RPC_URL, placeBet, resolveBet, derivePDAs, getHouseState, getOpenBetsSummary, getOpenBets, getVaultActivity };
 })();
