@@ -1271,17 +1271,18 @@ body.on-menu #ticker { display: none; }
 /* Unified fight info bar: arena + score + bet in one pill */
 .fight-info-bar {
   position: absolute; left: 50%; top: calc(120px + var(--safe-top)); transform: translateX(-50%);
-  z-index: 26; display: flex; align-items: center; gap: 8px;
+  z-index: 26; display: flex; align-items: center; gap: 6px;
   background: #1a0b3add; border: 3px solid #fff; border-radius: 16px;
   box-shadow: 0 4px 0 #0006;
-  padding: 6px 14px; white-space: nowrap;
+  padding: 6px 12px; white-space: nowrap;
   font-family: var(--font); font-size: 14px; font-weight: 700; color: #fff;
   pointer-events: none; max-width: 94vw;
 }
-.fight-info-bar .fib-arena, .fight-info-bar .fib-score { flex: none; }
-.fight-info-bar .fib-bet { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.fight-info-bar .fib-score { flex: none; }
+.fight-info-bar .fib-arena { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fight-info-bar .fib-bet { flex: 1 0 auto; overflow: hidden; text-overflow: ellipsis; }
 .fight-info-bar.hidden { display: none; }
-.fight-info-bar .fib-arena { color: #ffd23f; letter-spacing: 2px; font-size: 12px; }
+.fight-info-bar .fib-arena { color: #ffd23f; letter-spacing: 1px; font-size: 12px; }
 .fight-info-bar .fib-div { width: 2px; height: 18px; background: #ffffff33; flex: none; }
 .fight-info-bar .fib-score { font-size: 20px; letter-spacing: 2px; }
 .fight-info-bar .fib-score .rs-p { color: #7ec0ff; }
