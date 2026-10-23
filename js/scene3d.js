@@ -1444,21 +1444,51 @@ SAK.Scene3D = (function () {
     speciesBull(add, skin, dark) {
       const P = this.look.parody;
       if (P !== 'patty' && P !== 'ansom') {
-        // Curved horns — stacked cones, bone colored (same curl style as Patty's)
+        // ONE long horn per side (LT 2026-10-23): a single tapered tube
+        // swept along a quadratic curve — out from the head, then curling
+        // up to a point. Replaces the old 3 stacked cones, which read as
+        // separate horns floating off the head.
         const hornMat = new T.MeshStandardMaterial({ color: '#e8dcc8', roughness: 0.4, metalness: 0.1 });
+        const hornGeo = sx => {
+          const P0 = [0, 0, 0], P1 = [sx * 0.42, 0.03, 0], P2 = [sx * 0.55, 0.46, 0];
+          const SEG = 12, RAD = 10, pos = [], idx = [];
+          const pt = t => {
+            const a = (1 - t) * (1 - t), b = 2 * (1 - t) * t, c = t * t;
+            return [a * P0[0] + b * P1[0] + c * P2[0], a * P0[1] + b * P1[1] + c * P2[1], 0];
+          };
+          const tan = t => {
+            const x = 2 * (1 - t) * (P1[0] - P0[0]) + 2 * t * (P2[0] - P1[0]);
+            const y = 2 * (1 - t) * (P1[1] - P0[1]) + 2 * t * (P2[1] - P1[1]);
+            const l = Math.hypot(x, y) || 1; return [x / l, y / l];
+          };
+          for (let i = 0; i <= SEG; i++) {
+            const t = i / SEG, c = pt(t), tg = tan(t);
+            const r = 0.115 + (0.012 - 0.115) * Math.pow(t, 0.9);
+            const nx = -tg[1], ny = tg[0]; // in-plane normal; binormal is +z
+            for (let j = 0; j <= RAD; j++) {
+              const th = (j / RAD) * Math.PI * 2, co = Math.cos(th), si = Math.sin(th);
+              pos.push(c[0] + r * co * nx, c[1] + r * co * ny, r * si);
+            }
+          }
+          for (let i = 0; i < SEG; i++) for (let j = 0; j < RAD; j++) {
+            const a = i * (RAD + 1) + j, b = a + RAD + 1;
+            idx.push(a, a + 1, b, a + 1, b + 1, b);
+          }
+          // Tip point, slightly past the last ring along the tangent
+          const tipC = pt(1), tipT = tan(1);
+          const tipIdx = pos.length / 3;
+          pos.push(tipC[0] + tipT[0] * 0.05, tipC[1] + tipT[1] * 0.05, 0);
+          const ring0 = SEG * (RAD + 1);
+          for (let j = 0; j < RAD; j++) idx.push(ring0 + j, ring0 + j + 1, tipIdx);
+          const g = new T.BufferGeometry();
+          g.setAttribute('position', new T.Float32BufferAttribute(pos, 3));
+          g.setIndex(idx);
+          g.computeVertexNormals();
+          return g;
+        };
         for (const sx of [-1, 1]) {
-          const h1 = add(new T.ConeGeometry(0.11, 0.42, 12), hornMat, sx * 0.4, 0.98, -0.05, m => {
-            m.rotation.z = sx * -0.55;
-          });
-          outline(h1, 1.14);
-          const h2 = add(new T.ConeGeometry(0.07, 0.34, 10), hornMat, sx * 0.58, 1.22, -0.05, m => {
-            m.rotation.z = sx * -1.0;
-          });
-          outline(h2, 1.16);
-          const h3 = add(new T.ConeGeometry(0.04, 0.2, 8), hornMat, sx * 0.68, 1.4, -0.05, m => {
-            m.rotation.z = sx * -1.35;
-          });
-          outline(h3, 1.2);
+          const horn = add(hornGeo(sx), hornMat, sx * 0.4, 0.95, -0.05);
+          outline(horn, 1.12);
         }
       }
       // Wide nose with big nostrils — V4: rounded
