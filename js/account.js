@@ -3,7 +3,7 @@
  * -------------------------------------------------------------------------
  * Profile (stored as SAK.Storage.state.profile, versioned):
  *   { v: 2, id, name, createdAt, phrase,
- *     avatar: { body, hairStyle, hairColor, skin, eyes, eyeColor, accessory, shirt } }
+ *     avatar: { species, body, hairStyle, hairColor, skin, eyes, eyeColor, accessory, shirt } }
  * `avatar` is the single source for the player's look: SAK.Account.toLook()
  * turns it into the `look` used by the 3D Fighter (Scene3D.applyAvatar) and
  * the SVG portraits (SAK.avatarSVG).
@@ -15,6 +15,11 @@ window.SAK = window.SAK || {};
 SAK.Account = (function () {
   const VERSION = 2;
   const OPTIONS = {
+    species: [
+      { id: 'human', label: 'Human' }, { id: 'bear', label: 'Bear' }, { id: 'bull', label: 'Bull' },
+      { id: 'ape', label: 'Ape' }, { id: 'dog', label: 'Dog' }, { id: 'cat', label: 'Cat' },
+      { id: 'frog', label: 'Frog' }, { id: 'rabbit', label: 'Rabbit' }, { id: 'panda', label: 'Panda' }
+    ],
     body: [
       { id: 'classic', label: 'Classic' }, { id: 'chonk', label: 'Chonk' }, { id: 'gymbro', label: 'Gym Bro' },
       { id: 'noodle', label: 'Noodle' }, { id: 'smol', label: 'Smol' }
@@ -42,7 +47,7 @@ SAK.Account = (function () {
 
   function defaultAvatar() {
     const L = SAK.PLAYER.look;
-    return { body: 'classic', hairStyle: 'short', hairColor: L.hair, skin: L.skin, eyes: 'round', eyeColor: '#1a1a1a', accessory: L.accessory, shirt: L.shirt };
+    return { species: 'human', body: 'classic', hairStyle: 'short', hairColor: L.hair, skin: L.skin, eyes: 'round', eyeColor: '#1a1a1a', accessory: L.accessory, shirt: L.shirt };
   }
 
   /** Clamp any (possibly old / hand-edited) avatar to valid values. */
@@ -50,15 +55,25 @@ SAK.Account = (function () {
     const d = defaultAvatar(), out = {};
     a = a || {};
     const hex = v => typeof v === 'string' && /^#[0-9a-f]{6}$/i.test(v);
-    const PICK = ['body', 'hairStyle', 'eyes', 'accessory'];
-    for (const k of ['body', 'hairStyle', 'hairColor', 'skin', 'eyes', 'eyeColor', 'accessory', 'shirt']) {
+    const PICK = ['species', 'body', 'hairStyle', 'eyes', 'accessory'];
+    for (const k of ['species', 'body', 'hairStyle', 'hairColor', 'skin', 'eyes', 'eyeColor', 'accessory', 'shirt']) {
       out[k] = PICK.includes(k) ? (ids(k).includes(a[k]) ? a[k] : d[k]) : (hex(a[k]) ? a[k] : d[k]);
     }
     return out;
   }
 
+  // Species odds mirror SAK.Traits: ~2/3 human, animals as the treat.
+  const SPECIES_W = [['human', 180], ['bear', 25], ['bull', 25], ['ape', 10], ['dog', 10], ['cat', 10], ['frog', 4], ['rabbit', 4], ['panda', 1]];
+  function pickSpecies() {
+    let total = 0; for (const [, w] of SPECIES_W) total += w;
+    let r = Math.random() * total;
+    for (const [id, w] of SPECIES_W) { r -= w; if (r < 0) return id; }
+    return 'human';
+  }
+
   function randomAvatar() {
     return {
+      species: pickSpecies(),
       body: pick(ids('body')), hairStyle: pick(ids('hairStyle')), hairColor: pick(OPTIONS.hairColor), skin: pick(OPTIONS.skin),
       eyes: pick(ids('eyes')), eyeColor: pick(OPTIONS.eyeColor), accessory: pick(ids('accessory')), shirt: pick(OPTIONS.shirt)
     };
@@ -70,7 +85,7 @@ SAK.Account = (function () {
     return {
       skin: a.skin, shirt: a.shirt, hair: a.hairColor, pants: SAK.PLAYER.look.pants, accessory: a.accessory,
       accent: a.accessory === 'laser' ? '#ff1a1a' : a.accessory === 'crown' ? '#ffd23f' : '#ffffff',
-      body: a.body, hairStyle: a.hairStyle, eyes: a.eyes, eyeColor: a.eyeColor
+      body: a.body, hairStyle: a.hairStyle, eyes: a.eyes, eyeColor: a.eyeColor, species: a.species
     };
   }
 

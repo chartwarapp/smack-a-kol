@@ -20,6 +20,20 @@ SAK.Traits = (() => {
   // Each layer: array of { id, label, rarity, value }
   // value maps to the existing avatar look fields where possible.
   const LAYERS = {
+    // Species (LT 2026-10-23): all 9 species already have 3D geometry +
+    // portrait art; Human carries a weight override so ~2/3 of rolls stay
+    // human and animals read as a treat (Panda = the legendary chase).
+    species: [
+      { id: 'human', label: 'Human', rarity: 'common', weight: 180 },
+      { id: 'bear', label: 'Bear 🐻', rarity: 'uncommon' },
+      { id: 'bull', label: 'Bull 🐂', rarity: 'uncommon' },
+      { id: 'ape', label: 'Ape 🦍', rarity: 'rare' },
+      { id: 'dog', label: 'Dog 🐶', rarity: 'rare' },
+      { id: 'cat', label: 'Cat 🐱', rarity: 'rare' },
+      { id: 'frog', label: 'Frog 🐸', rarity: 'epic' },
+      { id: 'rabbit', label: 'Rabbit 🐰', rarity: 'epic' },
+      { id: 'panda', label: 'Panda 🐼', rarity: 'legendary' },
+    ],
     body: [
       { id: 'classic', label: 'Classic', rarity: 'common' },
       { id: 'chonk', label: 'Chonk', rarity: 'common' },
@@ -105,9 +119,9 @@ SAK.Traits = (() => {
     ],
   };
 
-  const LAYER_ORDER = ['body', 'skin', 'eyes', 'eyeColor', 'hairStyle', 'hairColor', 'gloves', 'outfit', 'accessory'];
+  const LAYER_ORDER = ['species', 'body', 'skin', 'eyes', 'eyeColor', 'hairStyle', 'hairColor', 'gloves', 'outfit', 'accessory'];
   const LAYER_LABELS = {
-    body: 'Body', skin: 'Skin', eyes: 'Eyes', eyeColor: 'Eye Color',
+    species: 'Species', body: 'Body', skin: 'Skin', eyes: 'Eyes', eyeColor: 'Eye Color',
     hairStyle: 'Hair', hairColor: 'Hair Color', gloves: 'Gloves',
     outfit: 'Outfit', accessory: 'Accessory',
   };
@@ -119,7 +133,7 @@ SAK.Traits = (() => {
     const traits = LAYERS[layerId];
     let total = 0;
     const weighted = traits.map(t => {
-      const w = RARITY[t.rarity].weight;
+      const w = t.weight != null ? t.weight : RARITY[t.rarity].weight;
       total += w;
       return { t, w, cum: total };
     });
@@ -169,6 +183,7 @@ SAK.Traits = (() => {
       return t.value !== undefined ? t.value : t.id;
     };
     return {
+      species: get('species', 'human'),
       body: get('body', 'classic'),
       skin: get('skin', '#f6c9a0'),
       eyes: get('eyes', 'round'),
