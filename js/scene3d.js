@@ -2511,6 +2511,10 @@ SAK.Scene3D = (function () {
     });
     scene.remove(arenaGroup);
     arenaGroup = null;
+    // billboardGroup is a persistent module-level group: without clearing
+    // it, the old arena's panels ride into the next arena on switch
+    // (disposed three.js resources re-upload, so they rendered anyway).
+    while (billboardGroup.children.length) billboardGroup.remove(billboardGroup.children[0]);
   }
 
   /** Switch arena style (also used at boot). Safe to call any time. */
@@ -2646,9 +2650,16 @@ SAK.Scene3D = (function () {
     const capCols = ['#ff3b5c', '#2e9dff', '#39ff88', '#ffd23f', '#f5f5f5', '#ff4fd8'];
     // Seeded pseudo-random: deterministic per index, looks organic
     const srand = (seed) => { const x = Math.sin(seed * 127.1 + 311.7) * 43758.5453; return x - Math.floor(x); };
-    // Memecoin mascots sit at spread-out seats in the crowd
-    const MASCOTS = { 4: 'doge', 14: 'pepe', 24: 'bonk' };
+    // Memecoin mascots sit at spread-out seats in the crowd (Doge's seat
+    // moved from 48° to 132° in the foreground cleanup below)
+    const MASCOTS = { 11: 'doge', 14: 'pepe', 24: 'bonk' };
     for (let i = 0; i < 30; i++) {
+      // Foreground cleanup (LT 2026-10-23): no crowd on the camera-side
+      // arc (304°–106°) — those seats sit between the fight/menu/brace
+      // cameras and the ring, and their heads cropped into the bottom of
+      // the frame over the stage. The back-arc crowd stays as background.
+      const seatDeg = i * 12;
+      if (seatDeg >= 304 || seatDeg <= 106) continue;
       const ang = (i / 30) * Math.PI * 2;
       const r = 5.6 + (srand(i * 3 + 1) > 0.5 ? 0.8 : 0);
       const g = new T.Group();
@@ -2793,9 +2804,10 @@ SAK.Scene3D = (function () {
     const apron = new T.Mesh(new T.CircleGeometry(24, 40), mat('#0a0318'));
     apron.rotation.x = -Math.PI / 2; apron.position.y = -0.16;
     AG.add(apron);
-    billboard(textPanel('HODL', '#ffd23f', ['#12002b', '#3a2a0b'], 512, 220), 3.4, 1.5, 55, 8.6, 3.4);
-    billboard(textPanel('WAGMI', '#39ff88', ['#12002b', '#2a0b5e'], 512, 220), 3.4, 1.5, 95, 8.6, 3.8);
-    billboard(textPanel('Solana', '#ff4fd8', ['#2a0b2e', '#5e0b3a'], 640, 200), 3.8, 1.15, 130, 8.6, 3.2);
+    // No free-standing billboards on the camera-side arc (LT 2026-10-23):
+    // panels at 55°/95°/130° sat in front of the ring and obstructed the
+    // fighters and stage. All billboards now live on the back arc in the
+    // per-arena builders; the backdrop above keeps the sky dressed 360°.
   }
 
   /** Candlestick Colosseum — the original trading-floor arena, V2 dressed. */
@@ -2813,12 +2825,14 @@ SAK.Scene3D = (function () {
     billboard(textPanel('DIAMOND HANDS 💎🙌', '#39ff88', ['#12002b', '#1a3a2e'], 768, 200), 4.6, 1.2, 218, 8.8, 3.4);
     billboard(textPanel('PUMP.FUN', '#39ff88', ['#0b2e1a', '#1a5e3a'], 640, 200), 3.8, 1.15, 262, 8.6, 4.0);
     billboard(textPanel('FOMO', '#ffd23f', ['#2e1a0b', '#5e3a1a'], 512, 200), 3.0, 1.15, 285, 8.6, 3.6);
-    billboard(textPanel('Pump.fun', '#14f195', ['#1a0b3a', '#2a1a5e'], 640, 200), 3.8, 1.15, 158, 8.6, 4.0);
+    // (The 158° Pump.fun panel was removed with the other camera-side
+    // billboards — LT 2026-10-23 foreground cleanup.)
 
-    // low ring-side banners
-    const words = [['HODL', '#ffd23f'], ['GM', '#39ff88'], ['NGMI', '#ff3b5c'], ['WAGMI', '#39ff88'], ['PUMP IT', '#ff4fd8'], ['GM', '#39ff88'], ['HODL', '#ffd23f']];
+    // low ring-side banners — back arc only (the 150°/175° pair sat on
+    // the camera side of the ring; removed in the LT 2026-10-23 cleanup)
+    const words = [['NGMI', '#ff3b5c'], ['WAGMI', '#39ff88'], ['PUMP IT', '#ff4fd8'], ['GM', '#39ff88'], ['HODL', '#ffd23f']];
     words.forEach(([w, c], i) => {
-      const ang = (150 + i * 25) * Math.PI / 180, r = 4.3;
+      const ang = (200 + i * 25) * Math.PI / 180, r = 4.3;
       const b = new T.Mesh(new T.PlaneGeometry(1.7, 0.55), new T.MeshBasicMaterial({ map: textPanel(w, c, ['#12002b', '#2a0b5e'], 384, 124), side: T.DoubleSide }));
       b.position.set(Math.cos(ang) * r, 0.45, Math.sin(ang) * r); b.lookAt(0, 0.45, 0); AG.add(b);
     });
@@ -3069,7 +3083,7 @@ SAK.Scene3D = (function () {
     rocket.rotation.z = 0.45; rocket.rotation.x = -0.35;
     rocket.userData.flame.scale.set(1, 0.7 + Math.random() * 0.7, 1);
     }
-    if (rocket.visible && Math.random() < 0.5) {
+    if (rocket && rocket.visible && Math.random() < 0.5) {
       const m = new T.Mesh(partGeo(), new T.MeshBasicMaterial({ color: Math.random() < 0.5 ? '#ffb000' : '#ff4fd8', transparent: true }));
       m.position.copy(rocket.position).add(new T.Vector3(0.4, -0.9, 0.3));
       particles.push({ m, v: new T.Vector3((Math.random() - 0.5), -1.5, (Math.random() - 0.5)), life: 0.7, age: 0, spin: 4, noGrav: true });
