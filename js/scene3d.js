@@ -4023,7 +4023,7 @@ SAK.Scene3D = (function () {
         lift: ST.wind.lift * 0.55, swing: ST.wind.swing * 0.55, elbow: ST.wind.elbow * 0.6,
         twist: sd * ST.wind.twist * 0.55, lean: ST.wind.lean * 0.5
       }, windup * 0.35, E.outCubic);
-      await wait(0.07); // the tell — beat before the real coil
+      await wait(0.05); // the tell — beat before the real coil (trimmed 0.07 -> 0.05, LT 2026-10-24)
       // Stage 2: coil DEEPER than a normal wind-up
       await SAK.Tween.to(p, {
         lift: ST.wind.lift * 1.18, swing: ST.wind.swing * 1.18, elbow: ST.wind.elbow * 1.1,
@@ -4034,7 +4034,7 @@ SAK.Scene3D = (function () {
     }
     if (opts.onWindupDone) opts.onWindupDone();
     // Anticipation hold at the coil peak — the beat before the snap (longer for heavy)
-    await wait(ST.fx >= 1.5 ? 0.09 : 0.06);
+    await wait(ST.fx >= 1.5 ? 0.06 : 0.04); // anticipation hold, trimmed LT 2026-10-24
 
     // 2) strike: arm whips down/forward FAST with follow-through across the body.
     // Open palm, never a punch; limp style keeps a floppy loose wrist.
