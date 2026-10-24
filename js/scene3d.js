@@ -2483,13 +2483,14 @@ SAK.Scene3D = (function () {
   }
 
   /* ============================================================== Arenas */
-  // V2: 3 degen-memecoin arena styles. arenaGroup holds everything per-arena;
+  // V2: 4 degen-memecoin arena styles. arenaGroup holds everything per-arena;
   // setArena() disposes + rebuilds it. Fighters live outside the group.
   let arenaGroup = null, arenaStyle = 'colosseum', crowdExciteUntil = 0;
   const ARENA_DEFS = {
     colosseum: { name: 'Chart Dome', fog: '#2a0b5e' },
     moonshot:  { name: 'Moonshot Launchpad',   fog: '#0a1030' },
     rekt:      { name: 'REKT Alley',            fog: '#1c0512' },
+    smackbar:  { name: 'SMACK BAR',             fog: '#1a0a10' },
   };
   /** Excite the crowd (jump + wave) for `dur` seconds — KO celebrations. */
   function crowdExcite(dur) { crowdExciteUntil = time + (dur || 2.5); }
@@ -2529,6 +2530,7 @@ SAK.Scene3D = (function () {
     buildArenaCore(arenaGroup);
     if (style === 'moonshot') buildMoonshot(arenaGroup);
     else if (style === 'rekt') buildRekt(arenaGroup);
+    else if (style === 'smackbar') buildSmackBar(arenaGroup);
     else buildColosseum(arenaGroup);
     if (scene.fog) scene.fog.color.set(ARENA_DEFS[style].fog);
   }
@@ -2540,6 +2542,7 @@ SAK.Scene3D = (function () {
       colosseum: { top: '#0d0221', mid: '#2a0b5e', bot: '#150430', win: '#ffd23f' },
       moonshot:  { top: '#020610', mid: '#0a1030', bot: '#060a20', win: '#39c5ff' },
       rekt:      { top: '#0d0208', mid: '#1c0512', bot: '#0d0209', win: '#ff3b5c' },
+      smackbar:  { top: '#160709', mid: '#2b1016', bot: '#12060a', win: '#ffb347' },
     };
     const P = palettes[arenaStyle] || palettes.colosseum;
     const { tex } = canvasTex(1024, 512, (ctx, w, h) => {
@@ -2947,6 +2950,139 @@ SAK.Scene3D = (function () {
   }
 
   /** Moonshot Launchpad — rocket base under a giant moon. */
+  /** SMACK BAR (LT 2026-10-24): a bar arena, visual reskin only — the ring,
+   *  cameras, crowd and fight feel all come from buildArenaCore untouched.
+   *  Back-arc dressing only (proven visible zone, never in front of the
+   *  fighters): wall screens with memecoin charts (some pumping, some
+   *  rugged), a neon SMACK BAR sign, a bar counter with stools, bottle
+   *  shelves, a bartender, and two ring girls flanking the ring. Chart
+   *  Dome (buildColosseum) is not touched by any of this. */
+  function barScreenTex(ticker, kind) {
+    return canvasTex(512, 288, (ctx, w, h) => {
+      ctx.fillStyle = '#0a0f1e'; ctx.fillRect(0, 0, w, h);
+      ctx.strokeStyle = 'rgba(255,255,255,0.08)'; ctx.lineWidth = 1;
+      for (let x = 0; x <= w; x += 64) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke(); }
+      for (let y = 0; y <= h; y += 48) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke(); }
+      const up = kind === 'pump';
+      ctx.font = '700 30px system-ui, sans-serif'; ctx.textAlign = 'left';
+      ctx.fillStyle = '#f5f5f5'; ctx.fillText(ticker, 16, 38);
+      ctx.textAlign = 'right';
+      ctx.fillStyle = up ? '#39ff88' : '#ff3b5c';
+      ctx.fillText(up ? '+248%' : '-99%  RUG', w - 16, 38);
+      ctx.textAlign = 'left';
+      // seeded candles: pumps climb green, rugs climb then crash to a flatline
+      const sr = (s) => { const x = Math.sin(s * 127.1 + 311.7) * 43758.5453; return x - Math.floor(x); };
+      const n = 40, x0 = 16, x1 = w - 16, top = 60, bot = h - 16;
+      let price = up ? 0.72 : 0.7;
+      for (let i = 0; i < n; i++) {
+        const open = price;
+        if (up) price += (sr(i * 3 + 1) - 0.42) * 0.09;
+        else if (i < n * 0.55) price += (sr(i * 3 + 1) - 0.42) * 0.08;
+        else if (i === Math.floor(n * 0.55)) price = 0.97;
+        else price += (sr(i * 3 + 1) - 0.5) * 0.004;
+        price = Math.max(0.05, Math.min(0.98, price));
+        const close = price;
+        const yO = top + open * (bot - top), yC = top + close * (bot - top);
+        const col = close <= open ? '#39ff88' : '#ff3b5c';
+        const cx = x0 + (i / n) * (x1 - x0), cw = (x1 - x0) / n * 0.62;
+        ctx.fillStyle = col; ctx.fillRect(cx, Math.min(yO, yC), cw, Math.max(3, Math.abs(yC - yO)));
+        ctx.strokeStyle = col; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(cx + cw / 2, Math.min(yO, yC) - 5); ctx.lineTo(cx + cw / 2, Math.max(yO, yC) + 5); ctx.stroke();
+      }
+    }).tex;
+  }
+
+  function barFigure(opts) {
+    // compact crowd-proportioned figure (legs/torso/head/eyes) for the
+    // bartender + ring girls — same scale language as the core crowd.
+    const g = new T.Group();
+    const skin = mat(opts.skin || '#f2c49b');
+    if (!opts.dress) {
+      for (const sx of [-1, 1]) {
+        const leg = new T.Mesh(new T.CylinderGeometry(0.09, 0.08, 0.45, 6), mat(opts.pants || '#1f1f2e'));
+        leg.position.set(sx * 0.13, -0.22, 0); g.add(leg);
+      }
+    } else {
+      const dress = new T.Mesh(new T.CylinderGeometry(0.26, 0.5, 0.85, 10), mat(opts.dress));
+      dress.position.y = -0.05; g.add(dress);
+    }
+    const torso = new T.Mesh(new T.CylinderGeometry(0.3, 0.26, 0.7, 8), mat(opts.shirt));
+    torso.position.y = 0.12; g.add(torso);
+    const shoulders = new T.Mesh(new T.SphereGeometry(0.3, 8, 6), mat(opts.shirt));
+    shoulders.position.y = 0.42; shoulders.scale.set(1.25, 0.55, 0.85); g.add(shoulders);
+    const neck = new T.Mesh(new T.CylinderGeometry(0.09, 0.1, 0.18, 6), skin);
+    neck.position.y = 0.58; g.add(neck);
+    const head = new T.Mesh(new T.SphereGeometry(0.3, 12, 10), skin);
+    head.position.y = 0.82; g.add(head);
+    const hair = new T.Mesh(new T.SphereGeometry(0.32, 12, 8, 0, Math.PI * 2, 0, Math.PI * (opts.longHair ? 0.75 : 0.5)), mat(opts.hair || '#141414'));
+    hair.position.set(0, 0.9, -0.03); g.add(hair);
+    const pupilMat = new T.MeshBasicMaterial({ color: '#0a0a0a' });
+    for (const sx of [-1, 1]) {
+      const eye = new T.Mesh(new T.SphereGeometry(0.028, 8, 6), pupilMat);
+      eye.position.set(sx * 0.11, 0.85, 0.29); g.add(eye);
+    }
+    return g;
+  }
+
+  function buildSmackBar(AG) {
+    // neon centerpiece sign, high on the back wall
+    billboard(textPanel('SMACK BAR', '#ffb347', ['#2a1206', '#1a0b12'], 768, 200), 7.0, 1.4, 232, 8.6, 5.0);
+    // wall screens: memecoin charts — pumps climb green, rugs crash red
+    const screens = [
+      [205, '$SMACK', 'pump'], [220, '$REKT', 'rug'], [247, '$WAGMI', 'pump'],
+      [265, '$COPE', 'rug'], [285, '$MOON', 'pump'],
+    ];
+    for (const [ang, tick, kind] of screens) billboard(barScreenTex(tick, kind), 3.4, 2.0, ang, 8.6, 3.1);
+    // bar counter across the back wall + stools + bottle shelf behind it
+    const back = 232 * Math.PI / 180;
+    const cg = new T.Group();
+    cg.position.set(Math.cos(back) * 7.4, 0, Math.sin(back) * 7.4);
+    cg.lookAt(0, 0, 0);
+    cg.add(mesh(new T.BoxGeometry(7.0, 1.1, 0.9), mat('#5a3a20'), 0, 0.55, 0));
+    cg.add(mesh(new T.BoxGeometry(7.2, 0.12, 1.0), mat('#c9844a'), 0, 1.12, 0));
+    const strip = new T.Mesh(new T.BoxGeometry(7.0, 0.12, 0.05), new T.MeshBasicMaterial({ color: '#ff4fd8' }));
+    strip.position.set(0, 0.8, 0.48); cg.add(strip);
+    AG.add(cg);
+    const sg = new T.Group();
+    sg.position.set(Math.cos(back) * 8.3, 0, Math.sin(back) * 8.3);
+    sg.lookAt(0, 0, 0);
+    sg.add(mesh(new T.BoxGeometry(6.0, 0.12, 0.5), mat('#3a2410'), 0, 2.3, 0));
+    const bottleCols = ['#39ff88', '#ff4fd8', '#ffd23f', '#39c5ff', '#ff7a1a'];
+    for (let i = 0; i < 12; i++) {
+      const bh = 0.3 + (i % 3) * 0.12;
+      sg.add(mesh(new T.CylinderGeometry(0.07, 0.07, bh, 6), mat(bottleCols[i % bottleCols.length]), -2.75 + i * 0.5, 2.36 + bh / 2, 0));
+    }
+    AG.add(sg);
+    for (const a of [218, 232, 246]) {
+      const r = a * Math.PI / 180;
+      AG.add(mesh(new T.CylinderGeometry(0.3, 0.3, 0.1, 10), mat('#8f5427'), Math.cos(r) * 6.5, 0.55, Math.sin(r) * 6.5));
+      AG.add(mesh(new T.CylinderGeometry(0.06, 0.06, 0.55, 6), mat('#2a2a2a'), Math.cos(r) * 6.5, 0.27, Math.sin(r) * 6.5));
+    }
+    // bartender behind the counter
+    const bt = barFigure({ skin: '#d9a066', shirt: '#2e2e3a', pants: '#1f1f2e', hair: '#3a2410' });
+    bt.position.set(Math.cos(back) * 8.0, 0.45, Math.sin(back) * 8.0);
+    bt.lookAt(0, 0.45, 0);
+    AG.add(bt);
+    // ring girls flanking the ring (back-arc sides, narrow figures — never
+    // in front of the fighters), each holding a SMACK card overhead
+    const cardTex = canvasTex(128, 96, (ctx, w, h) => {
+      ctx.fillStyle = '#fff5fa'; ctx.fillRect(0, 0, w, h);
+      ctx.fillStyle = '#ff4fd8'; ctx.font = '700 34px system-ui, sans-serif';
+      ctx.textAlign = 'center'; ctx.fillText('SMACK', w / 2, h / 2 + 12);
+    }).tex;
+    for (const [ang, dress] of [[195, '#ff4fd8'], [268, '#39c5ff']]) {
+      const r = ang * Math.PI / 180;
+      const rg = barFigure({ skin: '#f2c49b', shirt: dress, dress, hair: '#141414', longHair: true });
+      rg.position.set(Math.cos(r) * 4.8, 0.45, Math.sin(r) * 4.8);
+      rg.lookAt(0, 0.45, 0);
+      const stick = new T.Mesh(new T.CylinderGeometry(0.02, 0.02, 0.7, 4), mat('#8f5427'));
+      stick.position.set(0.48, 1.05, 0.1); stick.rotation.z = -0.25; rg.add(stick);
+      const card = new T.Mesh(new T.PlaneGeometry(0.55, 0.4), new T.MeshBasicMaterial({ map: cardTex, side: T.DoubleSide }));
+      card.position.set(0.56, 1.42, 0.1); card.rotation.z = -0.1; rg.add(card);
+      AG.add(rg);
+    }
+  }
+
   function buildMoonshot(AG) {
     // launch pad markings under the ring
     const padTex = canvasTex(512, 512, (ctx, w, h) => {

@@ -4246,7 +4246,7 @@
   $('#set-haptics').addEventListener('change', e => { S.settings.haptics = e.target.checked; SAK.Storage.save(); });
   // V2: arena picker — REKT Alley temporarily hidden (2026-10-06): it froze
   // on smack impacts on iPhone; buildRekt() is kept intact for re-enable.
-  const ARENAS_UI = [['colosseum', '🕯️ Colosseum'], ['moonshot', '🚀 Moonshot']];
+  const ARENAS_UI = [['colosseum', '🕯️ Colosseum'], ['moonshot', '🚀 Moonshot'], ['smackbar', '🍻 SMACK BAR']];
   const apick = $('#arena-picks');
   if (apick) {
     const renderArenaPicks = () => {
