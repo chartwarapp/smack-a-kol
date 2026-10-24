@@ -5010,24 +5010,6 @@
     MeterLocal = SAK.createMeter($('#meter-local'), { jerky: true, label: '' });
     SAK.Meter.build($('#meter')); // legacy hidden mount
     buildTicker();
-    // ?fps=1 diagnostic meter (temporary, LT lag hunt 2026-10-24): small
-    // overlay showing live frame time + draw calls. Zero effect unless
-    // the query flag is present — nothing else in the game reads it.
-    try {
-      if (location.search.includes('fps=1')) {
-        const mEl = document.createElement('div');
-        mEl.id = 'fps-meter';
-        mEl.style.cssText = 'position:fixed;top:8px;left:8px;z-index:99999;background:rgba(0,0,0,.72);color:#7dff6a;font:11px/1.5 monospace;padding:6px 8px;border-radius:8px;pointer-events:none;white-space:pre;';
-        mEl.textContent = 'FPS meter starting…';
-        document.body.appendChild(mEl);
-        setInterval(() => {
-          try {
-            const p = SAK.Scene3D.perf;
-            mEl.textContent = `avg ${p.avgMs}ms · p95 ${p.p95Ms}ms · ${p.calls} draws · ${p.n} frames`;
-          } catch (e) {}
-        }, 500);
-      }
-    } catch (e) {}
     try {
       if (!window.THREE) throw new Error('three.js failed to load (vendor/three.min.js)');
       SAK.Scene3D.init($('#stage'));
