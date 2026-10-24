@@ -4504,7 +4504,38 @@
     refreshAdminVault();
   }
 
-  // ---- $SMACK TOKEN HOUSE (admin) ----
+  // ---- PLAYER SIGNUPS (admin) ----
+  // One profiles row per wallet that signed on (connected + created a
+  // fighter). Tiles: total, new today / this week (Toronto time), and
+  // how many have actually fought (fight_history, recording since
+  // Oct 23). Recent signups listed newest first.
+  async function refreshAdminPlayers() {
+    const el = $('#admin-players');
+    if (!el) return;
+    let stats;
+    try { stats = await SAK.Api.getPlayerStats(); }
+    catch (e) { el.innerHTML = '<p class="fine dark">Could not load player stats right now.</p>'; return; }
+    const signups = stats.signups || [];
+    const dayFmt = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto', year: 'numeric', month: '2-digit', day: '2-digit' });
+    const todayKey = dayFmt.format(new Date());
+    const weekAgo = Date.now() - 7 * 864e5;
+    const newToday = signups.filter(r => dayFmt.format(new Date(r.created_at)) === todayKey).length;
+    const newWeek = signups.filter(r => new Date(r.created_at).getTime() >= weekAgo).length;
+    const dateFmt = new Intl.DateTimeFormat('en-US', { timeZone: 'America/Toronto', month: 'short', day: 'numeric', year: 'numeric' });
+    const short = w => w ? `${w.slice(0, 4)}…${w.slice(-4)}` : '';
+    el.innerHTML =
+      `<div class="vt-tiles four">` +
+      `<div><b>${signups.length}</b><small>TOTAL SIGNUPS</small></div>` +
+      `<div><b>${newToday}</b><small>NEW TODAY</small></div>` +
+      `<div><b>${newWeek}</b><small>THIS WEEK</small></div>` +
+      `<div><b>${stats.fought || 0}</b><small>HAVE FOUGHT</small></div></div>` +
+      `<div class="vt-sub">RECENT SIGNUPS</div>` +
+      (signups.slice(0, 10).map(r =>
+        `<div class="vt-row"><span>${esc(r.name || 'Unnamed')}</span><b>${short(r.wallet)} · ${dateFmt.format(new Date(r.created_at))}</b></div>`).join('')
+        || '<div class="vt-row"><span>No signups yet</span><b>—</b></div>');
+  }
+
+  // ---- SMACK TOKEN HOUSE (admin) ----
   let tokenOpenBetsCache = [];
   async function refreshAdminTokenHouse() {
     const el = $('#admin-tokenhouse');
@@ -4823,6 +4854,9 @@
     const thBtn = $('#admin-tokenhouse-refresh');
     if (thBtn) thBtn.onclick = () => { A.click(); refreshAdminTokenHouse(); };
     refreshAdminTokenHouse();
+    const plBtn = $('#admin-players-refresh');
+    if (plBtn) plBtn.onclick = () => { A.click(); refreshAdminPlayers(); };
+    refreshAdminPlayers();
     // Check contract initialization status
     initContractStatus();
   }
