@@ -3370,8 +3370,14 @@ SAK.Scene3D = (function () {
   }
 
   /* ================================================================= loop */
+  const perfDts = []; let perfCalls = 0, perfLastWall = 0; // ?fps=1 on-device meter (see game-v3.js)
   function loop() {
     const rawDt = Math.min(0.05, clock.getDelta());
+    // Wall-clock frame time, NOT the clamped game dt: a hitch that takes
+    // 80ms of real time must read 80ms here, even though game dt caps at 50.
+    const wallNow = performance.now();
+    if (perfLastWall) { perfDts.push(wallNow - perfLastWall); if (perfDts.length > 180) perfDts.shift(); }
+    perfLastWall = wallNow;
     if (slowMoT > 0) { slowMoT -= rawDt; if (slowMoT <= 0) timeScale = 1; } // V2 slow-mo recovery
     const dt = rawDt * timeScale;
     time += dt;
@@ -3486,6 +3492,7 @@ SAK.Scene3D = (function () {
     }
     camera.lookAt(camCur.look);
     renderer.render(scene, camera);
+    perfCalls = renderer.info.render.calls;
     requestAnimationFrame(loop);
   }
 
@@ -4835,5 +4842,10 @@ SAK.Scene3D = (function () {
     setAnticipate(who, on) { const F = who === 'player' ? player : kol; if (F) F.anticipate = !!on; },
     get player() { return player; }, get kol() { return kol; },
     get arena() { return arenaStyle; }, get arenaName() { return ARENA_DEFS[arenaStyle].name; },
-    get camDebug() { return { hit: hitCam ? +hitCam.w.toFixed(3) : null, role: roleCam.role, roleW: +roleCam.w.toFixed(3), ko: !!koCam, t: +time.toFixed(2) }; } };
+    get camDebug() { return { hit: hitCam ? +hitCam.w.toFixed(3) : null, role: roleCam.role, roleW: +roleCam.w.toFixed(3), ko: !!koCam, t: +time.toFixed(2) }; },
+    get perf() {
+      const d = perfDts.slice().sort((a, b) => a - b);
+      const avg = d.length ? d.reduce((a, b) => a + b, 0) / d.length : 0;
+      return { avgMs: +avg.toFixed(1), p95Ms: d.length ? +d[Math.min(d.length - 1, Math.floor(d.length * 0.95))].toFixed(1) : 0, calls: perfCalls, n: d.length };
+    } };
 })();
