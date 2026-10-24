@@ -598,7 +598,7 @@
     try { rows = await SAK.Api.getFightHistory(W.address, 200); } catch (e) { rows = []; }
     // Rows recorded before the currency fix: a solo wager stored as FREE
     // with a wager on it was a SOL bet (solo mode only exists for house
-    // wagers; $SMACK rows were always labeled). Display it as SOL.
+    // wagers; SMACK rows were always labeled). Display it as SOL.
     (rows || []).forEach(r => { if (r.mode === 'solo' && r.currency === 'FREE' && Number(r.wager) > 0) r.currency = 'SOL'; });
     if (!rows || !rows.length) {
       if (tiles) tiles.innerHTML = '';
@@ -620,12 +620,12 @@
     if (money) money.innerHTML = Object.keys(agg).map(cur => {
       const a = agg[cur];
       const netTxt = (a.net >= 0 ? '+' : '−') + fhMoney(Math.abs(a.net), cur);
-      return `<div class="fh-money-row"><span>${cur === 'SMACK' ? '🪙 $SMACK' : cur === 'SOL' ? '◎ SOL' : '⭐ PTS'} WAGERED</span><b>${fhMoney(a.w, cur)}</b><span class="${a.net >= 0 ? 'fh-pos' : 'fh-neg'}">${netTxt} net</span></div>`;
+      return `<div class="fh-money-row"><span>${cur === 'SMACK' ? '🪙 SMACK' : cur === 'SOL' ? '◎ SOL' : '⭐ PTS'} WAGERED</span><b>${fhMoney(a.w, cur)}</b><span class="${a.net >= 0 ? 'fh-pos' : 'fh-neg'}">${netTxt} net</span></div>`;
     }).join('');
     const modeTag = r => r.mode === 'solo' ? '🏠 SOLO' : r.mode === 'pvp' ? '⚔️ PVP' : (r.currency === 'PTS' ? '⭐ PTS BET' : '🆓 FREE');
     list.innerHTML = rows.slice(0, 30).map(r => {
       const net = (Number(r.payout) || 0) - (Number(r.wager) || 0);
-      const unit = r.currency === 'SOL' ? ' SOL' : r.currency === 'SMACK' ? ' $SMACK' : r.currency === 'PTS' ? ' PTS' : '';
+      const unit = r.currency === 'SOL' ? ' SOL' : r.currency === 'SMACK' ? ' SMACK' : r.currency === 'PTS' ? ' PTS' : '';
       const netHtml = r.currency === 'FREE'
         ? `<span class="fh-pos">+${r.pts || 0} PTS</span>`
         : `<span class="${net >= 0 ? 'fh-pos' : 'fh-neg'}">${net >= 0 ? '+' : '−'}${fhMoney(Math.abs(net), r.currency)}${unit}</span>`;
@@ -1410,7 +1410,7 @@
       : soloWager
       ? `🏠 BET ◎ ${fmtSolAmt(soloWager)} → WIN ◎ ${fmtSolAmt(soloWager * 1.9)}`
       : soloTok
-      ? `🏠 BET ${soloTok.toLocaleString('en-US')} $SMACK → WIN ${Math.floor(soloTok * 0.99 * 1.9).toLocaleString('en-US')} $SMACK`
+      ? `🏠 BET ${soloTok.toLocaleString('en-US')} SMACK → WIN ${Math.floor(soloTok * 0.99 * 1.9).toLocaleString('en-US')} SMACK`
       : bet
       ? `BET ${ptsHTML()} ${fmt(bet)} → ${fmt(boosted(bet * kol.payout))}`
       : `FREE · WIN ${ptsHTML()} +${fmt(modePts(kol, mode))}`);
@@ -2113,7 +2113,7 @@
 
     // Fight history (player tracker in the profile section, LT 2026-10-23):
     // one row per finished fight across ALL modes — solo house wagers
-    // (SOL + $SMACK), on-chain PvP, PTS bets and free fights. Payout is
+    // (SOL + SMACK), on-chain PvP, PTS bets and free fights. Payout is
     // the gross amount the winner receives (solo 1.9x; PvP pot minus the
     // 5% fee = 1.9x wager; PTS bet pays betTotal). Fire-and-forget.
     if (!draw && W.address && SAK.Api && SAK.Api.recordFightHistory) {
@@ -2123,7 +2123,7 @@
         if (sh) {
           fhMode = 'solo';
           // NOTE: the SOL bet object carries no currency field (only the
-          // $SMACK one sets currency:'SMACK') — default to SOL, never the
+          // SMACK one sets currency:'SMACK') — default to SOL, never the
           // raw value (it recorded SOL wagers as currency FREE).
           if (sh.currency === 'SMACK') { fhCurrency = 'SMACK'; fhWager = sh.wagerTokens || 0; fhPayout = win ? Math.floor(fhWager * 0.99 * 1.9) : 0; }
           else { fhCurrency = 'SOL'; fhWager = parseFloat(sh.wagerSol || 0); fhPayout = win ? fhWager * 1.9 : 0; }
@@ -2185,20 +2185,20 @@
           const r = F.opts.soloResult;
           if (F.opts.soloHouse.currency === 'SMACK') {
             const wT = F.opts.soloHouse.wagerTokens || 0;
-            const burnLine = `<div><span>Burn (1%)</span><b>-${fmtTokAmt(wT * 0.01)} $SMACK 🔥</b></div>`;
+            const burnLine = `<div><span>Burn (1%)</span><b>-${fmtTokAmt(wT * 0.01)} SMACK 🔥</b></div>`;
             if (r && r.won) {
-              return `<div class="bd-head" style="margin-top:8px;">🪙 SOLO VS $SMACK HOUSE (DEVNET)</div>
-                <div><span>Wagered</span><b>${fmtTokAmt(wT)} $SMACK</b></div>
+              return `<div class="bd-head" style="margin-top:8px;">🪙 SOLO VS SMACK HOUSE (DEVNET)</div>
+                <div><span>Wagered</span><b>${fmtTokAmt(wT)} SMACK</b></div>
                 ${burnLine}
-                <div><span>You won</span><b style="color:#4ade80;">+${fmtTokAmt(r.payoutTokens || 0)} $SMACK</b></div>`;
+                <div><span>You won</span><b style="color:#4ade80;">+${fmtTokAmt(r.payoutTokens || 0)} SMACK</b></div>`;
             } else if (r && !r.won) {
-              return `<div class="bd-head" style="margin-top:8px;">🪙 SOLO VS $SMACK HOUSE (DEVNET)</div>
-                <div><span>Wagered</span><b>${fmtTokAmt(wT)} $SMACK</b></div>
+              return `<div class="bd-head" style="margin-top:8px;">🪙 SOLO VS SMACK HOUSE (DEVNET)</div>
+                <div><span>Wagered</span><b>${fmtTokAmt(wT)} SMACK</b></div>
                 ${burnLine}
-                <div><span>You lost</span><b class="neg">-${fmtTokAmt(wT)} $SMACK</b></div>`;
+                <div><span>You lost</span><b class="neg">-${fmtTokAmt(wT)} SMACK</b></div>`;
             }
-            return `<div class="bd-head" style="margin-top:8px;">🪙 SOLO VS $SMACK HOUSE (DEVNET)</div>
-              <div><span>Wagered</span><b>${fmtTokAmt(wT)} $SMACK</b></div>
+            return `<div class="bd-head" style="margin-top:8px;">🪙 SOLO VS SMACK HOUSE (DEVNET)</div>
+              <div><span>Wagered</span><b>${fmtTokAmt(wT)} SMACK</b></div>
               ${burnLine}
               <div class="fine" style="font-size:11px;color:#888;">⏳ The house settles this automatically — no wallet step needed</div>`;
           }
@@ -2253,11 +2253,11 @@
     const isSoloHouse = !!(F.opts && F.opts.soloHouse);
     html += `<div class="result-btns">
         ${isSoloHouse ? `<div style="display:flex;gap:8px;align-items:stretch;">
-          <div style="flex:1 1 58%;min-width:0;display:flex;align-items:center;gap:5px;background:#1a0b3a;border:3px solid var(--ink);border-radius:14px;padding:0 8px;box-sizing:border-box;">
+          <div style="flex:1 1 58%;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;background:#1a0b3a;border:3px solid var(--ink);border-radius:14px;padding:6px 8px;box-sizing:border-box;">
             ${F.opts.soloHouse.currency === 'SMACK'
-              ? `<input id="r-solo-amount" type="text" inputmode="numeric" value="${(F.opts.soloHouse.wagerTokens || 1000).toLocaleString('en-US')}" style="flex:1 1 auto;width:100%;min-width:0;background:transparent;border:none;outline:none;color:#fff;font:inherit;font-size:18px;font-weight:800;text-align:right;" />`
-              : `<input id="r-solo-amount" type="number" inputmode="decimal" step="0.01" min="0.01" value="${parseFloat(F.opts.soloHouse.wagerSol || 0.05)}" style="flex:1 1 auto;width:100%;min-width:0;background:transparent;border:none;outline:none;color:#fff;font:inherit;font-size:18px;font-weight:800;text-align:right;" />`}
-            <span style="font-weight:800;font-size:12px;color:#f5c542;white-space:nowrap;">${F.opts.soloHouse.currency === 'SMACK' ? '$SMACK' : 'SOL'}</span>
+              ? `<input id="r-solo-amount" type="text" inputmode="numeric" value="${(F.opts.soloHouse.wagerTokens || 1000).toLocaleString('en-US')}" style="width:100%;min-width:0;background:transparent;border:none;outline:none;color:#fff;font:inherit;font-size:20px;font-weight:800;text-align:center;" />`
+              : `<input id="r-solo-amount" type="number" inputmode="decimal" step="0.01" min="0.01" value="${parseFloat(F.opts.soloHouse.wagerSol || 0.05)}" style="width:100%;min-width:0;background:transparent;border:none;outline:none;color:#fff;font:inherit;font-size:20px;font-weight:800;text-align:center;" />`}
+            <span style="font-weight:800;font-size:11px;letter-spacing:2px;color:#f5c542;white-space:nowrap;">${F.opts.soloHouse.currency === 'SMACK' ? 'SMACK' : 'SOL'}</span>
           </div>
           <button class="btn btn-yellow" id="r-solo-again" style="flex:1 1 42%;min-width:0;">🖐 SMACK AGAIN</button>
         </div>` : k.pvp ? '' : `<button class="btn btn-yellow" id="r-rematch">↻ RUN IT BACK${reBet ? ` · BET ${fmt(reBet)}` : ' (FREE)'}</button>`}
@@ -2280,7 +2280,7 @@
       const amtEl0 = $('#r-solo-amount');
       if (amtEl0) {
         amtEl0.addEventListener('focus', () => amtEl0.select());
-        // $SMACK amounts are comma-formatted text (1,000 / 100,000) so the
+        // SMACK amounts are comma-formatted text (1,000 / 100,000) so the
         // full number stays readable in the box; regroup on blur.
         if (F.opts.soloHouse.currency === 'SMACK') amtEl0.addEventListener('blur', () => {
           const n = parseFloat(String(amtEl0.value).replace(/[^0-9.]/g, ''));
@@ -2299,17 +2299,17 @@
           const fail = m => { toast(m, 3000); againBtn.disabled = false; againBtn.textContent = oldLabel; };
           if (!TH) { fail('Token house module not loaded'); return; }
           await refreshTokenHouseMax();
-          if (!tokenHouseReady) { fail('The $SMACK house is not set up yet.'); return; }
+          if (!tokenHouseReady) { fail('The SMACK house is not set up yet.'); return; }
           const base = Math.round(amt * 1e6);
-          if (tokenHouseMaxBase !== null && base > tokenHouseMaxBase) { fail('That bet is bigger than the $SMACK house can cover — max is ' + fmtTok(tokenHouseMaxBase) + ' $SMACK.'); return; }
+          if (tokenHouseMaxBase !== null && base > tokenHouseMaxBase) { fail('That bet is bigger than the SMACK house can cover — max is ' + fmtTok(tokenHouseMaxBase) + ' SMACK.'); return; }
           try {
             const bal = await TH.getTokenBalance(W.address);
-            if (bal < BigInt(base)) { fail('Not enough $SMACK — you have ' + fmtTok(Number(bal)) + '.'); return; }
+            if (bal < BigInt(base)) { fail('Not enough SMACK — you have ' + fmtTok(Number(bal)) + '.'); return; }
           } catch (e) {}
           try {
             const res = await TH.placeBet(base);
             activeSoloBet = { bet: res.bet, nonce: res.nonce, currency: 'SMACK', wagerTokens: Math.floor(amt) };
-            toast('Bet locked — ' + Math.floor(amt).toLocaleString('en-US') + ' $SMACK vs house \u{1F3E0}', 2400);
+            toast('Bet locked — ' + Math.floor(amt).toLocaleString('en-US') + ' SMACK vs house \u{1F3E0}', 2400);
             startFight(k, 0, { mode: F.mode, soloHouse: activeSoloBet, soloLobby: 'wager' });
           } catch (e) {
             toast(friendlyTokenError(e, 'bet'), 2800);
@@ -3399,7 +3399,7 @@
   // (BetTooLarge) — the UI now enforces that BEFORE the wallet opens.
   let houseMaxBetLamports = null;
   function fmtSol(lamports) { return (Math.floor(lamports / 1e6) / 1000).toString(); }
-  // ---- $SMACK currency (second house instance, 2026-10-23) ----
+  // ---- SMACK currency (second house instance, 2026-10-23) ----
   // The solo wager currency: 'SOL' plays the original house, 'SMACK'
   // plays the token house (SAK.SolanaTokenHouse). smackWager is in whole
   // tokens; the chain only ever sees base units (x1e6, 6 decimals).
@@ -3414,11 +3414,11 @@
   function friendlyTokenError(e, what) {
     const m = String((e && e.message) || e || '');
     if (/BetTooLarge|0x1773/.test(m)) {
-      return 'That bet is bigger than the $SMACK house can cover right now' +
-        (tokenHouseMaxBase !== null ? ' — max bet is ' + fmtTok(tokenHouseMaxBase) + ' $SMACK.' : '.');
+      return 'That bet is bigger than the SMACK house can cover right now' +
+        (tokenHouseMaxBase !== null ? ' — max bet is ' + fmtTok(tokenHouseMaxBase) + ' SMACK.' : '.');
     }
     if (/rejected|denied/i.test(m)) return 'Cancelled in your wallet.';
-    if (/insufficient/i.test(m)) return 'Not enough $SMACK, or not enough SOL for the network fee.';
+    if (/insufficient/i.test(m)) return 'Not enough SMACK, or not enough SOL for the network fee.';
     if (/not connected|provider not available/i.test(m)) return 'Wallet not connected.';
     return (what === 'settle' ? 'Settle' : 'Bet') + ' failed — please try again.';
   }
@@ -3443,11 +3443,11 @@
       const mx = $('#solo-max');
       if (mx) {
         if (!st.initialized) {
-          mx.textContent = '🪙 The $SMACK house is not set up yet — it needs a one-time initialize from the admin panel.';
+          mx.textContent = '🪙 The SMACK house is not set up yet — it needs a one-time initialize from the admin panel.';
         } else {
           let bal = '';
-          if (W.isConnected) { try { bal = ' · your balance: ' + fmtTok(Number(await TH.getTokenBalance(W.address))) + ' $SMACK'; } catch (e) {} }
-          mx.textContent = '🏠 House max bet right now: ' + fmtTok(st.maxBetBase) + ' $SMACK' + bal;
+          if (W.isConnected) { try { bal = ' · your balance: ' + fmtTok(Number(await TH.getTokenBalance(W.address))) + ' SMACK'; } catch (e) {} }
+          mx.textContent = '🏠 House max bet right now: ' + fmtTok(st.maxBetBase) + ' SMACK' + bal;
         }
       }
       renderSoloBets();
@@ -3463,7 +3463,7 @@
       el.innerHTML = SMACK_PRESETS.map(t => {
         const over = tokenHouseMaxBase !== null && Math.round(t * 1e6) > tokenHouseMaxBase;
         return `<button class="bet-chip ${!smackCustom && t === smackWager ? 'selected' : ''}" data-tok="${t}" ${over ? 'disabled style="opacity:.35"' : ''}>${t.toLocaleString('en-US')}</button>`;
-      }).join('') + `<span class="solo-custom-wrap ${smackCustom ? 'selected' : ''}"><input id="solo-custom-amt" type="number" inputmode="numeric" step="100" min="100" placeholder="CUSTOM" value="${smackCustom ? smackWager : ''}" /><small>$SMACK</small></span>`;
+      }).join('') + `<span class="solo-custom-wrap ${smackCustom ? 'selected' : ''}"><input id="solo-custom-amt" type="number" inputmode="numeric" step="100" min="100" placeholder="CUSTOM" value="${smackCustom ? smackWager : ''}" /><small>SMACK</small></span>`;
       $$('#solo-bets .bet-chip').forEach(c => c.onclick = () => { smackWager = +c.dataset.tok; smackCustom = false; A.click(); renderSoloBets(); renderSoloChallengeBtn(); });
       const inp = $('#solo-custom-amt');
       if (inp) {
@@ -3561,9 +3561,9 @@
   function paintSoloCurrency() {
     $$('#solo-currency .mode-btn').forEach(b => b.classList.toggle('selected', b.dataset.sc === soloCurrency));
     const lb = $('#solo-wager-label');
-    if (lb) lb.textContent = soloCurrency === 'SMACK' ? 'YOUR WAGER ($SMACK)' : 'YOUR WAGER (SOL)';
+    if (lb) lb.textContent = soloCurrency === 'SMACK' ? 'YOUR WAGER (SMACK)' : 'YOUR WAGER (SOL)';
     const tg = $('#solo-toggle .mode-btn[data-sm="wager"] b');
-    if (tg) tg.textContent = soloCurrency === 'SMACK' ? '🪙 WAGER $SMACK' : '◎ WAGER SOL';
+    if (tg) tg.textContent = soloCurrency === 'SMACK' ? '🪙 WAGER SMACK' : '◎ WAGER SOL';
   }
   function renderSoloLobby() {
     paintSoloCurrency();
@@ -3613,7 +3613,7 @@
         <div>WIN ${ptsHTML()}<b>+${fmt(win)}</b></div>
         ${soloMode === 'wager'
           ? (soloCurrency === 'SMACK'
-            ? `<div>$SMACK WIN PAYS <b style="color:#2ee66b">×1.9</b> <small style="color:#888">· 1% of the wager burns 🔥</small></div>`
+            ? `<div>SMACK WIN PAYS <b style="color:#2ee66b">×1.9</b> <small style="color:#888">· 1% of the wager burns 🔥</small></div>`
             : `<div>SOL WIN PAYS <b style="color:#2ee66b">×1.9</b></div>`)
           : `<div>BET PAYS <b style="color:#2ee66b">x${k.payout.toFixed(1)}</b></div>`}
       </div>`;
@@ -3645,7 +3645,7 @@
     if (soloMode === 'wager') {
       btn.className = 'btn btn-xl btn-red';
       btn.innerHTML = soloCurrency === 'SMACK'
-        ? `🖐 SMACK · BET ${smackWager.toLocaleString('en-US')} $SMACK`
+        ? `🖐 SMACK · BET ${smackWager.toLocaleString('en-US')} SMACK`
         : `🖐 SMACK · BET ${Math.round(soloWager * 1000) / 1000} SOL`;
     } else {
       const win = Math.round(modePts(k, 'classic') * soloTier(k).mult);
@@ -3680,21 +3680,21 @@
       const TH = SAK.SolanaTokenHouse;
       const done = () => { btn.disabled = false; btn.innerHTML = oldLabel; };
       if (!TH) { toast('Token house module not loaded', 2000); done(); return; }
-      soloStatus('Checking the $SMACK house…');
+      soloStatus('Checking the SMACK house…');
       await refreshTokenHouseMax();
       if (!tokenHouseReady) {
-        const m = 'The $SMACK house is not set up yet — it needs a one-time initialize from the admin panel.';
+        const m = 'The SMACK house is not set up yet — it needs a one-time initialize from the admin panel.';
         soloStatus(m); toast(m, 3000); done(); return;
       }
       const base = Math.round(smackWager * 1e6);
       if (tokenHouseMaxBase !== null && base > tokenHouseMaxBase) {
-        const m = 'That bet is bigger than the $SMACK house can cover right now — max bet is ' + fmtTok(tokenHouseMaxBase) + ' $SMACK.';
+        const m = 'That bet is bigger than the SMACK house can cover right now — max bet is ' + fmtTok(tokenHouseMaxBase) + ' SMACK.';
         soloStatus(m); toast(m, 3000); done(); return;
       }
       try {
         const bal = await TH.getTokenBalance(W.address);
         if (bal < BigInt(base)) {
-          const m = 'Not enough $SMACK — you have ' + fmtTok(Number(bal)) + ' $SMACK.';
+          const m = 'Not enough SMACK — you have ' + fmtTok(Number(bal)) + ' SMACK.';
           soloStatus(m); toast(m, 2800); done(); return;
         }
       } catch (e) { /* balance read failed: the chain will still guard the bet */ }
@@ -3702,8 +3702,8 @@
       try {
         const res = await TH.placeBet(base);
         activeSoloBet = { bet: res.bet, nonce: res.nonce, currency: 'SMACK', wagerTokens: smackWager };
-        soloStatus(`Bet locked: ${smackWager.toLocaleString('en-US')} $SMACK. Fight!`, true);
-        toast(`Bet locked — ${smackWager.toLocaleString('en-US')} $SMACK vs ${k.name} \u{1F3E0}`, 2400);
+        soloStatus(`Bet locked: ${smackWager.toLocaleString('en-US')} SMACK. Fight!`, true);
+        toast(`Bet locked — ${smackWager.toLocaleString('en-US')} SMACK vs ${k.name} \u{1F3E0}`, 2400);
         startFight(k, 0, { mode: 'classic', soloHouse: activeSoloBet, soloLobby: 'wager' });
       } catch (e) {
         const m = friendlyTokenError(e, 'bet');
@@ -4552,15 +4552,15 @@
         el.innerHTML =
           row('Status', 'NOT INITIALIZED') +
           row('Program', short(TH.PROGRAM_ID)) +
-          row('Mint (test $SMACK)', short(TH.MINT)) +
-          `<button class="btn btn-red" id="th-init" style="margin-top:8px;width:100%;">🚀 INITIALIZE $SMACK HOUSE</button>` +
-          `<p class="fine dark" style="margin-top:6px;">One-time setup. Your connected wallet becomes admin / treasury / resolver at 45% win · 1.9× payout · 5% vault cap · 1% burn — the same shape as the SOL house. After this, KingDev funds the vault with test $SMACK and $SMACK wagering goes live in the solo lobby.</p>`;
+          row('Mint (test SMACK)', short(TH.MINT)) +
+          `<button class="btn btn-red" id="th-init" style="margin-top:8px;width:100%;">🚀 INITIALIZE SMACK HOUSE</button>` +
+          `<p class="fine dark" style="margin-top:6px;">One-time setup. Your connected wallet becomes admin / treasury / resolver at 45% win · 1.9× payout · 5% vault cap · 1% burn — the same shape as the SOL house. After this, KingDev funds the vault with test SMACK and SMACK wagering goes live in the solo lobby.</p>`;
         const b = $('#th-init');
         if (b) b.onclick = async () => {
           b.disabled = true; b.textContent = 'APPROVE IN WALLET…';
           try {
             await TH.initialize();
-            toast('✅ $SMACK house initialized — you are admin + resolver', 3000);
+            toast('✅ SMACK house initialized — you are admin + resolver', 3000);
           } catch (e) {
             const m = String((e && e.message) || '');
             toast(/reject|denied|cancel/i.test(m) ? 'Initialize cancelled in wallet' : '⚠️ Initialize failed — try again', 3000);
@@ -4572,9 +4572,9 @@
       const open = await TH.getOpenBets().catch(() => []);
       tokenOpenBetsCache = open;
       let html =
-        `<div class="vt-hero"><span class="vt-hero-label">$SMACK VAULT BALANCE</span>` +
-        `<span class="vt-hero-val">${fmtTok(st.vaultBase)} <small>$SMACK</small></span>` +
-        `<span class="vt-hero-sub">Max bet it can cover: ${fmtTok(st.maxBetBase)} $SMACK</span></div>`;
+        `<div class="vt-hero"><span class="vt-hero-label">SMACK VAULT BALANCE</span>` +
+        `<span class="vt-hero-val">${fmtTok(st.vaultBase)} <small>SMACK</small></span>` +
+        `<span class="vt-hero-sub">Max bet it can cover: ${fmtTok(st.maxBetBase)} SMACK</span></div>`;
       // Gameplay totals from the Bet accounts — the bet tracker proper,
       // mirroring the SOL vault tracker. Independent read: a failure here
       // never blanks the balance above.
@@ -4583,11 +4583,11 @@
         html += `<div class="vt-tiles">` +
           `<div><b>${ob.totalBets}</b><small>BETS PLACED</small></div>` +
           `<div><b>${ob.resolvedCount} · ${ob.openCount}</b><small>SETTLED · OPEN</small></div>` +
-          `<div><b>${fmtTok(ob.totalWagerBase)}</b><small>WAGERED IN ($SMACK)</small></div></div>` +
+          `<div><b>${fmtTok(ob.totalWagerBase)}</b><small>WAGERED IN (SMACK)</small></div></div>` +
           `<div class="vt-sub">DETAILS</div>` +
-          row('Average bet', `${fmtTok(ob.avgWagerBase)} $SMACK`) +
-          row('Biggest bet', `${fmtTok(ob.maxWagerBase)} $SMACK`) +
-          row('$SMACK locked in open bets', `${fmtTok(ob.betVaultBase)} $SMACK`);
+          row('Average bet', `${fmtTok(ob.avgWagerBase)} SMACK`) +
+          row('Biggest bet', `${fmtTok(ob.maxWagerBase)} SMACK`) +
+          row('SMACK locked in open bets', `${fmtTok(ob.betVaultBase)} SMACK`);
       } catch (e) { html += `<div class="vt-sub">DETAILS</div>` + row('Bet history', 'unavailable right now'); }
       html += `<div class="vt-sub">ON-CHAIN CONFIG</div><div class="vt-tiles four">` +
         `<div><b>${(st.winBps / 100).toFixed(0)}%</b><small>WIN RATE</small></div>` +
@@ -4600,8 +4600,8 @@
       const svcOnT = !!svcWT && st.resolver === svcWT;
       html += `<div class="vt-sub">SETTLEMENT</div>` +
         (svcOnT
-          ? `<div class="fine" style="margin:4px 0;">✅ The settlement service settles every player's $SMACK bets automatically — nobody signs a settle popup.</div>`
-          : `<button class="btn btn-gold" id="th-handover" style="width:100%;margin:4px 0;">🤖 HAND $SMACK SETTLEMENTS TO THE SERVICE</button>` +
+          ? `<div class="fine" style="margin:4px 0;">✅ The settlement service settles every player's SMACK bets automatically — nobody signs a settle popup.</div>`
+          : `<button class="btn btn-gold" id="th-handover" style="width:100%;margin:4px 0;">🤖 HAND SMACK SETTLEMENTS TO THE SERVICE</button>` +
             `<div class="fine" style="margin:2px 0 4px;">One tap: the service wallet becomes the resolver, so every player's bet settles automatically after their fight. You stay admin and can take it back any time.</div>`);
       // Recent token movement on the vault (funding in, lost wagers in,
       // win profits out) — mirrors the SOL tracker's moves list.
@@ -4617,7 +4617,7 @@
             const when = a.blockTime ? new Date(a.blockTime * 1000).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '';
             html += `<div class="vt-move"><span class="vt-arrow ${inTok ? 'in' : 'out'}">${inTok ? '▲' : '▼'}</span>` +
               `<span class="vt-move-main"><span class="vt-move-label">${label}</span>${when ? `<span class="vt-move-time">${when}</span>` : ''}</span>` +
-              `<b class="vt-move-amt ${inTok ? 'in' : 'out'}">${inTok ? '+' : '−'}${fmtTok(Math.abs(a.deltaBase))} $SMACK</b></div>`;
+              `<b class="vt-move-amt ${inTok ? 'in' : 'out'}">${inTok ? '+' : '−'}${fmtTok(Math.abs(a.deltaBase))} SMACK</b></div>`;
           }
         }
       } catch (e) { /* activity is a bonus; the totals above still stand */ }
@@ -4625,7 +4625,7 @@
         html += row('Open bets', 'None 🎉');
       } else {
         const total = open.reduce((s, b) => s + b.wagerBase, 0);
-        html += row('Open bets', `${open.length} · ${fmtTok(total)} $SMACK locked`);
+        html += row('Open bets', `${open.length} · ${fmtTok(total)} SMACK locked`);
         if (svcOnT) {
           html += `<div class="fine" style="margin:2px 0 4px;">Settlement is automatic now — an open bet clears when its fight result comes in, so the manual settle buttons have retired.</div>`;
         } else if (open.length >= 2) {
@@ -4636,7 +4636,7 @@
           const who = `${b.player.slice(0, 4)}…${b.player.slice(-4)}${mine ? ' · YOU' : ''}`;
           const when = new Date(b.nonce).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
           html += `<div class="ob-row"><div class="ob-head">` +
-            `<span class="vt-move-label">${fmtTok(b.wagerBase)} $SMACK — ${who}</span>` +
+            `<span class="vt-move-label">${fmtTok(b.wagerBase)} SMACK — ${who}</span>` +
             `<span class="vt-move-time">Placed ${when}</span></div>` +
             (svcOnT ? '' :
               `<div class="ob-actions">` +
@@ -4654,10 +4654,10 @@
         hoBtnT.disabled = true; hoBtnT.textContent = 'APPROVE IN WALLET…';
         try {
           await TH.setResolver(SAK.SETTLEMENT_SERVICE_WALLET);
-          toast('🤖 Settlement service is live for the $SMACK house', 3200);
+          toast('🤖 Settlement service is live for the SMACK house', 3200);
         } catch (e) {
           const m = String((e && e.message) || '');
-          toast(/reject|denied|cancel/i.test(m) ? 'Handover cancelled in wallet' : '⚠️ $SMACK handover failed: ' + (m ? m.slice(-110) : 'unknown error'), 6500);
+          toast(/reject|denied|cancel/i.test(m) ? 'Handover cancelled in wallet' : '⚠️ SMACK handover failed: ' + (m ? m.slice(-110) : 'unknown error'), 6500);
         }
         refreshAdminTokenHouse();
       };
@@ -4665,9 +4665,9 @@
       const allBtn = $('#th-settle-all');
       if (allBtn) allBtn.onclick = () => settleAllTokenOpenBets(allBtn);
     } catch (e) {
-      el.textContent = '⚠️ Could not reach devnet from this device. Check your connection and tap REFRESH $SMACK HOUSE.';
+      el.textContent = '⚠️ Could not reach devnet from this device. Check your connection and tap REFRESH SMACK HOUSE.';
     }
-    if (btn) { btn.disabled = false; btn.textContent = '🔄 REFRESH $SMACK HOUSE'; }
+    if (btn) { btn.disabled = false; btn.textContent = '🔄 REFRESH SMACK HOUSE'; }
   }
   async function settleTokenOpenBet(btnEl) {
     const b = tokenOpenBetsCache[Number(btnEl.dataset.th)];
@@ -4687,8 +4687,8 @@
     try {
       await SAK.SolanaTokenHouse.resolveBet(b.bet, b.player, b.nonce, won);
       toast(won
-        ? `✅ Settled as a WIN — player receives ${fmtTok(Math.round(b.wagerBase * 1.9))} $SMACK total`
-        : `✅ Settled as a LOSS — ${fmtTok(b.wagerBase)} $SMACK returned to the vault`, 3400);
+        ? `✅ Settled as a WIN — player receives ${fmtTok(Math.round(b.wagerBase * 1.9))} SMACK total`
+        : `✅ Settled as a LOSS — ${fmtTok(b.wagerBase)} SMACK returned to the vault`, 3400);
     } catch (e) {
       const msg = (e && e.message) || '';
       toast(/reject|declined|cancel/i.test(msg) ? 'Settle cancelled in wallet — the bet is still open' : '⚠️ Settle failed — the bet is still open, try again', 3200);
@@ -4709,7 +4709,7 @@
     btnEl.textContent = 'SETTLING…';
     try {
       const r = await SAK.SolanaTokenHouse.resolveAllLoss(bets);
-      toast(`✅ ${r.settled} $SMACK bets settled as LOSS — wagers returned to the vault`, 3600);
+      toast(`✅ ${r.settled} SMACK bets settled as LOSS — wagers returned to the vault`, 3600);
     } catch (e) {
       const done = (e && e.settled) || 0;
       toast(done > 0 ? `⚠️ Settled ${done} of ${bets.length} — the rest are still open` : '⚠️ Settle-all failed — no bets were settled, try again', 3200);
