@@ -3511,11 +3511,14 @@ SAK.Scene3D = (function () {
     // outlines already carry the edge definition) and a 512 shadow map
     // (shadows are soft blobs under the fighters at fight distance).
     renderer = new T.WebGLRenderer({ antialias: false, alpha: true });
-    // RENDER BUDGET (lag fix 2026-10-24): cap at 1.5 instead of 2 — 44%
-    // fewer pixels to shade per frame. The bold cartoon style (thick
-    // outlines, flat toon fills) hides the difference at fight distance,
-    // and the frame-rate gain on phones is worth far more than the pixels.
-    renderer.setPixelRatio(Math.min(1.5, window.devicePixelRatio || 1));
+    // RENDER BUDGET (lag fix 2026-10-24): cap at 1.25 — the GPU cut
+    // (no MSAA + 512 shadows) killed the p95 spikes (269-413ms ->
+    // 65-77ms) but the wall average stuck at 33-43ms vs the 16.7ms
+    // smooth budget, with render() itself only 7-11ms: still
+    // GPU-shading-bound. 1.25 shades 31% fewer pixels than 1.5
+    // (56% fewer than the old 2.0 cap). Bold cartoon shapes hide
+    // the softening at fight distance.
+    renderer.setPixelRatio(Math.min(1.25, window.devicePixelRatio || 1));
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = T.PCFSoftShadowMap;
     if ('outputColorSpace' in renderer) renderer.outputColorSpace = T.SRGBColorSpace;
