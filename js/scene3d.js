@@ -3370,7 +3370,7 @@ SAK.Scene3D = (function () {
   }
 
   /* ================================================================= loop */
-  const perfDts = []; let perfCalls = 0, perfLastWall = 0; // ?fps=1 on-device meter (see game-v3.js)
+  const perfDts = []; const perfRender = []; let perfCalls = 0, perfLastWall = 0; // ?fps=1 on-device meter (see game-v3.js)
   function loop() {
     const rawDt = Math.min(0.05, clock.getDelta());
     // Wall-clock frame time, NOT the clamped game dt: a hitch that takes
@@ -3491,7 +3491,12 @@ SAK.Scene3D = (function () {
       shake = Math.max(0, shake - dt * (koCam ? 1.1 : 1.6));
     }
     camera.lookAt(camCur.look);
+    // ?fps=1 split: time inside render() (JS + draw submission) vs the
+    // wall frame time. renderMs << wallMs => GPU/compositor-bound (pixels,
+    // shaders, fill-rate); renderMs ~= wallMs => draw/JS-bound.
+    const rt0 = performance.now();
     renderer.render(scene, camera);
+    perfRender.push(performance.now() - rt0); if (perfRender.length > 180) perfRender.shift();
     perfCalls = renderer.info.render.calls;
     requestAnimationFrame(loop);
   }
@@ -4846,6 +4851,7 @@ SAK.Scene3D = (function () {
     get perf() {
       const d = perfDts.slice().sort((a, b) => a - b);
       const avg = d.length ? d.reduce((a, b) => a + b, 0) / d.length : 0;
-      return { avgMs: +avg.toFixed(1), p95Ms: d.length ? +d[Math.min(d.length - 1, Math.floor(d.length * 0.95))].toFixed(1) : 0, calls: perfCalls, n: d.length };
+      const ravg = perfRender.length ? perfRender.reduce((a, b) => a + b, 0) / perfRender.length : 0;
+      return { avgMs: +avg.toFixed(1), p95Ms: d.length ? +d[Math.min(d.length - 1, Math.floor(d.length * 0.95))].toFixed(1) : 0, renderMs: +ravg.toFixed(1), calls: perfCalls, n: d.length };
     } };
 })();
