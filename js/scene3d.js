@@ -820,6 +820,18 @@ SAK.Scene3D = (function () {
       this.root.traverse(o => { o.userData.fighter = this; });
       // V6: establish the fierce default expression (grin + teeth) right away
       try { this.setExpression('neutral', 0.01); } catch (e) {}
+      // SHADOW BUDGET (lag fix 2026-10-24): tiny parts (eyes, pupils,
+      // lashes, ears, teeth, fingers, small trims) throw shadows nobody
+      // can see at fight distance, but each one costs a shadow-pass draw
+      // call. Keep shadows on the big shapes only. Last step of build()
+      // so it covers every part, on every build/rebuild.
+      this.root.traverse(o => {
+        if (!o.isMesh || !o.castShadow || !o.geometry) return;
+        if (!o.geometry.boundingSphere) o.geometry.computeBoundingSphere();
+        const s = o.scale;
+        const w = Math.max(Math.abs(s.x), Math.abs(s.y), Math.abs(s.z));
+        if (o.geometry.boundingSphere.radius * w < 0.12) o.castShadow = false;
+      });
     }
 
     /** NFT trait: glove variants. Each wraps the hand with distinct geometry. */
@@ -2531,6 +2543,16 @@ SAK.Scene3D = (function () {
     else if (style === 'rekt') buildRekt(arenaGroup);
     else buildColosseum(arenaGroup);
     if (scene.fog) scene.fog.color.set(ARENA_DEFS[style].fog);
+    // SHADOW BUDGET (lag fix 2026-10-24): the sun's shadow camera covers
+    // +/-4 around the ring. Arena dressing beyond that renders into the
+    // shadow map and gets clipped — pure wasted draw calls. Its shadows
+    // were never visible, so dropping them changes nothing on screen.
+    arenaGroup.updateMatrixWorld(true);
+    arenaGroup.traverse(o => {
+      if (!o.isMesh || !o.castShadow) return;
+      const wp = new T.Vector3(); o.getWorldPosition(wp);
+      if (Math.hypot(wp.x, wp.z) > 4.2) o.castShadow = false;
+    });
   }
 
   /** Full-360° night backdrop: gradient sky + stars + lit city skyline, so the
@@ -3471,7 +3493,11 @@ SAK.Scene3D = (function () {
   function init(el) {
     container = el;
     renderer = new T.WebGLRenderer({ antialias: true, alpha: true });
-    renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
+    // RENDER BUDGET (lag fix 2026-10-24): cap at 1.5 instead of 2 — 44%
+    // fewer pixels to shade per frame. The bold cartoon style (thick
+    // outlines, flat toon fills) hides the difference at fight distance,
+    // and the frame-rate gain on phones is worth far more than the pixels.
+    renderer.setPixelRatio(Math.min(1.5, window.devicePixelRatio || 1));
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = T.PCFSoftShadowMap;
     if ('outputColorSpace' in renderer) renderer.outputColorSpace = T.SRGBColorSpace;
