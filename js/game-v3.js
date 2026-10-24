@@ -596,6 +596,10 @@
     }
     let rows = [];
     try { rows = await SAK.Api.getFightHistory(W.address, 200); } catch (e) { rows = []; }
+    // Rows recorded before the currency fix: a solo wager stored as FREE
+    // with a wager on it was a SOL bet (solo mode only exists for house
+    // wagers; $SMACK rows were always labeled). Display it as SOL.
+    (rows || []).forEach(r => { if (r.mode === 'solo' && r.currency === 'FREE' && Number(r.wager) > 0) r.currency = 'SOL'; });
     if (!rows || !rows.length) {
       if (tiles) tiles.innerHTML = '';
       if (money) money.innerHTML = '';
@@ -2117,9 +2121,12 @@
         const sh = F.opts && F.opts.soloHouse;
         let fhMode = 'free', fhCurrency = 'FREE', fhWager = 0, fhPayout = 0;
         if (sh) {
-          fhMode = 'solo'; fhCurrency = sh.currency;
-          if (sh.currency === 'SMACK') { fhWager = sh.wagerTokens || 0; fhPayout = win ? Math.floor(fhWager * 0.99 * 1.9) : 0; }
-          else { fhWager = parseFloat(sh.wagerSol || 0); fhPayout = win ? fhWager * 1.9 : 0; }
+          fhMode = 'solo';
+          // NOTE: the SOL bet object carries no currency field (only the
+          // $SMACK one sets currency:'SMACK') — default to SOL, never the
+          // raw value (it recorded SOL wagers as currency FREE).
+          if (sh.currency === 'SMACK') { fhCurrency = 'SMACK'; fhWager = sh.wagerTokens || 0; fhPayout = win ? Math.floor(fhWager * 0.99 * 1.9) : 0; }
+          else { fhCurrency = 'SOL'; fhWager = parseFloat(sh.wagerSol || 0); fhPayout = win ? fhWager * 1.9 : 0; }
         } else if (k.pvp) {
           fhMode = 'pvp'; fhCurrency = 'SOL';
           fhWager = parseFloat((F.opts && F.opts.chainWagerSol) || 0);
