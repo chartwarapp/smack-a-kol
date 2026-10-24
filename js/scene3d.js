@@ -3504,13 +3504,7 @@ SAK.Scene3D = (function () {
   /* ================================================================ API */
   function init(el) {
     container = el;
-    // GPU BUDGET (lag fix 2026-10-24): meter v2 proved the bottleneck is
-    // GPU-side, not JS — render() takes 6-9ms while wall frames run
-    // 38-69ms on LT's phone. Two pixel-side cuts with the least visual
-    // cost for a bold toon style: no MSAA (the thick black inverted-hull
-    // outlines already carry the edge definition) and a 512 shadow map
-    // (shadows are soft blobs under the fighters at fight distance).
-    renderer = new T.WebGLRenderer({ antialias: false, alpha: true });
+    renderer = new T.WebGLRenderer({ antialias: true, alpha: true });
     // RENDER BUDGET (lag fix 2026-10-24): cap at 1.5 instead of 2 — 44%
     // fewer pixels to shade per frame. The bold cartoon style (thick
     // outlines, flat toon fills) hides the difference at fight distance,
@@ -3529,7 +3523,7 @@ SAK.Scene3D = (function () {
     const sun = new T.DirectionalLight('#fff4e0', 2.6);
     sun.position.set(6, 9, 3);
     sun.castShadow = true;
-    sun.shadow.mapSize.set(512, 512);
+    sun.shadow.mapSize.set(1024, 1024);
     Object.assign(sun.shadow.camera, { left: -4, right: 4, top: 4, bottom: -4, near: 1, far: 25 });
     scene.add(sun);
     const rim = new T.DirectionalLight('#7ad7ff', 1.8); rim.position.set(-5, 4, -6); scene.add(rim); // V5: stronger rim pop
