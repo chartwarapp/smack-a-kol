@@ -5023,7 +5023,7 @@
         setInterval(() => {
           try {
             const p = SAK.Scene3D.perf;
-            mEl.textContent = `avg ${p.avgMs}ms · p95 ${p.p95Ms}ms · render ${p.renderMs}ms · ${p.calls} draws · ${p.n} frames`;
+            mEl.textContent = `avg ${p.avgMs}ms · p95 ${p.p95Ms}ms · ${p.calls} draws · ${p.n} frames`;
           } catch (e) {}
         }, 500);
       }
