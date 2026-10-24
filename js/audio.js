@@ -376,7 +376,8 @@ SAK.Audio = (function () {
     }
   }
   // Defeat: random funny KO sound (real recordings, never synthesized)
-  const DEFEAT_SOUNDS = ['defeat_dizzy', 'defeat_trombone', 'defeat_silly'];
+  // LT 2026-10-24: silly boom removed from the defeat rotation (trombone kept)
+  const DEFEAT_SOUNDS = ['defeat_dizzy', 'defeat_trombone'];
   function crowdLose() {
     if (!ready() || !soundCfg.defeatOn) return;
     const pick = DEFEAT_SOUNDS[Math.floor(Math.random() * DEFEAT_SOUNDS.length)];
