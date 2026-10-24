@@ -619,6 +619,7 @@ h2, h3, .prompt, .vs, .level, .fc-name, .banner, .float-text, .result-title {
 /* ---------------------------------------------------------------- modes + PvP lobby */
 .mode-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; }
 .mode-btn { padding: 6px 8px; border-radius: 12px; background: #ffffff1c; border: 2px solid #ffffff33; text-align: left; line-height: 1.1; }
+.smack-hand { width: 1.15em; height: 1.15em; vertical-align: -0.18em; margin-right: 0.2em; object-fit: contain; }
 .mode-btn b { font-size: 15px; display: block; }
 .mode-btn small { font: 700 11px system-ui, sans-serif; opacity: .85; }
 .mode-btn.selected { background: #39ff88; color: var(--ink); border-color: var(--ink); }

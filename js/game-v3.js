@@ -620,7 +620,7 @@
     if (money) money.innerHTML = Object.keys(agg).map(cur => {
       const a = agg[cur];
       const netTxt = (a.net >= 0 ? '+' : '−') + fhMoney(Math.abs(a.net), cur);
-      return `<div class="fh-money-row"><span>${cur === 'SMACK' ? '🪙 SMACK' : cur === 'SOL' ? '◎ SOL' : '⭐ PTS'} WAGERED</span><b>${fhMoney(a.w, cur)}</b><span class="${a.net >= 0 ? 'fh-pos' : 'fh-neg'}">${netTxt} net</span></div>`;
+      return `<div class="fh-money-row"><span>${cur === 'SMACK' ? '<img class="smack-hand" src="assets/hand-icon-sm.png" alt=""> SMACK' : cur === 'SOL' ? '◎ SOL' : '⭐ PTS'} WAGERED</span><b>${fhMoney(a.w, cur)}</b><span class="${a.net >= 0 ? 'fh-pos' : 'fh-neg'}">${netTxt} net</span></div>`;
     }).join('');
     const modeTag = r => r.mode === 'solo' ? '🏠 SOLO' : r.mode === 'pvp' ? '⚔️ PVP' : (r.currency === 'PTS' ? '⭐ PTS BET' : '🆓 FREE');
     list.innerHTML = rows.slice(0, 30).map(r => {
@@ -2187,17 +2187,17 @@
             const wT = F.opts.soloHouse.wagerTokens || 0;
             const burnLine = `<div><span>Burn (1%)</span><b>-${fmtTokAmt(wT * 0.01)} SMACK 🔥</b></div>`;
             if (r && r.won) {
-              return `<div class="bd-head" style="margin-top:8px;">🪙 SOLO VS SMACK HOUSE (DEVNET)</div>
+              return `<div class="bd-head" style="margin-top:8px;"><img class="smack-hand" src="assets/hand-icon-sm.png" alt=""> SOLO VS SMACK HOUSE (DEVNET)</div>
                 <div><span>Wagered</span><b>${fmtTokAmt(wT)} SMACK</b></div>
                 ${burnLine}
                 <div><span>You won</span><b style="color:#4ade80;">+${fmtTokAmt(r.payoutTokens || 0)} SMACK</b></div>`;
             } else if (r && !r.won) {
-              return `<div class="bd-head" style="margin-top:8px;">🪙 SOLO VS SMACK HOUSE (DEVNET)</div>
+              return `<div class="bd-head" style="margin-top:8px;"><img class="smack-hand" src="assets/hand-icon-sm.png" alt=""> SOLO VS SMACK HOUSE (DEVNET)</div>
                 <div><span>Wagered</span><b>${fmtTokAmt(wT)} SMACK</b></div>
                 ${burnLine}
                 <div><span>You lost</span><b class="neg">-${fmtTokAmt(wT)} SMACK</b></div>`;
             }
-            return `<div class="bd-head" style="margin-top:8px;">🪙 SOLO VS SMACK HOUSE (DEVNET)</div>
+            return `<div class="bd-head" style="margin-top:8px;"><img class="smack-hand" src="assets/hand-icon-sm.png" alt=""> SOLO VS SMACK HOUSE (DEVNET)</div>
               <div><span>Wagered</span><b>${fmtTokAmt(wT)} SMACK</b></div>
               ${burnLine}
               <div class="fine" style="font-size:11px;color:#888;">⏳ The house settles this automatically — no wallet step needed</div>`;
@@ -3443,7 +3443,7 @@
       const mx = $('#solo-max');
       if (mx) {
         if (!st.initialized) {
-          mx.textContent = '🪙 The SMACK house is not set up yet — it needs a one-time initialize from the admin panel.';
+          mx.innerHTML = '<img class="smack-hand" src="assets/hand-icon-sm.png" alt=""> The SMACK house is not set up yet — it needs a one-time initialize from the admin panel.';
         } else {
           let bal = '';
           if (W.isConnected) { try { bal = ' · your balance: ' + fmtTok(Number(await TH.getTokenBalance(W.address))) + ' SMACK'; } catch (e) {} }
@@ -3563,7 +3563,7 @@
     const lb = $('#solo-wager-label');
     if (lb) lb.textContent = soloCurrency === 'SMACK' ? 'YOUR WAGER (SMACK)' : 'YOUR WAGER (SOL)';
     const tg = $('#solo-toggle .mode-btn[data-sm="wager"] b');
-    if (tg) tg.textContent = soloCurrency === 'SMACK' ? '🪙 WAGER SMACK' : '◎ WAGER SOL';
+    if (tg) tg.innerHTML = soloCurrency === 'SMACK' ? '<img class="smack-hand" src="assets/hand-icon-sm.png" alt=""> WAGER SMACK' : '◎ WAGER SOL';
   }
   function renderSoloLobby() {
     paintSoloCurrency();
