@@ -125,18 +125,6 @@ SAK.Api.SupabaseBackend = function (url, anonKey) {
         `/fight_history?wallet=eq.${encodeURIComponent(wallet)}&select=*&order=created_at.desc&limit=${limit || 200}`);
       return rows || [];
     },
-    // Admin player tracker: one profiles row per wallet that signed on
-    // (connected + created a fighter); fought = distinct wallets with
-    // at least one recorded fight.
-    async getPlayerStats() {
-      const signups = await req('GET', '/profiles?select=wallet,name,created_at&order=created_at.desc&limit=500');
-      let fought = 0;
-      try {
-        const fh = await req('GET', '/fight_history?select=wallet&limit=2000');
-        fought = new Set((fh || []).map(r => r.wallet)).size;
-      } catch (e) { /* fight_history may not exist yet */ }
-      return { signups: signups || [], fought };
-    },
     async audit(adminWallet, action, details) {
       await req('POST', '/admin_audit', {
         admin_wallet: adminWallet, action, details: details || {},

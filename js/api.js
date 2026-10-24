@@ -40,7 +40,6 @@ SAK.Api = (function () {
     listChallenges(s, ...a) { return backend.listChallenges(s, ...a); },
     recordMatch(d, ...a) { return backend.recordMatch(d, ...a); },
     recordFightHistory(d, ...a) { return backend.recordFightHistory ? backend.recordFightHistory(d, ...a) : Promise.resolve(null); },
-    getPlayerStats(...a) { return backend.getPlayerStats ? backend.getPlayerStats(...a) : Promise.resolve({ signups: [], fought: 0 }); },
     getFightHistory(w, ...a) { return backend.getFightHistory ? backend.getFightHistory(w, ...a) : Promise.resolve([]); },
     audit(w, act, det, ...a) { return backend.audit(w, act, det, ...a); },
     recordReferral(d, ...a) { return backend.recordReferral ? backend.recordReferral(d, ...a) : Promise.resolve(null); },
@@ -131,11 +130,6 @@ SAK.Api.MockBackend = function () {
       return (d.fights || []).filter(f => f.wallet === wallet)
         .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
         .slice(0, limit || 200);
-    },
-    async getPlayerStats() {
-      const d = db();
-      const fought = new Set((d.fights || []).map(f => f.wallet)).size;
-      return { signups: [], fought };
     },
     async audit(adminWallet, action, details) {
       // mock: no-op (real backend writes to admin_audit)
