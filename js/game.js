@@ -1715,7 +1715,7 @@
   }
 
 
-  const REVEAL_MS = 2000; // 2s: visible but doesn't drag; tap to skip
+  const REVEAL_MS = 800; // 0.8s: visible but doesn't drag; tap to skip (shortened from 2000, LT 2026-10-24)
 
   function hideLockReveal() {
     if (revealDismiss) {
