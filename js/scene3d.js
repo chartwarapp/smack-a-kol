@@ -2812,18 +2812,18 @@ SAK.Scene3D = (function () {
     billboard(chart.tex, 4.2, 2.6, 243, 8.5, 3.6);
     billboard(textPanel('WAGMI', '#39ff88', ['#12002b', '#2a0b5e'], 512, 220), 3.6, 1.55, 270, 8.5, 4.4);
     billboard(textPanel('TO THE MOON 🚀', '#ffd23f', ['#2a0b5e', '#5a1aa8'], 768, 200), 4.6, 1.2, 278, 8.8, 3.0);
-    billboard(textPanel('FOMO', '#ff3b5c', ['#12002b', '#3a0b2e'], 512, 220), 2.0, 0.9, 195, 9.5, 3.0);
+    billboard(textPanel('FOMO', '#ff3b5c', ['#12002b', '#3a0b2e'], 512, 220), 3.0, 1.15, 164, 8.6, 4.0);
     billboard(chart.tex, 3.2, 2.0, 302, 8.6, 4.2);
     // Solana memecoin degen dressing
     billboard(textPanel('DIAMOND HANDS 💎🙌', '#39ff88', ['#12002b', '#1a3a2e'], 768, 200), 4.6, 1.2, 218, 8.8, 3.4);
-    // SOLANA + PUMP.FUN billboards — restored at LT's request
-    // (2026-10-23) on the fascia band above the crowd (y≈2.2): the fight
-    // cameras only frame the back arc up to ~y3.5, so the old high
-    // center-billboard slots never show during a fight. Pink Solana
-    // left, green Pump.fun right, flanking the fight axis. Only these
-    // two — no other removed panels return.
+    // SOLANA fascia billboard — restored at LT's request (2026-10-23) on
+    // the fascia band above the crowd (y≈2.2). PUMP.FUN + the red FOMO
+    // moved to the brace camera's upper-left sky at LT's request
+    // (2026-10-24): PUMP.FUN high (142°, y5.3), FOMO below-right of it
+    // (164°, y4.0) — the raised-PUMP layout won over lowered-FOMO, which
+    // dropped FOMO behind the fighters' heads.
     billboard(textPanel('SOLANA', '#ff5ca8', ['#2e0b1e', '#5e1a3a'], 640, 200), 4.8, 1.15, 218, 8.6, 2.2);
-    billboard(textPanel('PUMP.FUN', '#39ff88', ['#0b2e1a', '#1a5e3a'], 640, 200), 4.8, 1.15, 246, 8.6, 1.95);
+    billboard(textPanel('PUMP.FUN', '#39ff88', ['#0b2e1a', '#1a5e3a'], 640, 200), 4.8, 1.15, 142, 8.6, 5.3);
     billboard(textPanel('FOMO', '#ffd23f', ['#2e1a0b', '#5e3a1a'], 512, 200), 3.0, 1.15, 285, 8.6, 3.6);
     // (The 158° Pump.fun panel was removed with the other camera-side
     // billboards — LT 2026-10-23 foreground cleanup.)
