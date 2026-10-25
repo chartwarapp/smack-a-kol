@@ -1973,10 +1973,11 @@ SAK.Scene3D = (function () {
       // forward and back along the strike axis before the tap, and the
       // shoulder line coils with it (same phase + sign as the real wind-up
       // twist, sd * wind.twist) so the fighter reads as winding up for a
-      // huge slap. LT 2026-10-25 v3: 50deg of arm travel (33deg + 50% each
-      // way), fore/aft only. Eased in/out so it never pops or fights the
-      // wind-up tween: the game clears anticipate the moment a slap starts,
-      // and the ease-out fades the sway during the 0.20s wind-up
+      // huge slap. LT 2026-10-25 v4: arm travel 75deg total (body twist
+      // UNCHANGED from v3 — the arm alone goes further, out-travelling the
+      // shoulder). Fore/aft only. Eased in/out so it never pops or fights
+      // the wind-up tween: the game clears anticipate the moment a slap
+      // starts, and the ease-out fades the sway during the 0.20s wind-up
       // (negligible by contact).
       this.anticipateAmt += ((this.anticipate && !this.ko ? 1 : 0) - this.anticipateAmt) * Math.min(1, dt * 12);
       const antSway = Math.sin(this.idlePhase * 4.5) * this.anticipateAmt;
@@ -1989,7 +1990,7 @@ SAK.Scene3D = (function () {
       // slapping arm uses the tweened pose; the other arm idles / guards
       let armLift = p.lift, armSwing = p.swing;
       if (this.anticipateAmt > 0.01) {
-        armSwing += antSway * 0.435;
+        armSwing += antSway * 0.65;
       }
       this.applyArm(this.arms[this.armSide], armLift, armSwing, p.elbow);
       const g = p.guard;
