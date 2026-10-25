@@ -1962,16 +1962,15 @@ SAK.Scene3D = (function () {
       this.root.position.z = this.homeZ + this.facing * p.lunge;
       // slapping arm uses the tweened pose; the other arm idles / guards
       // Anticipatory swing: on the attacker's turn, the slapping arm swings
-      // back and forth before the tap (LT 2026-10-25: ~25-30deg of travel).
-      // Eased in/out so it never pops or fights the wind-up tween: the game
-      // clears anticipate the moment a slap starts, and the ease-out fades
-      // the sway during the 0.20s wind-up (negligible by contact).
+      // forward and back along the strike axis before the tap (LT 2026-10-25:
+      // 33deg of travel, fore/aft only — the sideways version read as
+      // side-to-side). Eased in/out so it never pops or fights the wind-up
+      // tween: the game clears anticipate the moment a slap starts, and the
+      // ease-out fades the sway during the 0.20s wind-up (negligible by contact).
       this.anticipateAmt += ((this.anticipate && !this.ko ? 1 : 0) - this.anticipateAmt) * Math.min(1, dt * 12);
       let armLift = p.lift, armSwing = p.swing;
       if (this.anticipateAmt > 0.01) {
-        const sway = Math.sin(this.idlePhase * 4.5);
-        armLift += sway * 0.20 * this.anticipateAmt;
-        armSwing += Math.cos(this.idlePhase * 4.5) * 0.15 * this.anticipateAmt;
+        armSwing += Math.sin(this.idlePhase * 4.5) * 0.29 * this.anticipateAmt;
       }
       this.applyArm(this.arms[this.armSide], armLift, armSwing, p.elbow);
       const g = p.guard;
