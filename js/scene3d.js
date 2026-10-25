@@ -1969,23 +1969,27 @@ SAK.Scene3D = (function () {
       // springs
       for (const sp of [this.yaw, this.roll]) { sp.v += (-140 * sp.x - 10 * sp.v) * dt; sp.x += sp.v * dt; }
       const p = this.pose, idle = Math.sin(this.idlePhase * 2.2);
-      this.torso.rotation.set(p.lean + idle * 0.015, p.twist, this.roll.x * 0.5);
+      // Anticipatory swing: on the attacker's turn, the slapping arm swings
+      // forward and back along the strike axis before the tap, and the
+      // shoulder line coils with it (same phase + sign as the real wind-up
+      // twist, sd * wind.twist) so the fighter reads as winding up for a
+      // huge slap. LT 2026-10-25 v3: 50deg of arm travel (33deg + 50% each
+      // way), fore/aft only. Eased in/out so it never pops or fights the
+      // wind-up tween: the game clears anticipate the moment a slap starts,
+      // and the ease-out fades the sway during the 0.20s wind-up
+      // (negligible by contact).
+      this.anticipateAmt += ((this.anticipate && !this.ko ? 1 : 0) - this.anticipateAmt) * Math.min(1, dt * 12);
+      const antSway = Math.sin(this.idlePhase * 4.5) * this.anticipateAmt;
+      this.torso.rotation.set(p.lean + idle * 0.015, p.twist + antSway * 0.18 * this.armSide, this.roll.x * 0.5);
       this.head.rotation.set(-p.lean * 0.5, this.yaw.x, this.roll.x);
       this.torso.position.y = 0.95 + idle * 0.012;
       // Lunge runs along the (rotated) facing direction, not world z.
       this.root.position.x = this.homeX + this.faceX * p.lunge;
       this.root.position.z = this.homeZ + this.faceZ * p.lunge;
       // slapping arm uses the tweened pose; the other arm idles / guards
-      // Anticipatory swing: on the attacker's turn, the slapping arm swings
-      // forward and back along the strike axis before the tap (LT 2026-10-25:
-      // 33deg of travel, fore/aft only — the sideways version read as
-      // side-to-side). Eased in/out so it never pops or fights the wind-up
-      // tween: the game clears anticipate the moment a slap starts, and the
-      // ease-out fades the sway during the 0.20s wind-up (negligible by contact).
-      this.anticipateAmt += ((this.anticipate && !this.ko ? 1 : 0) - this.anticipateAmt) * Math.min(1, dt * 12);
       let armLift = p.lift, armSwing = p.swing;
       if (this.anticipateAmt > 0.01) {
-        armSwing += Math.sin(this.idlePhase * 4.5) * 0.29 * this.anticipateAmt;
+        armSwing += antSway * 0.435;
       }
       this.applyArm(this.arms[this.armSide], armLift, armSwing, p.elbow);
       const g = p.guard;
