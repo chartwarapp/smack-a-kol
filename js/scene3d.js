@@ -2466,13 +2466,13 @@ SAK.Scene3D = (function () {
     }).tex;
   }
 
-  /** SMACK BAR ring floor: the white-hand mascot fitted whole inside the
-   *  ring circle (no crop), on the signature purple, pink/gold edge rings.
-   *  Uses assets/hand-ring.png — a clean crop of the mascot with complete
-   *  fingertips (assets/hand-icon.png chops the two middle fingers at its
-   *  top edge, which is why the first ring drafts looked cut). The hand
-   *  image is circular-clipped so its rectangular burst background never
-   *  reads as a poster on the floor. */
+  /** SMACK BAR ring floor: LT's round hand badge filling the whole inner
+   *  ring floor. Uses assets/hand-ring-round.jpg — the badge already fills
+   *  its square edge-to-edge, and the cylinder cap UVs sample only the
+   *  inscribed circle, so the square's white corners never show on the
+   *  floor (no clip needed). Pink/gold edge rings stay drawn on top as
+   *  the floor's frame. Hand kept rotated 180deg (LT 2026-10-25) so the
+   *  fingers point toward the fight-camera side. */
   function smackbarRingTex() {
     const draw = (ctx, img) => {
       const c = 256;
@@ -2480,8 +2480,8 @@ SAK.Scene3D = (function () {
       ctx.fillStyle = '#4b16b0'; ctx.fillRect(0, 0, 512, 512);
       if (img && img.complete && img.naturalWidth) {
         ctx.save();
-        ctx.beginPath(); ctx.arc(c, c, 232, 0, Math.PI * 2); ctx.clip();
-        const s = Math.min(512 / img.naturalWidth, 512 / img.naturalHeight) * 0.75;
+        // Full fill: badge drawn edge-to-edge (was 0.75 fit + r232 clip)
+        const s = Math.max(512 / img.naturalWidth, 512 / img.naturalHeight);
         const dw = img.naturalWidth * s, dh = img.naturalHeight * s;
         // LT 2026-10-25: hand rotated 180deg on the ring floor
         ctx.translate(c, c); ctx.rotate(Math.PI);
@@ -2494,7 +2494,7 @@ SAK.Scene3D = (function () {
     const t = canvasTex(512, 512, (ctx) => draw(ctx, null));
     const img = new Image();
     img.onload = () => { draw(t.tex.image.getContext('2d'), img); t.tex.needsUpdate = true; };
-    img.src = 'assets/hand-ring.png';
+    img.src = 'assets/hand-ring-round.jpg';
     return t.tex;
   }
 
