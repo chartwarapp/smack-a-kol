@@ -3081,6 +3081,47 @@ SAK.Scene3D = (function () {
       card.position.set(0.56, 1.42, 0.1); card.rotation.z = -0.1; rg.add(card);
       AG.add(rg);
     }
+    // chalkboard fight menu on the side wall — fills the bare upper band
+    // the brace camera sees (back wall wraps to the edges in brace view)
+    const chalkTex = canvasTex(768, 320, (ctx, w, h) => {
+      ctx.fillStyle = '#20241f'; ctx.fillRect(0, 0, w, h);
+      for (let i = 0; i < 500; i++) {
+        ctx.fillStyle = 'rgba(255,255,255,' + (Math.random() * 0.05).toFixed(2) + ')';
+        ctx.fillRect(Math.random() * w, Math.random() * h, 2, 2);
+      }
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#f5f5dc'; ctx.font = '700 46px system-ui, sans-serif';
+      ctx.fillText("TONIGHT'S FIGHT MENU", w / 2, 58);
+      ctx.strokeStyle = '#f5f5dc'; ctx.lineWidth = 3; ctx.beginPath();
+      for (let x = 90; x <= w - 90; x += 10) ctx.lineTo(x, 76 + Math.sin(x * 0.05) * 3);
+      ctx.stroke();
+      const items = [
+        ['KNOCKOUT PUNCH', '0.05 SOL', '#ffe23d'],
+        ['BEAR MARKET BREW', '0.02 SOL', '#ff9de2'],
+        ['MOONSHOT MARGARITA', '1,000 SMACK', '#7dff6a'],
+        ['RUGGED ON THE ROCKS', 'FREE', '#ff6b6b'],
+      ];
+      ctx.font = '700 32px system-ui, sans-serif';
+      items.forEach(([name, price, col], i) => {
+        const y = 128 + i * 44;
+        ctx.textAlign = 'left'; ctx.fillStyle = col; ctx.fillText(name, 36, y);
+        ctx.textAlign = 'right'; ctx.fillStyle = '#f5f5dc'; ctx.fillText(price, w - 36, y);
+      });
+      ctx.textAlign = 'center'; ctx.fillStyle = '#f5f5dc'; ctx.font = '700 24px system-ui, sans-serif';
+      ctx.fillText('★ SLAP HAPPY HOUR ALL NIGHT ★', w / 2, h - 18);
+    }).tex;
+    const chalk = new T.Group();
+    const board = new T.Mesh(new T.PlaneGeometry(6.0, 2.4), new T.MeshBasicMaterial({ map: chalkTex, toneMapped: false }));
+    chalk.add(board);
+    const woodF = mat('#5a3a20');
+    chalk.add(mesh(new T.BoxGeometry(6.2, 0.15, 0.08), woodF, 0, 1.27, 0));
+    chalk.add(mesh(new T.BoxGeometry(6.2, 0.15, 0.08), woodF, 0, -1.27, 0));
+    chalk.add(mesh(new T.BoxGeometry(0.15, 2.7, 0.08), woodF, -3.05, 0, 0));
+    chalk.add(mesh(new T.BoxGeometry(0.15, 2.7, 0.08), woodF, 3.05, 0, 0));
+    const chAng = 159 * Math.PI / 180;
+    chalk.position.set(Math.cos(chAng) * 9.5, 4.6, Math.sin(chAng) * 9.5);
+    chalk.lookAt(0, 4.6, 0);
+    AG.add(chalk);
   }
 
   function buildMoonshot(AG) {
