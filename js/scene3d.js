@@ -2619,7 +2619,8 @@ SAK.Scene3D = (function () {
     const ringEdge = new T.Mesh(new T.TorusGeometry(3.3, 0.07, 6, 48), neonG); ringEdge.rotation.x = Math.PI / 2; ringEdge.position.y = 0.1; AG.add(ringEdge);
     const ringEdge2 = new T.Mesh(new T.TorusGeometry(3.55, 0.05, 6, 48), neonP); ringEdge2.rotation.x = Math.PI / 2; ringEdge2.position.y = 0.06; AG.add(ringEdge2);
     // Solana floor decal: right side of the floor, front of the ring — visible in the fight view
-    {
+    // (SMACK BAR swaps it for the white-hand medallion, added in buildSmackBar)
+    if (arenaStyle !== 'smackbar') {
       const decal = new T.Mesh(
         new T.PlaneGeometry(2.4, 1.2),
         new T.MeshBasicMaterial({ map: solanaFloorDecal(), transparent: true, toneMapped: false })
@@ -3122,6 +3123,39 @@ SAK.Scene3D = (function () {
     chalk.position.set(Math.cos(chAng) * 9.5, 4.6, Math.sin(chAng) * 9.5);
     chalk.lookAt(0, 4.6, 0);
     AG.add(chalk);
+
+    // SMACK BAR floor medallion: the white-hand mascot, large, in place of
+    // the Solana decal (which buildArenaCore skips for this arena). Brand
+    // rings: hot pink outer, gold inner; the hand image circular-clipped
+    // inside so the baked burst reads as a logo medallion, not a poster.
+    const drawMedal = (ctx, img) => {
+      const c = 256;
+      ctx.clearRect(0, 0, 512, 512);
+      ctx.beginPath(); ctx.arc(c, c, 250, 0, Math.PI * 2); ctx.fillStyle = '#14081f'; ctx.fill();
+      if (img && img.complete && img.naturalWidth) {
+        ctx.save();
+        ctx.beginPath(); ctx.arc(c, c, 214, 0, Math.PI * 2); ctx.clip();
+        const s = Math.max(428 / img.naturalWidth, 428 / img.naturalHeight);
+        const dw = img.naturalWidth * s, dh = img.naturalHeight * s;
+        ctx.drawImage(img, c - dw / 2, c - dh / 2 - 25, dw, dh);
+        ctx.restore();
+      }
+      ctx.beginPath(); ctx.arc(c, c, 240, 0, Math.PI * 2); ctx.strokeStyle = '#ff4fd8'; ctx.lineWidth = 18; ctx.stroke();
+      ctx.beginPath(); ctx.arc(c, c, 222, 0, Math.PI * 2); ctx.strokeStyle = '#ffcc22'; ctx.lineWidth = 8; ctx.stroke();
+    };
+    const medal = canvasTex(512, 512, (ctx) => drawMedal(ctx, null));
+    const handImg = new Image();
+    handImg.onload = () => { drawMedal(medal.tex.image.getContext('2d'), handImg); medal.tex.needsUpdate = true; };
+    handImg.src = 'assets/hand-icon.png';
+    const medalMesh = new T.Mesh(
+      new T.PlaneGeometry(2.8, 2.8),
+      new T.MeshBasicMaterial({ map: medal.tex, transparent: true, toneMapped: false })
+    );
+    const mAng = -55 * Math.PI / 180, mR = 5.0;
+    medalMesh.position.set(Math.cos(mAng) * mR, 0.055, Math.sin(mAng) * mR);
+    const mAway = new T.Vector3(-1, 0, -0.42).normalize();
+    medalMesh.rotation.set(-Math.PI / 2, 0, Math.atan2(-mAway.x, -mAway.z));
+    AG.add(medalMesh);
   }
 
   function buildMoonshot(AG) {
