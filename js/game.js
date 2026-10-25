@@ -1903,6 +1903,9 @@
       }
     };
 
+    // Anticipation sway ends the moment a slap starts: it must never add
+    // wobble to the wind-up or contact (the scene eases it out over the wind-up).
+    if (Scene && Scene.setAnticipate) { Scene.setAnticipate('player', false); Scene.setAnticipate('kol', false); }
     if (Scene) await Scene.slap(slapWho, { grade: slapGrade, fire, dist: attackerWins ? atk.dist : def.dist, windup: 0.20, landed: slapLands, dmg: slapLands ? dmg : 0, onImpact: doImpact }); // V2: dmg -> 3D number (windup trimmed 0.28 -> 0.20, LT 2026-10-24)
     else { await wait(0.35); doImpact(); }
     renderMeterFaces(attackerWins ? (slapWho === 'player' ? 'kol' : 'player') : null); // evolve meter-face damage

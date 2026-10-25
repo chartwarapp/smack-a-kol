@@ -601,6 +601,8 @@ SAK.Scene3D = (function () {
       this.yaw = { x: 0, v: 0 }; this.roll = { x: 0, v: 0 };
       this.ko = null;               // knockout physics state
       this.fire = false;
+      this.anticipate = false;      // attack-turn arm sway flag (game drives it)
+      this.anticipateAmt = 0;       // eased sway amount (avoids pops at on/off)
       this.idlePhase = Math.random() * 10;
       this.build();
     }
@@ -1959,13 +1961,17 @@ SAK.Scene3D = (function () {
       this.torso.position.y = 0.95 + idle * 0.012;
       this.root.position.z = this.homeZ + this.facing * p.lunge;
       // slapping arm uses the tweened pose; the other arm idles / guards
-      // Anticipatory swing: on player's attack turn, the slapping arm sways slightly
-      // like it's winding up, synced to the meter's rhythm
+      // Anticipatory swing: on the attacker's turn, the slapping arm swings
+      // back and forth before the tap (LT 2026-10-25: ~25-30deg of travel).
+      // Eased in/out so it never pops or fights the wind-up tween: the game
+      // clears anticipate the moment a slap starts, and the ease-out fades
+      // the sway during the 0.20s wind-up (negligible by contact).
+      this.anticipateAmt += ((this.anticipate && !this.ko ? 1 : 0) - this.anticipateAmt) * Math.min(1, dt * 12);
       let armLift = p.lift, armSwing = p.swing;
-      if (this.anticipate && !this.ko) {
+      if (this.anticipateAmt > 0.01) {
         const sway = Math.sin(this.idlePhase * 4.5);
-        armLift += sway * 0.12;
-        armSwing += Math.cos(this.idlePhase * 4.5) * 0.08;
+        armLift += sway * 0.20 * this.anticipateAmt;
+        armSwing += Math.cos(this.idlePhase * 4.5) * 0.15 * this.anticipateAmt;
       }
       this.applyArm(this.arms[this.armSide], armLift, armSwing, p.elbow);
       const g = p.guard;
@@ -3747,8 +3753,8 @@ SAK.Scene3D = (function () {
     roleCam = { role: 'attack', w: 0 };
     endHitCam(true);
     introArmed = true; introSweep = null; // next setRoleCam() (round 1) plays the broadcast intro
-    if (player) { player.resetPose(); player.setFire(false); }
-    if (kol) { kol.resetPose(); kol.setFire(false); }
+    if (player) { player.resetPose(); player.setFire(false); player.anticipate = false; }
+    if (kol) { kol.resetPose(); kol.setFire(false); kol.anticipate = false; }
     if (mode === 'fight' || mode === 'arena') frameCamera();
   }
 
