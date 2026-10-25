@@ -2466,6 +2466,36 @@ SAK.Scene3D = (function () {
     }).tex;
   }
 
+  /** SMACK BAR ring floor: the white-hand mascot fitted whole inside the
+   *  ring circle (no crop), on the signature purple, pink/gold edge rings.
+   *  Uses assets/hand-ring.png — a clean crop of the mascot with complete
+   *  fingertips (assets/hand-icon.png chops the two middle fingers at its
+   *  top edge, which is why the first ring drafts looked cut). The hand
+   *  image is circular-clipped so its rectangular burst background never
+   *  reads as a poster on the floor. */
+  function smackbarRingTex() {
+    const draw = (ctx, img) => {
+      const c = 256;
+      ctx.clearRect(0, 0, 512, 512);
+      ctx.fillStyle = '#4b16b0'; ctx.fillRect(0, 0, 512, 512);
+      if (img && img.complete && img.naturalWidth) {
+        ctx.save();
+        ctx.beginPath(); ctx.arc(c, c, 232, 0, Math.PI * 2); ctx.clip();
+        const s = Math.min(512 / img.naturalWidth, 512 / img.naturalHeight) * 0.75;
+        const dw = img.naturalWidth * s, dh = img.naturalHeight * s;
+        ctx.drawImage(img, c - dw / 2, c - dh / 2, dw, dh);
+        ctx.restore();
+      }
+      ctx.beginPath(); ctx.arc(c, c, 250, 0, Math.PI * 2); ctx.strokeStyle = '#ff4fd8'; ctx.lineWidth = 12; ctx.stroke();
+      ctx.beginPath(); ctx.arc(c, c, 238, 0, Math.PI * 2); ctx.strokeStyle = '#ffcc22'; ctx.lineWidth = 6; ctx.stroke();
+    };
+    const t = canvasTex(512, 512, (ctx) => draw(ctx, null));
+    const img = new Image();
+    img.onload = () => { draw(t.tex.image.getContext('2d'), img); t.tex.needsUpdate = true; };
+    img.src = 'assets/hand-ring.png';
+    return t.tex;
+  }
+
   function makeRocket() {
     const g = new T.Group();
     g.add(mesh(new T.CylinderGeometry(0.28, 0.32, 1.4, 8), mat('#f2f2ff'), 0, 0, 0));
@@ -2612,14 +2642,15 @@ SAK.Scene3D = (function () {
       ctx.restore();
       ctx.restore();
     }).tex;
-    const ringMat = new T.MeshLambertMaterial({ map: ringTex });
+    const ringMat = new T.MeshLambertMaterial({ map: arenaStyle === 'smackbar' ? smackbarRingTex() : ringTex });
     const mat2 = mesh(new T.CylinderGeometry(3.2, 3.4, 0.12, 24), [mat('#2a0b5e'), ringMat, mat('#2a0b5e')], 0, 0.02, 0);
     mat2.castShadow = false; AG.add(mat2);
     const neonG = new T.MeshBasicMaterial({ color: '#39ff88' }), neonP = new T.MeshBasicMaterial({ color: '#ff4fd8' });
     const ringEdge = new T.Mesh(new T.TorusGeometry(3.3, 0.07, 6, 48), neonG); ringEdge.rotation.x = Math.PI / 2; ringEdge.position.y = 0.1; AG.add(ringEdge);
     const ringEdge2 = new T.Mesh(new T.TorusGeometry(3.55, 0.05, 6, 48), neonP); ringEdge2.rotation.x = Math.PI / 2; ringEdge2.position.y = 0.06; AG.add(ringEdge2);
     // Solana floor decal: right side of the floor, front of the ring — visible in the fight view
-    // (SMACK BAR swaps it for the white-hand medallion, added in buildSmackBar)
+    // (SMACK BAR skips it: the ring floor itself carries the hand, so the bar
+    // arena has no separate floor decor)
     if (arenaStyle !== 'smackbar') {
       const decal = new T.Mesh(
         new T.PlaneGeometry(2.4, 1.2),
@@ -3123,39 +3154,6 @@ SAK.Scene3D = (function () {
     chalk.position.set(Math.cos(chAng) * 9.5, 4.6, Math.sin(chAng) * 9.5);
     chalk.lookAt(0, 4.6, 0);
     AG.add(chalk);
-
-    // SMACK BAR floor medallion: the white-hand mascot, large, in place of
-    // the Solana decal (which buildArenaCore skips for this arena). Brand
-    // rings: hot pink outer, gold inner; the hand image circular-clipped
-    // inside so the baked burst reads as a logo medallion, not a poster.
-    const drawMedal = (ctx, img) => {
-      const c = 256;
-      ctx.clearRect(0, 0, 512, 512);
-      ctx.beginPath(); ctx.arc(c, c, 250, 0, Math.PI * 2); ctx.fillStyle = '#14081f'; ctx.fill();
-      if (img && img.complete && img.naturalWidth) {
-        ctx.save();
-        ctx.beginPath(); ctx.arc(c, c, 214, 0, Math.PI * 2); ctx.clip();
-        const s = Math.max(428 / img.naturalWidth, 428 / img.naturalHeight);
-        const dw = img.naturalWidth * s, dh = img.naturalHeight * s;
-        ctx.drawImage(img, c - dw / 2, c - dh / 2 - 25, dw, dh);
-        ctx.restore();
-      }
-      ctx.beginPath(); ctx.arc(c, c, 240, 0, Math.PI * 2); ctx.strokeStyle = '#ff4fd8'; ctx.lineWidth = 18; ctx.stroke();
-      ctx.beginPath(); ctx.arc(c, c, 222, 0, Math.PI * 2); ctx.strokeStyle = '#ffcc22'; ctx.lineWidth = 8; ctx.stroke();
-    };
-    const medal = canvasTex(512, 512, (ctx) => drawMedal(ctx, null));
-    const handImg = new Image();
-    handImg.onload = () => { drawMedal(medal.tex.image.getContext('2d'), handImg); medal.tex.needsUpdate = true; };
-    handImg.src = 'assets/hand-icon.png';
-    const medalMesh = new T.Mesh(
-      new T.PlaneGeometry(2.8, 2.8),
-      new T.MeshBasicMaterial({ map: medal.tex, transparent: true, toneMapped: false })
-    );
-    const mAng = -55 * Math.PI / 180, mR = 5.0;
-    medalMesh.position.set(Math.cos(mAng) * mR, 0.055, Math.sin(mAng) * mR);
-    const mAway = new T.Vector3(-1, 0, -0.42).normalize();
-    medalMesh.rotation.set(-Math.PI / 2, 0, Math.atan2(-mAway.x, -mAway.z));
-    AG.add(medalMesh);
   }
 
   function buildMoonshot(AG) {
