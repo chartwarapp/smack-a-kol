@@ -582,7 +582,7 @@ SAK.Scene3D = (function () {
    * sh = shoulder x, arm = arm thickness, head = head scale, taper = top/bottom radius ratio. */
   const BODY = {
     classic: { w: 1,    d: 1,    h: 1,    sh: 0.55, arm: 1,    head: 1,    taper: 1 },
-    chonk:   { w: 1.28, d: 1.3,  h: 0.96, sh: 0.66, arm: 1.18, head: 1,    taper: 0.92, belly: true },
+    chonk:   { w: 1.28, d: 1.3,  h: 0.96, sh: 0.66, arm: 1.18, head: 1,    taper: 0.92 },
     gymbro:  { w: 1.2,  d: 1.05, h: 1.04, sh: 0.7,  arm: 1.4,  head: 0.92, taper: 1.3 },
     noodle:  { w: 0.78, d: 0.85, h: 1.12, sh: 0.45, arm: 0.78, head: 1.04, taper: 1 },
     smol:    { w: 0.95, d: 1,    h: 0.8,  sh: 0.52, arm: 0.95, head: 1.2,  taper: 1 }
@@ -642,11 +642,9 @@ SAK.Scene3D = (function () {
       const body = mesh(new T.CylinderGeometry(0.5 * B.w * Math.min(1.25, B.taper), 0.42 * B.w / Math.max(1, B.taper * 0.85), 0.88 * B.h, 20), shirt, 0, 0.44 * B.h, 0);
       body.scale.z = 0.68 * B.d; this.torso.add(body); outline(body, 1.055);
       this.bodyMesh = body; // stored so buildTattoos() can swap to inked skin
-      if (B.belly) { const belly = mesh(new T.SphereGeometry(0.42, 18, 14), shirt, 0, 0.3, 0.28); belly.scale.set(1.15, 0.9, 0.85); this.torso.add(belly); outline(belly, 1.06); this.bellyMesh = belly; }
-      else this.bellyMesh = null;
+      this.bellyMesh = null; // LT 2026-10-25: belly sphere removed — torso stays smooth
       this.torso.add(mesh(new T.BoxGeometry(0.86 * Math.max(B.w / Math.max(1, B.taper * 0.85), 0.8), 0.1, 0.42 * B.d), pants, 0, 0.03, 0)); // belt
       this.buildOutfit();
-      this.buildMuscles(shirt, B); // V3: pec/ab definition
       const neck = mesh(new T.CylinderGeometry(0.14, 0.16, 0.18, 12), skin, 0, 0.92 * B.h, 0);
       this.torso.add(neck);
 
@@ -1175,29 +1173,6 @@ SAK.Scene3D = (function () {
             add(new T.SphereGeometry(0.025, 6, 5), om('#c8ccd8'), 0.12, 0.68 - b * 0.18, 0.36); // buttons
           add(new T.BoxGeometry(0.5, 0.1, 0.4), dCol, 0, 0.14, 0); // hem
           break;
-        }
-      }
-    }
-
-    /** V3: subtle pec/ab muscle definition layered on the torso. V4: smooth spheres. */
-    buildMuscles(shirtMat, B) {
-      // Skip for chonk (belly covers it) — keep it subtle for cartoon style
-      if (B.belly) return;
-      const m = (geo, x, y, z) => {
-        const mm = mesh(geo, shirtMat, x, y, z);
-        mm.userData.muscle = true; this.torso.add(mm); return mm;
-      };
-      const w = B.w;
-      // Pecs — two rounded shapes on upper chest
-      for (const sx of [-1, 1]) {
-        const pec = m(new T.SphereGeometry(0.16 * w, 14, 10), sx * 0.18 * w, 0.62 * B.h, 0.28 * B.d);
-        pec.scale.set(1, 0.75, 0.45);
-      }
-      // Abs — subtle center line definition (only for gymbro/classic)
-      if (B.arm >= 1) {
-        for (let i = 0; i < 2; i++) {
-          const ab = m(new T.SphereGeometry(0.09 * w, 12, 8), 0, (0.42 - i * 0.14) * B.h, 0.3 * B.d);
-          ab.scale.set(1.6, 0.7, 0.4);
         }
       }
     }
