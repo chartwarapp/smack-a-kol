@@ -66,6 +66,12 @@ SAK.Scene3D = (function () {
   const camBase = { pos: new T.Vector3(), look: new T.Vector3() };
   const camCur = { pos: new T.Vector3(), look: new T.Vector3() };
   const camFight = { pos: new T.Vector3(), look: new T.Vector3() }; // resting fight framing
+  // Fight-axis rotation (LT 2026-10-25): ONLY the fighters + fighter cameras
+  // rotate 25° clockwise (top-down view); the arena, crowd, bar, billboards
+  // and table stay exactly where they are. Three.js rotation.y = -25° ==
+  // +25° in code-angle terms == clockwise on the top-down diagram.
+  const FIGHT_AXIS_Y = -25 * Math.PI / 180;
+  const _UP_Y = new T.Vector3(0, 1, 0);
 
   const matCache = {};
   /* V2: toon gradient for cel-shaded cartoon materials.
@@ -592,9 +598,16 @@ SAK.Scene3D = (function () {
     constructor(look, facing, armSide) {
       this.look = look; this.facing = facing; this.armSide = armSide;
       this.root = new T.Group();
-      this.root.rotation.y = facing > 0 ? 0 : Math.PI;
+      this.root.rotation.y = (facing > 0 ? 0 : Math.PI) + FIGHT_AXIS_Y;
+      // Fight axis rotated 25° clockwise: base position rotates with the
+      // facing (original (0, ±1.1) rotated by FIGHT_AXIS_Y), so the fighters
+      // still square off across the center — just at the new angle.
       this.homeZ = facing > 0 ? -1.1 : 1.1;
-      this.root.position.set(0, 0, this.homeZ);
+      this.homeX = this.homeZ * Math.sin(FIGHT_AXIS_Y);
+      this.homeZ = this.homeZ * Math.cos(FIGHT_AXIS_Y);
+      this.faceX = Math.sin(this.root.rotation.y);
+      this.faceZ = Math.cos(this.root.rotation.y);
+      this.root.position.set(this.homeX, 0, this.homeZ);
       // animated pose values (tweened), applied every frame
       this.pose = { lift: 0.12, swing: 0, elbow: 0.15, twist: 0, lean: 0, lunge: 0, guard: 0 };
       // damped springs for hit reactions
@@ -1959,7 +1972,9 @@ SAK.Scene3D = (function () {
       this.torso.rotation.set(p.lean + idle * 0.015, p.twist, this.roll.x * 0.5);
       this.head.rotation.set(-p.lean * 0.5, this.yaw.x, this.roll.x);
       this.torso.position.y = 0.95 + idle * 0.012;
-      this.root.position.z = this.homeZ + this.facing * p.lunge;
+      // Lunge runs along the (rotated) facing direction, not world z.
+      this.root.position.x = this.homeX + this.faceX * p.lunge;
+      this.root.position.z = this.homeZ + this.faceZ * p.lunge;
       // slapping arm uses the tweened pose; the other arm idles / guards
       // Anticipatory swing: on the attacker's turn, the slapping arm swings
       // forward and back along the strike axis before the tap (LT 2026-10-25:
@@ -2112,7 +2127,7 @@ SAK.Scene3D = (function () {
     /** Snap into a slapstick KO landing pose (root + torso/head/arms). */
     applyLandPose(P) {
       if (!P) return;
-      const faceY = this.facing > 0 ? 0 : Math.PI;
+      const faceY = (this.facing > 0 ? 0 : Math.PI) + FIGHT_AXIS_Y;
       this.root.rotation.set(P.rx, faceY + (P.ry || 0), P.rz || 0);
       this.root.position.y = P.y;
       this.torso.position.y = 0.95;
@@ -2167,8 +2182,8 @@ SAK.Scene3D = (function () {
       this.mouth.scale.set(1, 1, 1);
       if (this.eyes) this.eyes.scale.set(1, 1, 1);
       this.clearHitFX();
-      this.root.position.set(0, 0, this.homeZ);
-      this.root.rotation.set(0, this.facing > 0 ? 0 : Math.PI, 0);
+      this.root.position.set(this.homeX, 0, this.homeZ);
+      this.root.rotation.set(0, (this.facing > 0 ? 0 : Math.PI) + FIGHT_AXIS_Y, 0);
       this.torso.position.y = 0.95;
       this.torso.rotation.set(0, 0, 0);
       this.head.rotation.set(0, 0, 0);
@@ -3419,7 +3434,7 @@ SAK.Scene3D = (function () {
     } else if (!koCam) {
       // side three-quarter view: both faces + the slapping arms read clearly
       camBase.look.set(0, 1.75, 0);
-      const dir = new T.Vector3(1, 0.42, 0.42).normalize();
+      const dir = new T.Vector3(1, 0.42, 0.42).normalize().applyAxisAngle(_UP_Y, FIGHT_AXIS_Y);
       camBase.pos.copy(camBase.look).addScaledVector(dir, 6.8 * k);
       camBase.look.y -= 0.35 * (k - 1); // leave room for the meter at the bottom
       camFight.pos.copy(camBase.pos); camFight.look.copy(camBase.look);
@@ -3450,6 +3465,7 @@ SAK.Scene3D = (function () {
     // HUD covers the top, meter the bottom — centre the head in what's left
     out.look.set(head.x, head.y - 0.1, head.z);
     _faceOff.set(Math.sin(a), 0, Math.cos(a) * F.facing).multiplyScalar(dist);
+    _faceOff.applyAxisAngle(_UP_Y, FIGHT_AXIS_Y); // fighter cameras rotate with the fight axis
     out.pos.set(head.x + _faceOff.x, head.y + 1.2, head.z + _faceOff.z);
     return out;
   }
@@ -3693,7 +3709,7 @@ SAK.Scene3D = (function () {
     pad.position.y = -0.04; sc.add(pad);
     const cam = new T.PerspectiveCamera(32, 1, 0.1, 50);
     const F = new Fighter(SAK.PLAYER.look, +1, +1);
-    F.homeZ = 0; F.root.position.z = 0; sc.add(F.root);
+    F.homeZ = 0; F.homeX = 0; F.root.position.set(0, 0, 0); sc.add(F.root);
     let yaw = 0, vel = 0, drag = null, alive = true, last = performance.now(), idleSpin = true, idleT = 0;
     const down = e => { drag = { x: e.clientX, yaw }; idleSpin = false; canvas.setPointerCapture && canvas.setPointerCapture(e.pointerId); };
     const move = e => { if (!drag) return; const nyaw = drag.yaw + (e.clientX - drag.x) * 0.012; vel = nyaw - yaw; yaw = nyaw; };
@@ -4058,7 +4074,7 @@ SAK.Scene3D = (function () {
     // Wide 45° view: higher + farther than the fight cam, tilted up to catch
     // the billboard, chart dome and crowd ring.
     const wideLook = new T.Vector3(0, 2.6, -0.4);
-    _swDir.set(1, 0.95, 0.95).normalize();
+    _swDir.set(1, 0.95, 0.95).normalize().applyAxisAngle(_UP_Y, FIGHT_AXIS_Y);
     const widePos = wideLook.clone().addScaledVector(_swDir, Math.min(12.5, 6.8 * k * 1.55));
     introSweep = {
       t: 0,
@@ -4509,7 +4525,7 @@ SAK.Scene3D = (function () {
 
     // Shared: the fighter's yaw baseline so fall tweens land exactly on the pose
     // (applyLandPose adds faceY itself).
-    const faceY = F.facing > 0 ? 0 : Math.PI;
+    const faceY = (F.facing > 0 ? 0 : Math.PI) + FIGHT_AXIS_Y;
     // Shortest-path yaw: collapse tweens must not whiplash through full turns
     // left over from the spinout's 4π spin.
     const nearestY = (cur, want) => cur + ((((want - cur) % (Math.PI * 2)) + Math.PI * 3) % (Math.PI * 2) - Math.PI);
@@ -4696,9 +4712,9 @@ SAK.Scene3D = (function () {
       F.stampLandPose(pose);
     } else if (variant === 'backflip') {
       // Full backward flip in the air, lands flat on the back. Acrobatic KO.
-      // NOTE: root.position.z is pose-driven every frame — Z travel uses
-      // F.pose.lunge (z = homeZ + facing * lunge). root x/y/rotation/scale
-      // are safe to tween directly.
+      // NOTE: root.position.x/z are pose-driven every frame — travel uses
+      // F.pose.lunge along the facing vector from homeX/homeZ. root
+      // y/rotation/scale are safe to tween directly.
       const pose = LAND_POSES.find(p => p.id === 'starfished') || pickLandPose();
       const y0 = F.root.position.y;
       // hop up while starting the flip
@@ -4851,7 +4867,7 @@ SAK.Scene3D = (function () {
     // Starts WIDE so the full fall reads, then eases to a still-wide framing
     // for the finale — never a nose-cam, the whole fallen body stays in frame.
     const head0 = F.headWorld();
-    const followOff = new T.Vector3(8.5, 4.4, 5.6); // wide during flight/fall
+    const followOff = new T.Vector3(8.5, 4.4, 5.6).applyAxisAngle(_UP_Y, FIGHT_AXIS_Y); // wide during flight/fall
     camBase.look.set(head0.x, Math.max(0.35, head0.y - 0.2), head0.z);
     camBase.pos.set(head0.x + followOff.x, Math.max(1.8, head0.y + followOff.y), head0.z + followOff.z);
     const fov0 = camera.fov;
