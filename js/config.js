@@ -83,6 +83,20 @@ SAK.UPGRADES = {
   power:  { label: 'POWER',  icon: '✊', baseCost: 150, growth: 1.55 }
 };
 
+/* ---- Gloves: PTS-bought upgrade ladder (LT 2026-10-25) -------------------
+ * Ordered progression: each tier must be owned before the next unlocks.
+ * The equipped glove renders on the player's fighter and boosts WIN PTS
+ * by `bonus` (snapshot at fight start, wins only — never damage, so
+ * wagered fights stay fair). Labels/rarity come from SAK.Traits. */
+SAK.GLOVE_TIERS = [
+  { id: 'wrap',    price: 0,     bonus: 0.02 },
+  { id: 'mma',     price: 500,   bonus: 0.04 },
+  { id: 'boxing',  price: 1500,  bonus: 0.06 },
+  { id: 'gold',    price: 4000,  bonus: 0.08 },
+  { id: 'spike',   price: 8000,  bonus: 0.10 },
+  { id: 'diamond', price: 15000, bonus: 0.12 },
+];
+
 /* Shop v1: permanent upgrades = HEALTH + POWER only (bought with PTS).
  *
  * POWER-UPS: limited-use consumables shown on the right rail during a fight.

@@ -1,7 +1,8 @@
 /* =========================================================================
  * SAK.Traits — NFT-style fighter trait system (Phase 1: no blockchain)
  * -------------------------------------------------------------------------
- * Trait layers with weighted rarity. Each randomize rolls every layer.
+ * Trait layers with weighted rarity. Each randomize rolls every layer
+ * except gloves (PTS shop track since 2026-10-25 — see SAK.GLOVE_TIERS).
  * Players get 5 rerolls, then lock in their fighter.
  * Rarity tiers: common → uncommon → rare → epic → legendary
  * ========================================================================= */
@@ -122,7 +123,7 @@ SAK.Traits = (() => {
     ],
   };
 
-  const LAYER_ORDER = ['species', 'body', 'skin', 'eyes', 'eyeColor', 'hairStyle', 'hairColor', 'gloves', 'outfit', 'accessory'];
+  const LAYER_ORDER = ['species', 'body', 'skin', 'eyes', 'eyeColor', 'hairStyle', 'hairColor', 'outfit', 'accessory'];
   const LAYER_LABELS = {
     species: 'Species', body: 'Body', skin: 'Skin', eyes: 'Eyes', eyeColor: 'Eye Color',
     hairStyle: 'Hair', hairColor: 'Hair Color', gloves: 'Gloves',

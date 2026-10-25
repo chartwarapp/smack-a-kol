@@ -25,7 +25,8 @@ SAK.Storage = (function () {
       beaten: {},                      // kolId -> true
       customKols: [],
       profile: null,                   // player fighter { name, colour, phrase } (null = not created yet)                  // user-submitted parody KOLs (see SAK.UGC)
-      settings: { sound: true, haptics: true, battleMusic: true }
+      settings: { sound: true, haptics: true, battleMusic: true },
+      gloves: { owned: ['wrap'], equipped: 'wrap' },   // Gloves shop (LT 2026-10-25): owned tier ids, equipped id
     };
   }
 

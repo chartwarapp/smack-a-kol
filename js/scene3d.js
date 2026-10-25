@@ -824,7 +824,7 @@ SAK.Scene3D = (function () {
 
     /** NFT trait: glove variants. Each wraps the hand with distinct geometry. */
     buildGloves() {
-      return; // Glove wraps removed — bare hands only, no boxes or bands
+      if (!this.showGloves) return; // Gloves render only on the player's fighter (shop-equipped); opponents stay bare-handed
       const gloveType = (this.look && this.look.gloves) || 'wrap';
       const gm = (c, opts) => mat(c, opts);
       for (const side of [-1, 1]) {
@@ -3668,6 +3668,7 @@ SAK.Scene3D = (function () {
   /** @param params player avatar params (or a look) */
   function setPlayer(params) {
     if (!player) { player = new Fighter(SAK.PLAYER.look, -1, -1); scene.add(player.root); }   // player slaps with right hand (local -x)
+    player.showGloves = true; // set BEFORE rebuild so buildGloves renders (it runs inside applyAvatar)
     applyAvatar(player, params);
   }
 

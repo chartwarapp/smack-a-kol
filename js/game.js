@@ -39,6 +39,11 @@
     const u = SAK.UPGRADES[type];
     return Math.round(u.baseCost * Math.pow(u.growth, S.upgrades[type]) / 10) * 10;
   };
+  /* --- gloves shop (PTS upgrade ladder) -------------------------------- */
+  const gloveTier = id => SAK.GLOVE_TIERS.find(t => t.id === id) || SAK.GLOVE_TIERS[0];
+  const gloveLabel = id => { const t = (SAK.Traits.LAYERS.gloves || []).find(g => g.id === id); return t ? t.label : id; };
+  const gloveState = () => { if (!S.gloves) S.gloves = { owned: ['wrap'], equipped: 'wrap' }; return S.gloves; };
+  const snapshotGlove = () => { const g = gloveState(); const t = gloveTier(g.equipped); return { id: t.id, bonus: t.bonus, label: gloveLabel(t.id) }; };
   const meterSpeed = kol => SAK.METER.baseSpeed + (kol.difficulty - 1) * SAK.METER.speedPerDifficulty;
   const boosted = n => Math.round(n * (1 + V.boost));
 
@@ -51,7 +56,7 @@
   const playerPhrase = () => profile().phrase || DEFAULT_PHRASE;
   const playerAvatar = () => profile().avatar;
   /** Player's SVG/3D look, derived from the saved account avatar params. */
-  const playerLook = () => SAK.Account.toLook(playerAvatar());
+  const playerLook = () => { const L = SAK.Account.toLook(playerAvatar()); L.gloves = (S.gloves && S.gloves.equipped) || 'wrap'; return L; };
 
   /* ------------------------------------------------------------ roster (UGC) */
   /** Turn a saved user submission into a full KOL object. */
@@ -444,7 +449,7 @@
       if (p && p.fighter_look) {
         S.profile = Object.assign({}, S.profile, { name: p.name, avatar: p.fighter_look, phrase: p.phrase || '' });
         SAK.Storage.save();
-        if (Scene) { try { Scene.setPlayer(playerAvatar()); } catch (e) {} }
+        if (Scene) { try { Scene.setPlayer(playerLook()); } catch (e) {} }
         renderMenu();
         toast(`Welcome back, ${p.name} 🫡`, 2200);
       } else if (p && S.profile && S.profile.avatar) {
@@ -908,7 +913,7 @@
         name: S.profile.name, fighter_look: S.profile.avatar, x_handle: xh,
       }).catch(e => console.warn('[SAK] profile save failed', e));
     }
-    if (Scene) Scene.setPlayer(playerAvatar());
+    if (Scene) Scene.setPlayer(playerLook());
     return true;
   }
 
@@ -1281,6 +1286,40 @@
     });
   }
 
+  /* --- gloves shop (PTS upgrade ladder, ordered) ---------------------- */
+  function renderGloves() {
+    const wrap = $('#shop-gloves'); if (!wrap) return;
+    const g = gloveState();
+    const eq = gloveTier(g.equipped);
+    const head = `<div class="glove-head">🥊 GLOVES · win PTS <b>+${Math.round(eq.bonus * 100)}%</b> with ${gloveLabel(eq.id)}</div>`;
+    const rows = SAK.GLOVE_TIERS.map((t, i) => {
+      const owned = g.owned.includes(t.id), isEq = g.equipped === t.id;
+      const unlocked = i === 0 || g.owned.includes(SAK.GLOVE_TIERS[i - 1].id);
+      let state, dis = '';
+      if (isEq) { state = 'EQUIPPED'; dis = 'disabled'; }
+      else if (owned) { state = 'EQUIP'; }
+      else if (!unlocked) { state = '🔒'; dis = 'disabled'; }
+      else { state = `BUY · ${fmt(t.price)} PTS`; if (!P.canAfford(t.price)) dis = 'disabled'; }
+      return `<button class="glove-btn ${isEq ? 'on' : ''}" data-glove="${t.id}" ${dis}><span class="g-ico">🥊</span><span class="g-name">${gloveLabel(t.id)}</span><span class="g-bonus">+${Math.round(t.bonus * 100)}% PTS</span><span class="g-state">${state}</span></button>`;
+    }).join('');
+    wrap.innerHTML = head + rows;
+    wrap.querySelectorAll('.glove-btn').forEach(b => b.addEventListener('click', () => {
+      const id = b.dataset.glove, g2 = gloveState(), t = gloveTier(id);
+      if (g2.equipped === id) return;
+      if (g2.owned.includes(id)) { g2.equipped = id; }
+      else {
+        const idx = SAK.GLOVE_TIERS.findIndex(x => x.id === id);
+        if (idx > 0 && !g2.owned.includes(SAK.GLOVE_TIERS[idx - 1].id)) return toast('Unlock the previous glove first');
+        if (!P.spend(t.price)) return toast(`Need ${fmt(t.price)} PTS — win fights to earn more`);
+        g2.owned.push(id); g2.equipped = id; A.coin();
+      }
+      SAK.Storage.save(); haptic(20);
+      toast(`🥊 ${gloveLabel(id)} equipped · win PTS +${Math.round(t.bonus * 100)}%`);
+      renderGloves();
+      if (Scene && !(F && !['over', 'done', 'busy'].includes(F.turn))) { try { Scene.setPlayer(playerLook()); } catch (e) {} }
+    }));
+  }
+
   /* --- power-ups (limited-use consumables) ---------------------------- */
   function renderPowerups() {
     return; // Power-ups removed — pure timing skill game
@@ -1348,7 +1387,7 @@
       const r = btn.getBoundingClientRect(), app = appRect();
       floatText(r.left - app.left + r.width / 2, r.top - app.top, type === 'health' ? `+${SAK.PLAYER.hpPerLevel} HP` : `+${SAK.PLAYER.powerPerLevel} POWER`, 'good');
     }
-    renderUpgrades();
+    renderUpgrades(); renderGloves();
     renderShopStats();
   }
 
@@ -1378,6 +1417,7 @@
       pu: { used: {}, helmet: 0, rage: 0 },
       brace: null,
       mode, duel: { p: null, k: null }, opts,
+      glove: snapshotGlove(), // equipped glove at fight start (win-PTS bonus; immune to mid-fight equips)
       localPvp: false,   // hotseat dual-UI removed — private meter only
       challenge: {
         bestOf, winsNeeded,
@@ -1419,7 +1459,7 @@
     $('#taunt').classList.add('hidden'); $('#p-taunt').classList.add('hidden');
     $('#brace').classList.add('hidden');
     setWaitUI(false);
-    renderHp(true); renderUpgrades(); renderPowerups(); renderRoundScore();
+    renderHp(true); renderUpgrades(); renderGloves(); renderPowerups(); renderRoundScore();
     if (Scene) { Scene.setHelmet(false); Scene.setRage(false); }
     const token = ++fightToken;
     F.token = token;
@@ -2064,6 +2104,7 @@
       const tier = soloTier(k);
       if (tier.mult > 1) { rows.push([`Tier bonus (${tier.name} x${tier.mult})`, pts * (tier.mult - 1)]); pts = pts * tier.mult; }
     }
+    if (win && F.glove && F.glove.bonus) { rows.push([`Glove bonus (${F.glove.label} +${Math.round(F.glove.bonus * 100)}%)`, pts * F.glove.bonus]); pts = Math.round(pts * (1 + F.glove.bonus)); }
     if (boost) rows.push([`Vault boost (${V.tier.name} +${Math.round(boost * 100)}%)`, pts * boost]);
     pts = Math.round(pts * boostMul);
     // Round row values once so displayed lines sum exactly to MATCH PTS (remainder on last row)
@@ -2426,7 +2467,7 @@
   }
   function openShop() {
     A.unlock(); A.click();
-    renderUpgrades();
+    renderUpgrades(); renderGloves();
     renderShopStats();
     $('#modal-shop').classList.remove('hidden');
   }
@@ -4972,7 +5013,7 @@
     Scene.setOpponent(pick(roster()).look); Scene.resetFight();
   }
 
-  P.onChange(() => { renderPoints(); renderUpgrades(); if (F) renderPowerups(); if (screen === 'menu') renderMenu(); if (screen === 'pick') renderBets(); if (screen === 'solo' && soloMode === 'free') { renderSoloPtsBets(); renderSoloChallengeBtn(); } });
+  P.onChange(() => { renderPoints(); renderUpgrades(); renderGloves(); if (F) renderPowerups(); if (screen === 'menu') renderMenu(); if (screen === 'pick') renderBets(); if (screen === 'solo' && soloMode === 'free') { renderSoloPtsBets(); renderSoloChallengeBtn(); } });
   W.onChange(() => {
     renderMenu();
     if (W.isConnected && W.address) {
@@ -5014,9 +5055,13 @@
       if (!window.THREE) throw new Error('three.js failed to load (vendor/three.min.js)');
       SAK.Scene3D.init($('#stage'));
       Scene = SAK.Scene3D;
-      Scene.setPlayer(playerAvatar());
+      Scene.setPlayer(playerLook());
       if (S.settings.arena === 'rekt') { S.settings.arena = 'colosseum'; SAK.Storage.save(); } // REKT temporarily hidden — migrate anyone parked there
       if (S.settings.arena === 'moonshot') { S.settings.arena = 'smackbar'; SAK.Storage.save(); } // Moonshot removed — migrate anyone parked there
+      // Gloves shop (LT 2026-10-25): no grandfathering is possible — the
+      // account sanitizer never kept avatar.gloves, so rolled gloves never
+      // persisted or rendered; every player starts at Wraps, nothing lost.
+      { const g = gloveState(); if (!g.owned.includes(g.equipped)) { g.equipped = 'wrap'; SAK.Storage.save(); } }
       if (Scene.setArena) Scene.setArena(S.settings.arena || 'smackbar'); // V2: saved arena
       if (window.__setArenaLabel) window.__setArenaLabel();
       menuScene();

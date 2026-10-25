@@ -392,6 +392,16 @@ h2, h3, .prompt, .vs, .level, .fc-name, .banner, .float-text, .result-title {
 .upg-btn { position: relative; }
 .upg-lvl { top: -9px; right: 8px; background: var(--ink); font-size: 11px; padding: 2px 6px; border-radius: 8px; }
 .upg-cost { display: flex; align-items: center; gap: 4px; font-size: 15px; background: #1a0b3a66; border-radius: 8px; padding: 1px 6px; width: max-content; }
+.shop-gloves { display: grid; gap: 6px; margin-top: 8px; }
+.glove-head { font-size: 13px; color: var(--ink); }
+.glove-btn { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 14px; border: 3px solid var(--ink); box-shadow: 0 4px 0 var(--ink); text-align: left; background: linear-gradient(#ffe9a8, #ffc93f); color: var(--ink); }
+.glove-btn:active { transform: translateY(3px); box-shadow: 0 2px 0 var(--ink); }
+.glove-btn:disabled { filter: grayscale(.7); }
+.glove-btn.on { outline: 3px solid #2ee66b; outline-offset: 1px; }
+.glove-btn .g-ico { font-size: 20px; }
+.glove-btn .g-name { font-size: 15px; }
+.glove-btn .g-bonus { font-size: 12px; opacity: .8; }
+.glove-btn .g-state { margin-left: auto; font-size: 13px; font-weight: 700; white-space: nowrap; }
 
 .fire-btn {
   position: absolute; right: 10px; bottom: calc(138px + var(--safe-bot)); width: 64px; height: 64px; border-radius: 50%;

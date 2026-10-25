@@ -10,7 +10,7 @@
   <!-- Chunky game font (optional – falls back to system fonts offline) -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Lilita+One&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/style.css?v=smack-hand-1" />
+  <link rel="stylesheet" href="css/style.css?v=gloves-1" />
 </head>
 <body>
 <div id="app">
@@ -71,7 +71,7 @@
         <div class="row">
           <button id="btn-vault" class="btn btn-green">🏦 STAKE PTS<small class="btn-sub" id="vault-sub">earn yield + boost</small></button>
         </div>
-        <button id="btn-shop" class="btn btn-yellow">🛒 SHOP / UPGRADES<small class="btn-sub" id="shop-sub">❤ HEALTH · ✊ POWER</small></button>
+        <button id="btn-shop" class="btn btn-yellow">🛒 SHOP / UPGRADES<small class="btn-sub" id="shop-sub">❤ HEALTH · ✊ POWER · 🥊 GLOVES</small></button>
         <button id="btn-rescue" class="btn btn-grey hidden">🛟 BROKE? CLAIM FREE PTS</button>
       </div>
       <div id="menu-stats" class="menu-stats"></div>
@@ -443,7 +443,7 @@
   <div id="modal-shop" class="modal hidden">
     <div class="modal-card shop-card">
       <h3>🛒 SHOP / UPGRADES</h3>
-      <p class="fine dark">Spend PTS on permanent fighter upgrades. Health raises max HP; Power hits harder.</p>
+      <p class="fine dark">Spend PTS on permanent fighter upgrades. Health raises max HP; Power hits harder; Gloves boost win PTS.</p>
       <div class="shop-stats" id="shop-stats"></div>
       <div class="upgrade-bar shop-upgrades" id="shop-upgrades">
         <button class="upg-btn upg-health" data-upgrade="health" type="button">
@@ -455,7 +455,8 @@
           <span class="upg-lvl" data-lvl></span><span class="upg-cost"><span class="pts sm">★</span><b data-cost></b></span>
         </button>
       </div>
-      <p class="fine dark" id="shop-note">❤ +20 max HP per level · ✊ +3 power per level</p>
+      <div class="shop-gloves" id="shop-gloves"></div>
+      <p class="fine dark" id="shop-note">❤ +20 max HP per level · ✊ +3 power per level · 🥊 gloves boost win PTS</p>
       <button class="btn btn-grey" data-close>CLOSE</button>
     </div>
   </div>
@@ -570,11 +571,11 @@
 <!-- Three.js r158 (classic build, vendored so the game works offline / from file://) -->
 <script src="vendor/three.min.js"></script>
 <script src="https://unpkg.com/@solana/web3.js@1.95.3/lib/index.iife.min.js"></script>
-<script src="js/config.js?v=https-fix-2"></script>
+<script src="js/config.js?v=gloves-1"></script>
 <script src="js/roster.js?v=patty-bull-1"></script>
-<script src="js/storage.js?v=https-fix-2"></script>
+<script src="js/storage.js?v=gloves-1"></script>
 <script src="js/account.js?v=species-1"></script>
-<script src="js/traits.js?v=3"></script>
+<script src="js/traits.js?v=gloves-1"></script>
 <script src="js/wallet.js?v=https-fix-2"></script>
 <script src="js/walletconnect.js?v=wc-2"></script>
 <script src="js/economy.js?v=https-fix-2"></script>
@@ -582,7 +583,7 @@
 <script src="js/leaderboard.js?v=https-fix-2"></script>
 <script src="js/audio.js?v=defeat-trim-1"></script>
 <script src="js/avatars.js?v=patty-bull-1"></script>
-<script src="js/scene3d.js?v=arena-default-1"></script>
+<script src="js/scene3d.js?v=gloves-1"></script>
 <script src="js/meter.js?v=https-fix-2"></script>
 <script src="js/api.js?v=restore-1"></script>
 <script src="js/api-supabase.js?v=restore-1"></script>
@@ -593,6 +594,6 @@
 <script src="js/pvp-sync.js?v=pvp-guard-1"></script>
 <script src="js/solana-house.js?v=7"></script>
 <script src="js/contracts.js?v=1"></script>
-<script src="js/game-v3.js?v=arena-default-1"></script>
+<script src="js/game-v3.js?v=gloves-1"></script>
 </body>
 </html>
