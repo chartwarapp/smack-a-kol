@@ -3071,7 +3071,7 @@
     $$('#pvp-sol-bets .bet-chip').forEach(c => c.onclick = () => { solWager = +c.dataset.sol; A.click(); renderSolBets(); });
   }
   function challengeUrl(code) {
-    return `https://chartwarapp.github.io/smack-a-kol/?challenge=${code}`;
+    return `https://smackakol.com/?challenge=${code}`;
   }
   const _clBtn = $('#pvp-create-link');
   if (_clBtn) _clBtn.addEventListener('click', async () => {
