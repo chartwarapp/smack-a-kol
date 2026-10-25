@@ -2483,7 +2483,9 @@ SAK.Scene3D = (function () {
         ctx.beginPath(); ctx.arc(c, c, 232, 0, Math.PI * 2); ctx.clip();
         const s = Math.min(512 / img.naturalWidth, 512 / img.naturalHeight) * 0.75;
         const dw = img.naturalWidth * s, dh = img.naturalHeight * s;
-        ctx.drawImage(img, c - dw / 2, c - dh / 2, dw, dh);
+        // LT 2026-10-25: hand rotated 180deg on the ring floor
+        ctx.translate(c, c); ctx.rotate(Math.PI);
+        ctx.drawImage(img, -dw / 2, -dh / 2, dw, dh);
         ctx.restore();
       }
       ctx.beginPath(); ctx.arc(c, c, 250, 0, Math.PI * 2); ctx.strokeStyle = '#ff4fd8'; ctx.lineWidth = 12; ctx.stroke();
