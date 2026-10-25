@@ -671,13 +671,13 @@
     if (crPreview) { crPreview.dispose(); crPreview = null; }
     if (welcomePending) { welcomePending = false; setTimeout(() => toast(`🎁 Welcome bonus: +${fmt(SAK.POINTS.welcomeBonus)} PTS to get slapping`, 2600), 2000); }
   }
-  /* ---- Fighter picker: Starters (free) + Custom (0.05 SOL lock) ---- */
-  let pkTab = 'starters', pkStarterId = null, pkCustomLook = null, pkLocked = false;
-  // TEMPORARY: admin free lock for testing — remove before mainnet
-  function pkIsAdmin() {
-    const W = SAK.Wallet;
-    return !!(W && W.isConnected && W.address && SAK.ADMIN_WALLET && W.address === SAK.ADMIN_WALLET);
-  }
+  /* ---- Fighter picker: random only (premade starters removed 2026-10-25).
+   * Returning players open on their SAVED fighter in the 3D preview;
+   * new players open on a fresh random draft. RANDOMIZE is the Change
+   * option; LOCK saves the draft (free during testing; mainnet: first
+   * lock free, later changes 0.05 SOL). Drafts never touch the saved
+   * fighter until LOCK, so Cancel keeps the current fighter. ---- */
+  let pkCustomLook = null, pkLocked = false;
   function updateLockButton() {
     const lockBtn = $('#pk-lock');
     if (!lockBtn || pkLocked) return;
@@ -685,66 +685,18 @@
     lockBtn.textContent = '🔒 LOCK'; // TEMPORARY: free lock for testing
   }
   function initPicker() {
-    pkTab = 'starters'; pkLocked = false;
-    pkStarterId = (S.profile && S.profile.starter_id) || 'rookie';
-    pkCustomLook = null;
-    // Reset lock button (admin-aware)
+    pkLocked = false;
+    // Profile-first: a returning player's preview opens on THEIR fighter;
+    // a new player gets a fresh random draft to roll from.
+    if (S.profile && S.profile.avatar) pkCustomLook = Object.assign({}, S.profile.avatar);
+    else pkCustomLook = SAK.Account.randomAvatar();
     updateLockButton();
     // Refresh lock button when wallet connects/disconnects while picker is open
     if (SAK.Wallet && SAK.Wallet.onChange) {
       SAK.Wallet.onChange(() => { if (!$('#cr-step-look').classList.contains('hidden')) updateLockButton(); });
     }
-    // Tab switching
-    $$('#cr-step-look [data-ptab]').forEach(b => {
-      b.onclick = () => {
-        A.click();
-        pkTab = b.dataset.ptab;
-        $$('#cr-step-look [data-ptab]').forEach(x => x.classList.toggle('on', x === b));
-        $('#pk-starters').classList.toggle('hidden', pkTab !== 'starters');
-        $('#pk-custom').classList.toggle('hidden', pkTab !== 'custom');
-        // SAVE button only for starters; custom uses the LOCK button
-        $('#cr-save').style.display = pkTab === 'starters' ? '' : 'none';
-        renderCreatorPreview();
-      };
-    });
-    renderStarterGrid();
-    // Default custom draft
-    if (!pkCustomLook) { pkCustomLook = SAK.Account.randomAvatar(); renderCustomTraits(); }
+    renderCustomTraits();
     renderCreatorPreview();
-  }
-  function renderStarterGrid() {
-    const grid = $('#pk-starter-grid');
-    if (!grid || !SAK.STARTERS) return;
-    grid.innerHTML = SAK.STARTERS.map(s => {
-      let portrait = '';
-      try { portrait = SAK.avatarSVG(s.look); } catch (e) { portrait = '<div class="avatar-svg" style="background:#333"></div>'; }
-      return `
-      <div class="pk-card ${pkStarterId === s.id ? 'on' : ''}" data-sid="${s.id}">
-        ${portrait}
-        <b>${s.name}</b><small>${s.tagline}</small>
-      </div>`;
-    }).join('');
-    grid.querySelectorAll('.pk-card').forEach(c => {
-      c.onclick = () => {
-        A.click();
-        pkStarterId = c.dataset.sid;
-        grid.querySelectorAll('.pk-card').forEach(x => x.classList.toggle('on', x === c));
-        const s = SAK.STARTERS.find(x => x.id === pkStarterId);
-        crDraft = Object.assign({}, s.look);
-        renderCreatorPreview();
-      };
-    });
-    // Set initial draft to selected starter
-    const s = SAK.STARTERS.find(x => x.id === pkStarterId);
-    if (s) crDraft = Object.assign({}, s.look);
-    // Fallback: if grid is empty after render, retry once after a tick
-    setTimeout(() => {
-      const g = document.getElementById('pk-starter-grid');
-      if (g && !g.children.length && SAK.STARTERS && SAK.STARTERS.length) {
-        console.warn('[SAK] starter grid empty, retrying render');
-        renderStarterGrid();
-      }
-    }, 500);
   }
   function renderCustomTraits() {
     const box = $('#pk-traits');
@@ -763,8 +715,9 @@
     box.innerHTML = rows.map(([k, v]) => `<div><span style="opacity:.6">${k}:</span> <b>${v}</b></div>`).join('');
   }
   function renderCreatorPreview() {
-    // Preview shows the active tab's fighter: starter selection or custom draft
-    const look = pkTab === 'custom' ? pkCustomLook : crDraft;
+    // Preview shows the random draft (seeded from the saved fighter for
+    // returning players, fresh roll for new players)
+    const look = pkCustomLook || crDraft;
     if (crPreview) crPreview.apply(look || crDraft);
     else $('#cr-fallback').innerHTML = SAK.avatarSVG(SAK.Account.toLook(look || crDraft));
   }
@@ -783,17 +736,11 @@
   });
   $('#fit-name').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); $('#cr-next').click(); } });
 
-  // ---- Custom tab: randomize + lock ----
+  // ---- Randomize + lock (the only picker: starters removed 2026-10-25) ----
   $('#pk-random').addEventListener('click', () => {
     A.click();
     pkCustomLook = SAK.Account.randomAvatar();
     pkLocked = false;
-    // Switch to custom tab so preview and traits stay in sync
-    pkTab = 'custom';
-    $$('#cr-step-look [data-ptab]').forEach(x => x.classList.toggle('on', x.dataset.ptab === 'custom'));
-    $('#pk-starters').classList.add('hidden');
-    $('#pk-custom').classList.remove('hidden');
-    $('#cr-save').style.display = 'none';
     updateLockButton();
     renderCustomTraits();
     renderCreatorPreview();
@@ -888,12 +835,8 @@
     const ph = rawPh ? validateText(rawPh, SAK.UGC.maxCatchphrase) : { ok: '' };
     if (ph.err) { $('#cr-look-err').textContent = 'Quote: ' + ph.err; return false; }
     const xh = $('#fit-x').value.trim().replace(/^@/, '').slice(0, 15);
-    // Resolve the avatar: starter selection or custom draft
-    let avatar = crDraft, starterId = extra.starter_id;
-    if (pkTab === 'starters' || starterId) {
-      const s = SAK.STARTERS.find(x => x.id === (starterId || pkStarterId));
-      if (s) { avatar = Object.assign({}, s.look); starterId = s.id; }
-    }
+    // Resolve the avatar: the random draft (starters removed 2026-10-25)
+    const avatar = crDraft, starterId = extra.starter_id || null;
     const cleanAvatar = SAK.Account.sanitize(avatar);
     if (S.profile) Object.assign(S.profile, {
       name: v.ok, phrase: ph.ok, x_handle: xh, avatar: cleanAvatar,
@@ -970,11 +913,9 @@
 
   $('#fighter-form').addEventListener('submit', async e => {
     e.preventDefault();
-    // Custom tab saves via the LOCK button, not this form.
-    if (pkTab === 'custom' && !pkLocked) {
-      $('#cr-look-err').textContent = 'Lock your custom fighter with 0.05 SOL first.';
-      return;
-    }
+    // LOCK is the save action (SAVE button removed with starters 2026-10-25).
+    // Enter key in a name/quote field lands here: route it to LOCK.
+    if (!pkLocked) { $('#pk-lock').click(); return; }
     const ok = await saveFighterProfile();
     if (!ok) return;
     A.perfect();

@@ -376,23 +376,13 @@
           <button type="button" class="btn btn-green" id="cr-next">NEXT →</button>
         </div>
       </div>
-      <!-- Step 2: fighter picker — Starters (free) or Custom (0.05 SOL) -->
+      <!-- Step 2: fighter picker — random only (premade starters removed 2026-10-25) -->
       <div class="cr-step hidden" id="cr-step-look">
         <h3 id="cr-title">👤 PICK YOUR FIGHTER</h3>
-        <div class="pk-tabs">
-          <button type="button" class="pk-tab on" data-ptab="starters">🆓 STARTERS</button>
-          <button type="button" class="pk-tab" data-ptab="custom">🎲 CUSTOM <span class="pk-price">FREE ROLL</span></button>
-        </div>
 
-        <!-- STARTERS TAB -->
-        <div id="pk-starters" class="pk-pane">
-          <p class="fine dark" style="margin:6px 0">Free forever. Pick your fighter.</p>
-          <div id="pk-starter-grid" class="pk-grid"></div>
-        </div>
-
-        <!-- CUSTOM TAB -->
-        <div id="pk-custom" class="pk-pane hidden">
-          <p class="fine dark" style="margin:6px 0">🎲 <b>Roll for free</b> — unlimited. Love one? <b>Lock it</b> — yours forever. Or pick a free starter and play.</p>
+        <!-- RANDOM TAB (only tab: every fighter is a free roll) -->
+        <div id="pk-custom" class="pk-pane">
+          <p class="fine dark" style="margin:6px 0">🎲 <b>Roll for free</b> — unlimited. Love one? <b>Lock it</b> — yours forever.</p>
           <div class="cr-preview" id="cr-preview">
             <canvas id="cr-canvas" aria-label="3D fighter preview, drag to spin"></canvas>
             <div class="cr-fallback hidden" id="cr-fallback"></div>
@@ -414,7 +404,6 @@
         <div class="row cr-actions">
           <button type="button" class="btn btn-grey" id="cr-cancel">Cancel</button>
           <button type="button" class="btn btn-blue" id="cr-sync" title="Push fighter to Supabase for PvP">🔄 SYNC</button>
-          <button type="submit" class="btn btn-green" id="cr-save">SAVE · LFG 🚀</button>
         </div>
 
         <!-- Fight history tracker (player-facing) -->
@@ -572,7 +561,7 @@
 <script src="vendor/three.min.js"></script>
 <script src="https://unpkg.com/@solana/web3.js@1.95.3/lib/index.iife.min.js"></script>
 <script src="js/config.js?v=gloves-1"></script>
-<script src="js/roster.js?v=patty-bull-1"></script>
+<script src="js/roster.js?v=profile-first-1"></script>
 <script src="js/storage.js?v=gloves-1"></script>
 <script src="js/account.js?v=species-1"></script>
 <script src="js/traits.js?v=gloves-1"></script>
@@ -594,6 +583,6 @@
 <script src="js/pvp-sync.js?v=pvp-guard-1"></script>
 <script src="js/solana-house.js?v=7"></script>
 <script src="js/contracts.js?v=1"></script>
-<script src="js/game-v3.js?v=gloves-1"></script>
+<script src="js/game-v3.js?v=profile-first-1"></script>
 </body>
 </html>
