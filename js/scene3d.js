@@ -2517,10 +2517,9 @@ SAK.Scene3D = (function () {
   /* ============================================================== Arenas */
   // V2: 4 degen-memecoin arena styles. arenaGroup holds everything per-arena;
   // setArena() disposes + rebuilds it. Fighters live outside the group.
-  let arenaGroup = null, arenaStyle = 'colosseum', crowdExciteUntil = 0;
+  let arenaGroup = null, arenaStyle = 'smackbar', crowdExciteUntil = 0;
   const ARENA_DEFS = {
     colosseum: { name: 'Chart Dome', fog: '#2a0b5e' },
-    moonshot:  { name: 'Moonshot Launchpad',   fog: '#0a1030' },
     rekt:      { name: 'REKT Alley',            fog: '#1c0512' },
     smackbar:  { name: 'SMACK BAR',             fog: '#1a0a10' },
   };
@@ -2552,7 +2551,7 @@ SAK.Scene3D = (function () {
 
   /** Switch arena style (also used at boot). Safe to call any time. */
   function setArena(style) {
-    if (!ARENA_DEFS[style]) style = 'colosseum';
+    if (!ARENA_DEFS[style]) style = 'smackbar';
     disposeArena();
     candles = []; coins = []; chartDomeCandles = []; chartDumpT = 0; mascots = []; neonLights = []; coinRainList = [];
     chart = null; rocket = null; rektFlicker = null;
@@ -2560,8 +2559,7 @@ SAK.Scene3D = (function () {
     arenaGroup = new T.Group();
     scene.add(arenaGroup);
     buildArenaCore(arenaGroup);
-    if (style === 'moonshot') buildMoonshot(arenaGroup);
-    else if (style === 'rekt') buildRekt(arenaGroup);
+    if (style === 'rekt') buildRekt(arenaGroup);
     else if (style === 'smackbar') buildSmackBar(arenaGroup);
     else buildColosseum(arenaGroup);
     if (scene.fog) scene.fog.color.set(ARENA_DEFS[style].fog);
@@ -2572,11 +2570,10 @@ SAK.Scene3D = (function () {
   function buildBackdrop(AG) {
     const palettes = {
       colosseum: { top: '#0d0221', mid: '#2a0b5e', bot: '#150430', win: '#ffd23f' },
-      moonshot:  { top: '#020610', mid: '#0a1030', bot: '#060a20', win: '#39c5ff' },
       rekt:      { top: '#0d0208', mid: '#1c0512', bot: '#0d0209', win: '#ff3b5c' },
       smackbar:  { top: '#160709', mid: '#2b1016', bot: '#12060a', win: '#ffb347' },
     };
-    const P = palettes[arenaStyle] || palettes.colosseum;
+    const P = palettes[arenaStyle] || palettes.smackbar;
     const { tex } = canvasTex(1024, 512, (ctx, w, h) => {
       const grd = ctx.createLinearGradient(0, 0, 0, h);
       grd.addColorStop(0, P.top); grd.addColorStop(0.55, P.mid); grd.addColorStop(1, P.bot);
@@ -2983,7 +2980,6 @@ SAK.Scene3D = (function () {
     neonLights = [l1, l2];
   }
 
-  /** Moonshot Launchpad — rocket base under a giant moon. */
   /** SMACK BAR (LT 2026-10-24): a bar arena, visual reskin only — the ring,
    *  cameras, crowd and fight feel all come from buildArenaCore untouched.
    *  Back-arc dressing only (proven visible zone, never in front of the
@@ -3158,66 +3154,6 @@ SAK.Scene3D = (function () {
     AG.add(chalk);
   }
 
-  function buildMoonshot(AG) {
-    // launch pad markings under the ring
-    const padTex = canvasTex(512, 512, (ctx, w, h) => {
-      ctx.fillStyle = '#10163a'; ctx.fillRect(0, 0, w, h);
-      ctx.strokeStyle = '#39c5ff'; ctx.lineWidth = 8;
-      ctx.beginPath(); ctx.arc(256, 256, 210, 0, 7); ctx.stroke();
-      ctx.strokeStyle = '#b44dff'; ctx.lineWidth = 5;
-      ctx.beginPath(); ctx.arc(256, 256, 150, 0, 7); ctx.stroke();
-      neonText(ctx, 'MOONSHOT', 256, 256, 52, '#ffd23f');
-    }).tex;
-    const pad = new T.Mesh(new T.CylinderGeometry(5.2, 5.4, 0.1, 28),
-      new T.MeshToonMaterial({ map: padTex, gradientMap: toonGrad }));
-    pad.position.y = -0.06; pad.receiveShadow = true; AG.add(pad);
-
-    // GIANT moon looming behind
-    const moon = new T.Mesh(new T.IcosahedronGeometry(5.5, 2), new T.MeshBasicMaterial({ color: '#fff3c4' }));
-    moon.position.set(-4, 13, -22); AG.add(moon);
-    for (let i = 0; i < 8; i++) {
-      const cr = new T.Mesh(new T.IcosahedronGeometry(0.6 + Math.random() * 0.7, 0), new T.MeshBasicMaterial({ color: '#e8d58e' }));
-      const v = new T.Vector3(Math.random() - 0.5, Math.random() - 0.5, 1).normalize().multiplyScalar(5.2);
-      cr.position.copy(moon.position).add(v); cr.scale.z = 0.35; cr.lookAt(moon.position); AG.add(cr);
-    }
-    // dense star field
-    const sg = new T.BufferGeometry(), pts = [];
-    for (let i = 0; i < 420; i++) { const a = Math.random() * Math.PI * 2, r = 20 + Math.random() * 10; pts.push(Math.cos(a) * r, 5 + Math.random() * 20, Math.sin(a) * r); }
-    sg.setAttribute('position', new T.Float32BufferAttribute(pts, 3));
-    AG.add(new T.Points(sg, new T.PointsMaterial({ color: '#cfe8ff', size: 0.22, fog: false })));
-
-    // launch tower (truss)
-    const towerMat = mat('#8a93a8'), stripeMat = mat('#ff3b5c');
-    for (const sx of [-0.5, 0.5]) for (const sz of [-0.5, 0.5])
-      AG.add(mesh(new T.BoxGeometry(0.18, 7.5, 0.18), towerMat, 6.5 + sx, 3.75, -6 + sz));
-    for (let y = 0.8; y < 7.2; y += 1.1)
-      AG.add(mesh(new T.BoxGeometry(1.2, 0.12, 1.2), y % 2.2 < 1.1 ? stripeMat : towerMat, 6.5, y, -6));
-    // rocket parked on the pad
-    const parked = makeRocket(); parked.position.set(6.5, 1.6, -3.4); parked.rotation.z = 0.12; AG.add(parked);
-    // the looped moon-bound rocket
-    rocket = makeRocket(); rocket.userData.t = 0; AG.add(rocket);
-
-    // billboards
-    billboard(textPanel('TO THE MOON 🚀', '#ffd23f', ['#0a1030', '#2a1a6e'], 768, 200), 4.8, 1.25, 250, 9, 3.2);
-    billboard(textPanel('$SLAP ▲ +999%', '#39ff88', ['#0a1030', '#123a2a'], 640, 200), 3.8, 1.15, 205, 9, 4.4);
-    billboard(textPanel('WAGMI', '#39c5ff', ['#0a1030', '#1a2a5e'], 512, 220), 3.4, 1.5, 295, 9, 2.8);
-    // degen launchpad dressing
-    billboard(textPanel('APE IN 🚀', '#ff7a1a', ['#0a1030', '#3a1a0e'], 640, 200), 3.8, 1.15, 228, 9, 4.2);
-    billboard(textPanel('LFGOOO', '#b44dff', ['#0a1030', '#2a1a5e'], 512, 220), 3.2, 1.4, 318, 9, 3.0);
-    // floating coins
-    const coinMat = mat('#ffcc22', {}); coinMat.emissive = new T.Color('#5a3a00');
-    for (let i = 0; i < 8; i++) {
-      const c = new T.Mesh(new T.CylinderGeometry(0.35, 0.35, 0.07, 14), coinMat);
-      c.rotation.x = Math.PI / 2;
-      const ang = (180 + Math.random() * 100) * Math.PI / 180, r = 6 + Math.random() * 3;
-      c.position.set(Math.cos(ang) * r, 3 + Math.random() * 4, Math.sin(ang) * r);
-      c.userData.phase = Math.random() * 6; AG.add(c); coins.push(c);
-    }
-    // cool blue/purple wash
-    const l1 = new T.PointLight('#39c5ff', 20, 14); l1.position.set(-3, 4, -4); AG.add(l1);
-    const l2 = new T.PointLight('#b44dff', 20, 14); l2.position.set(4, 3, -3); AG.add(l2);
-    neonLights = [l1, l2];
-  }
 
   /** REKT Alley — gritty neon back-alley for the fallen. */
   function buildRekt(AG) {
@@ -3709,7 +3645,7 @@ SAK.Scene3D = (function () {
       scene.add(fl); flashLightPool.push(fl);
     }
 
-    setArena('colosseum');
+    setArena('smackbar');
     clock = new T.Clock();
     frameCamera();
     camCur.pos.copy(camBase.pos); camCur.look.copy(camBase.look);

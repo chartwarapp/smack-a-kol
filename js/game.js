@@ -307,7 +307,7 @@
     $('#menu-stats').innerHTML = `<span>🏆 ${st.wins}W / ${st.losses}L</span><span>🔥 Streak ${st.streak}</span><span style="color:${tier.color};font-weight:700">◆ ${tier.name}</span><span>❤ Lv${S.upgrades.health} ✊ Lv${S.upgrades.power}</span>`
       + (V.boost ? `<span class="boost-tag">⚡ +${Math.round(V.boost * 100)}% boost</span>` : '')
       + (tier.yieldBoost ? `<span class="boost-tag" style="border-color:${tier.color}">🏦 +${Math.round(tier.yieldBoost * 100)}% yield</span>` : '');
-    $('#set-wallet').textContent = on ? `Mock address: ${W.address}` : 'Wallet not connected (placeholder)';
+    $('#set-wallet').textContent = on ? `Wallet: ${W.address}` : 'Wallet not connected';
     $('#btn-disconnect').classList.toggle('hidden', !on);
     renderShopStats();
     updateMenuPendingBar();
@@ -4246,11 +4246,11 @@
   $('#set-haptics').addEventListener('change', e => { S.settings.haptics = e.target.checked; SAK.Storage.save(); });
   // V2: arena picker — REKT Alley temporarily hidden (2026-10-06): it froze
   // on smack impacts on iPhone; buildRekt() is kept intact for re-enable.
-  const ARENAS_UI = [['colosseum', '🕯️ Colosseum'], ['moonshot', '🚀 Moonshot'], ['smackbar', '🍻 SMACK BAR']];
+  const ARENAS_UI = [['smackbar', '🍻 SMACK BAR'], ['colosseum', '🕯️ Colosseum']];
   const apick = $('#arena-picks');
   if (apick) {
     const renderArenaPicks = () => {
-      apick.querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.arena === (S.settings.arena || 'colosseum')));
+      apick.querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.arena === (S.settings.arena || 'smackbar')));
     };
     ARENAS_UI.forEach(([id, label]) => {
       const b = document.createElement('button');
@@ -5016,7 +5016,8 @@
       Scene = SAK.Scene3D;
       Scene.setPlayer(playerAvatar());
       if (S.settings.arena === 'rekt') { S.settings.arena = 'colosseum'; SAK.Storage.save(); } // REKT temporarily hidden — migrate anyone parked there
-      if (Scene.setArena) Scene.setArena(S.settings.arena || 'colosseum'); // V2: saved arena
+      if (S.settings.arena === 'moonshot') { S.settings.arena = 'smackbar'; SAK.Storage.save(); } // Moonshot removed — migrate anyone parked there
+      if (Scene.setArena) Scene.setArena(S.settings.arena || 'smackbar'); // V2: saved arena
       if (window.__setArenaLabel) window.__setArenaLabel();
       menuScene();
     } catch (err) {
