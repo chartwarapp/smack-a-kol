@@ -2199,25 +2199,33 @@
     }
 
     const C = SAK.COPY, sub = t => esc(t.replace('{k}', k.name).replace('{t}', pick(k.taunts)));
+    // Hoisted picks so the shareable card matches the screen exactly
+    // (a second pick() would roll a different title/taunt).
+    const resTitle = draw ? 'CRAB MARKET 🦀' : win ? pick(C.winTitles) : pick(C.loseTitles);
+    const resSub = draw ? `${F.duel.p} vs ${F.duel.k}. Nobody pumped, nobody dumped.`
+      : (win ? sub(pick(C.winSubs)) : sub(pick(C.loseSubs)))
+        + (F.challenge ? ` · ${F.challenge.pWins}–${F.challenge.kWins} (Bo${F.challenge.bestOf})` : '');
+    const resLoseTip = (!win && !draw) ? 'Tip: ride your jerky meter into the ★ — closer than opponent wins the round' : null;
+    const resTip = (!F.bet && win && !k.pvp && !draw) ? `💡 Bet PTS next time for x${k.payout.toFixed(1)}. Scared money don't make money.` : null;
     let html = draw
-      ? `<div class="result-title" style="color:#ffd23f">CRAB MARKET 🦀</div>
+      ? `<div class="result-title" style="color:#ffd23f">${resTitle}</div>
          ${SAK.avatarSVG(k.look)}
-         <div class="result-sub">${F.duel.p} vs ${F.duel.k}. Nobody pumped, nobody dumped.</div>`
+         <div class="result-sub">${resSub}</div>`
       : win
-      ? `<div class="result-title">${pick(C.winTitles)}</div>
+      ? `<div class="result-title">${resTitle}</div>
          <div class="result-vs">
            <div class="rv-side"><span class="rv-tag rv-winner">WINNER</span>${SAK.avatarSVG(playerLook())}</div>
            <span class="rv-vs">VS</span>
            <div class="rv-side"><span class="rv-tag rv-loser">LOSER</span>${SAK.avatarSVG(k.look, { ko: true, wrecked: true, blush: true })}</div>
          </div>
-         <div class="result-sub">${sub(pick(C.winSubs))}${F.challenge ? ` · ${F.challenge.pWins}–${F.challenge.kWins} (Bo${F.challenge.bestOf})` : ''}</div>`
-      : `<div class="result-title">${pick(C.loseTitles)}</div>
+         <div class="result-sub">${resSub}</div>`
+      : `<div class="result-title">${resTitle}</div>
          <div class="result-vs">
            <div class="rv-side"><span class="rv-tag rv-loser">LOSER</span>${SAK.avatarSVG(playerLook(), { ko: true, wrecked: true, blush: true })}</div>
            <span class="rv-vs">VS</span>
            <div class="rv-side"><span class="rv-tag rv-winner">WINNER</span>${SAK.avatarSVG(k.look)}</div>
          </div>
-         <div class="result-sub">${sub(pick(C.loseSubs))}${F.challenge ? ` · ${F.challenge.pWins}–${F.challenge.kWins} (Bo${F.challenge.bestOf})` : ''}<br><small>Tip: ride your jerky meter into the ★ — closer than opponent wins the round</small></div>`;
+         <div class="result-sub">${resSub}<br><small>${resLoseTip}</small></div>`;
     html += `<div class="breakdown">
         <div class="bd-head">PLAY-TO-EARN</div>
         ${rows.map(([l, v]) => `<div><span>${l}</span><b>+${fmt(v)}</b></div>`).join('')}
@@ -2295,7 +2303,7 @@
             <div class="fine" style="font-size:11px;color:#888;">⏳ The house settles this automatically — no wallet step needed</div>`;
         })() : ''}
       </div>`;
-    if (!F.bet && win && !k.pvp) html += `<p class="fine">💡 Bet PTS next time for x${k.payout.toFixed(1)}. Scared money don't make money.</p>`;
+    if (resTip) html += `<p class="fine">${resTip}</p>`;
     const total = pts + betTotal;
     setTimeout(() => {
       const sb = $('#chain-settle-btn');
@@ -2408,14 +2416,63 @@
         }
       };
     }
+    // Shared payload for the shareable result card (both share buttons).
+    // Rows/pts are raw numbers (the card formats them); bet/wager lines
+    // arrive pre-formatted, mirroring the screen's breakdown exactly.
+    // The wager slot holds at most one block, same as the screen.
+    function cardData(oppName) {
+      let wager = null;
+      if (F.opts && F.opts.soloHouse) {
+        const sh = F.opts.soloHouse, r = F.opts.soloResult;
+        if (sh.currency === 'SMACK') {
+          const wT = sh.wagerTokens || 0;
+          wager = { head: 'SOLO VS SMACK HOUSE (DEVNET)', hand: true,
+            lines: [['Wagered', fmtTokAmt(wT) + ' SMACK'], ['Burn (1%)', '−' + fmtTokAmt(wT * 0.01) + ' SMACK 🔥']], fine: null };
+          if (r && r.won) wager.lines.push(['You won', '+' + fmtTokAmt(r.payoutTokens || 0) + ' SMACK', 'win']);
+          else if (r && !r.won) wager.lines.push(['You lost', '−' + fmtTokAmt(wT) + ' SMACK', 'neg']);
+          else wager.fine = '⏳ The house settles this automatically — no wallet step needed';
+        } else {
+          const w = parseFloat(sh.wagerSol || 0);
+          wager = { head: '🏠 SOLO VS HOUSE (DEVNET)',
+            lines: [['Wagered', w + ' SOL'], ['Burn (1%)', '0 SOL (SOL skips burn)']], fine: null };
+          if (r && r.won) wager.lines.push(['You won', '+' + r.payout.toFixed(3) + ' SOL', 'win']);
+          else if (r && !r.won) wager.lines.push(['You lost', '−' + w + ' SOL', 'neg']);
+          else wager.fine = '⏳ The house settles this automatically — no wallet step needed';
+        }
+      } else if (F.opts && F.opts.chainChallenge) {
+        const w = parseFloat(F.opts.chainWagerSol || 0);
+        wager = { head: '⛓ ON-CHAIN WAGER (DEVNET)', lines: [['Wagered', w + ' SOL']], fine: '5% fee · resolver settles' };
+        if (win) wager.lines.push(['You won', '+' + (w * 2 * 0.95).toFixed(3) + ' SOL', 'win']);
+        else if (!draw) wager.lines.push(['You lost', '−' + w + ' SOL', 'neg']);
+      } else if (F.opts && F.opts.freeFight) {
+        const c = F.opts.freeFight;
+        wager = { head: '🎁 FREE FIGHT (DEVNET)',
+          lines: [['Free fight value', SAK.StreakRewards.fmtValue(c.currency, c.value)]], fine: null };
+        if (win) wager.lines.push(['You won', '+' + SAK.StreakRewards.fmtValue(c.currency, SAK.StreakRewards.payoutFor(c)), 'win']);
+        else if (!draw) wager.lines.push(['You lost', 'Nothing lost — the fight was free']);
+      }
+      let bet = null;
+      if (F.bet) {
+        if (win) {
+          const base = F.bet * k.payout;
+          const perfectBonus = F.bet * R.perfectBonus * Math.min(F.perfects, R.perfectBonusCap);
+          const streakBonus = F.bet * R.streakBonus * Math.min(streakBefore, R.streakBonusCap);
+          const sub2 = base + perfectBonus + streakBonus;
+          bet = { lines: [[`Bet ${fmt(F.bet)} × ${k.payout.toFixed(1)}`, '+' + fmt(base)]], total: fmt(betTotal) };
+          if (perfectBonus) bet.lines.push(['Perfect bonus', '+' + fmt(perfectBonus)]);
+          if (streakBonus) bet.lines.push(['Streak bonus', '+' + fmt(streakBonus)]);
+          if (boost) bet.lines.push([`Vault boost +${Math.round(boost * 100)}%`, '+' + fmt(sub2 * boost)]);
+        } else if (draw) bet = { lines: [['Draw: bet refunded', fmt(F.bet)]], total: null };
+        else bet = { lines: [['Bet got rugged', '−' + fmt(F.bet), 'neg']], total: null };
+      }
+      return { win, draw, title: resTitle, sub: resSub, loseTip: resLoseTip, tip: resTip,
+        playerName: profile().name, playerLook: playerLook(), kolName: oppName, kolLook: k.look,
+        rows, pts, wager, bet };
+    }
     $('#r-card').onclick = async (e) => {
       const btn = e.currentTarget;
       btn.disabled = true; const old = btn.textContent; btn.textContent = 'MAKING CARD…';
       try {
-        const C = F.challenge;
-        // Wager win amount: for PvP, winner takes ~2x wager minus fee. Show SOL won.
-        const wagerSol = C && C.wager_lamports ? C.wager_lamports / 1e9 : (reBet || 0);
-        const winSol = win && wagerSol ? (wagerSol * 2 * 0.95) : 0; // est. after 5% fee
         // For on-chain PvP, use the opponent's real fighter name instead of wallet preview
         let oppName = k.name;
         const oppWallet = F.opts && F.opts.chainOpponentWallet;
@@ -2425,13 +2482,7 @@
             if (oppProfile && oppProfile.name) oppName = oppProfile.name;
           } catch (e) {}
         }
-        const svg = SAK.FightCard.build({
-          win, playerName: profile().name, xHandle: (S.profile && S.profile.x_handle) || "", playerLook: playerLook(), playerDmg: dmgLevel('player'),
-          kolName: oppName, scoreP: C ? C.pWins : (win ? 1 : 0), scoreK: C ? C.kWins : (win ? 0 : 1),
-          bestOf: C ? C.bestOf : 1, biggestHit: Math.round(F.maxHit || 0), pts: Math.round(pts || 0),
-          modeLabel: (SAK.MODES[F.mode] && SAK.MODES[F.mode].label || 'CLASSIC KO').toUpperCase(),
-          wagerSol, winSol,
-        });
+        const svg = SAK.FightCard.buildResultCard(cardData(oppName));
         const text = win
           ? `I just sent ${k.name} to ZERO in Smack-a-KOL 🥊`
           : `I just got REKT in Smack-a-KOL 😭 Run it back?`;
@@ -2444,9 +2495,6 @@
       const btn = e.currentTarget;
       btn.disabled = true; const old = btn.textContent; btn.textContent = 'POSTING…';
       try {
-        const C = F.challenge;
-        const wagerSol = C && C.wager_lamports ? C.wager_lamports / 1e9 : (reBet || 0);
-        const winSol = win && wagerSol ? (wagerSol * 2 * 0.95) : 0;
         let oppName2 = k.name;
         const oppWallet2 = F.opts && F.opts.chainOpponentWallet;
         if (oppWallet2 && SAK.Api && SAK.Api.getProfile) {
@@ -2455,13 +2503,7 @@
             if (oppProfile2 && oppProfile2.name) oppName2 = oppProfile2.name;
           } catch (e) {}
         }
-        const svg = SAK.FightCard.build({
-          win, playerName: profile().name, xHandle: (S.profile && S.profile.x_handle) || "", playerLook: playerLook(), playerDmg: dmgLevel('player'),
-          kolName: oppName2, scoreP: C ? C.pWins : (win ? 1 : 0), scoreK: C ? C.kWins : (win ? 0 : 1),
-          bestOf: C ? C.bestOf : 1, biggestHit: Math.round(F.maxHit || 0), pts: Math.round(pts || 0),
-          modeLabel: (SAK.MODES[F.mode] && SAK.MODES[F.mode].label || 'CLASSIC KO').toUpperCase(),
-          wagerSol, winSol,
-        });
+        const svg = SAK.FightCard.buildResultCard(cardData(oppName2));
         const xh = (S.profile && S.profile.x_handle) ? ` @${S.profile.x_handle.replace(/^@/, '')}` : '';
         const text = win
           ? `I${xh} just sent ${k.name} to ZERO in Smack-a-KOL 🥊`

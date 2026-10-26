@@ -63,6 +63,191 @@ SAK.FightCard = (() => {
 </svg>`;
   }
 
+  // ---- Post-fight result card: mirrors the in-game result screen ----
+  // Portrait card; height grows with the content (a square can't hold
+  // all the stats at readable sizes). Title + VS row + sub + one
+  // PLAY-TO-EARN panel (rows, MATCH PTS, optional BET, optional wager
+  // block) + tip + PLAY AT footer. Values arrive pre-shaped from
+  // endFight so the card matches the screen exactly: rows/pts are raw
+  // numbers (formatted here); bet/wager lines arrive as display strings.
+  function buildResultCard(o) {
+    const win = !!o.win, draw = !!o.draw;
+    const accent = win ? '#39ff88' : draw ? '#ffd23f' : '#ff3b5c';
+    const title = o.title || (win ? 'VICTORY' : draw ? 'CRAB MARKET 🦀' : 'DEFEAT');
+    const W = 1080, M = 64, CW = W - M * 2;
+    const assets = (typeof SAK !== 'undefined' && SAK.CARD_ASSETS) || {};
+    const fontFace = assets.font
+      ? `<style>@font-face { font-family: 'Lilita One'; src: url(${assets.font}) format('woff2'); } text { font-family: 'Lilita One', 'Arial Black', system-ui, sans-serif; }</style>`
+      : '';
+    const fmtNum = n => Math.round(n).toLocaleString('en-US');
+    const estW = (s, fs) => String(s).length * fs * 0.58;
+    const fitFs = (s, fs, maxW) => Math.max(30, Math.min(fs, Math.floor(maxW / (String(s).length * 0.58))));
+
+    let out = '';
+    let y = 0;
+    // Title
+    const titleFs = fitFs(title, 112, CW);
+    y += titleFs + 24;
+    out += `<text x="540" y="${y}" text-anchor="middle" font-size="${titleFs}" font-weight="400" fill="${accent}" letter-spacing="4">${esc(title)}</text>`;
+    y += 42;
+    // VS row (single face on a draw)
+    const FACE = 272, PILL_H = 52, PILL_FS = 30;
+    const pill = (cx, label, gold) => {
+      const w = Math.ceil(estW(label, PILL_FS)) + 48;
+      const x = cx - w / 2, py = y;
+      return `<rect x="${x}" y="${py}" width="${w}" height="${PILL_H}" rx="26" fill="${gold ? '#ffd23f' : '#ff3b5c'}" stroke="#ffffff" stroke-width="3"/>` +
+        `<text x="${cx}" y="${py + 37}" text-anchor="middle" font-size="${PILL_FS}" font-weight="700" fill="${gold ? '#1a0b2e' : '#ffffff'}" letter-spacing="2">${label}</text>`;
+    };
+    const face = (look, opts, x, fy) => {
+      const inner = avatarInner(look, opts || {});
+      return `<svg x="${x}" y="${fy}" width="${FACE}" height="${FACE}" viewBox="0 0 100 100">${inner}</svg>` +
+        `<rect x="${x}" y="${fy}" width="${FACE}" height="${FACE}" rx="49" fill="none" stroke="#ffffff" stroke-width="6"/>`;
+    };
+    const wrecked = { ko: true, wrecked: true, blush: true };
+    if (draw) {
+      out += face(o.kolLook, {}, (W - FACE) / 2, y + PILL_H + 14);
+      y += PILL_H + 14 + FACE;
+    } else {
+      const gap = 96, totalW = FACE * 2 + gap;
+      const x1 = (W - totalW) / 2, x2 = x1 + FACE + gap;
+      const fy = y + PILL_H + 14;
+      if (win) { out += pill(x1 + FACE / 2, 'WINNER', true); out += face(o.playerLook, {}, x1, fy); }
+      else { out += pill(x1 + FACE / 2, 'LOSER', false); out += face(o.playerLook, wrecked, x1, fy); }
+      out += `<text x="540" y="${fy + FACE / 2 + 22}" text-anchor="middle" font-size="60" font-weight="400" font-style="italic" fill="#ffffff" opacity="0.9">VS</text>`;
+      if (win) { out += pill(x2 + FACE / 2, 'LOSER', false); out += face(o.kolLook, wrecked, x2, fy); }
+      else { out += pill(x2 + FACE / 2, 'WINNER', true); out += face(o.kolLook, {}, x2, fy); }
+      y += PILL_H + 14 + FACE;
+    }
+    y += 34;
+    // Sub line
+    if (o.sub) {
+      const lines = wrapLines(o.sub, 42, 3);
+      lines.forEach((ln, i) => {
+        out += `<text x="540" y="${y + i * 50}" text-anchor="middle" font-size="38" font-weight="400" fill="#ffffff">${esc(ln)}</text>`;
+      });
+      y += lines.length * 50;
+    }
+    if (o.loseTip) {
+      y += 10;
+      const lines = wrapLines(o.loseTip, 58, 2);
+      lines.forEach((ln, i) => {
+        out += `<text x="540" y="${y + i * 38}" text-anchor="middle" font-size="28" font-weight="400" fill="#ffffff" opacity="0.6">${esc(ln)}</text>`;
+      });
+      y += lines.length * 38;
+    }
+    y += 28;
+    // ---- breakdown panel ----
+    const PX = M, PW = CW, PAD = 36;
+    let p = '';
+    let py = y + PAD;
+    const head = (t) => {
+      p += `<text x="540" y="${py + 28}" text-anchor="middle" font-size="28" font-weight="700" fill="#ffffff" opacity="0.65" letter-spacing="3">${esc(t)}</text>`;
+      py += 28 + 18;
+    };
+    const row = (label, val, color) => {
+      p += `<text x="${PX + PAD}" y="${py + 38}" font-size="38" font-weight="400" fill="#ffffff">${esc(label)}</text>`;
+      p += `<text x="${W - M - PAD}" y="${py + 38}" text-anchor="end" font-size="38" font-weight="700" fill="${color || '#ffffff'}">${esc(val)}</text>`;
+      py += 54;
+    };
+    head('PLAY-TO-EARN');
+    (o.rows || []).forEach(([l, v]) => row(l, '+' + fmtNum(v)));
+    // MATCH PTS total
+    py += 6;
+    p += `<line x1="${PX + PAD}" y1="${py + 6}" x2="${W - M - PAD}" y2="${py + 6}" stroke="#ffffff" stroke-opacity="0.35" stroke-width="2" stroke-dasharray="2 12"/>`;
+    py += 20;
+    const ptsVal = '+' + fmtNum(o.pts || 0);
+    const ptsW = estW(ptsVal, 46);
+    const starCx = W - M - PAD - ptsW - 36;
+    p += `<text x="${PX + PAD}" y="${py + 40}" font-size="46" font-weight="700" fill="#39ff88">MATCH PTS</text>`;
+    p += `<circle cx="${starCx}" cy="${py + 26}" r="24" fill="#39ff88"/>`;
+    p += `<text x="${starCx}" y="${py + 36}" text-anchor="middle" font-size="28" font-weight="700" fill="#ffffff">★</text>`;
+    p += `<text x="${W - M - PAD}" y="${py + 40}" text-anchor="end" font-size="46" font-weight="700" fill="#39ff88">${esc(ptsVal)}</text>`;
+    py += 62;
+    // BET block
+    if (o.bet) {
+      py += 10;
+      head('BET');
+      o.bet.lines.forEach(([l, v, tone]) => row(l, v, tone === 'neg' ? '#ff3b5c' : '#ffffff'));
+      if (o.bet.total != null) {
+        p += `<text x="${PX + PAD}" y="${py + 40}" font-size="46" font-weight="700" fill="#ffd23f">BET PAYOUT</text>`;
+        p += `<text x="${W - M - PAD}" y="${py + 40}" text-anchor="end" font-size="46" font-weight="700" fill="#ffd23f">★ ${esc(o.bet.total)}</text>`;
+        py += 62;
+      }
+    }
+    // Wager block
+    if (o.wager) {
+      py += 10;
+      const wg = o.wager;
+      if (wg.hand && assets.hand) {
+        const hw = 46, hh = 32;
+        const tw = estW(wg.head, 28);
+        const tx = 540 - (tw + hw + 12) / 2;
+        p += `<image href="${assets.hand}" x="${tx}" y="${py}" width="${hw}" height="${hh}" preserveAspectRatio="xMidYMid meet"/>`;
+        p += `<text x="${tx + hw + 12}" y="${py + 26}" font-size="28" font-weight="700" fill="#ffffff" opacity="0.65" letter-spacing="3">${esc(wg.head)}</text>`;
+        py += 28 + 18;
+      } else {
+        head(wg.head);
+      }
+      wg.lines.forEach(([l, v, tone]) => {
+        const col = tone === 'win' ? '#39ff88' : tone === 'neg' ? '#ff3b5c' : '#ffffff';
+        p += `<text x="${PX + PAD}" y="${py + 38}" font-size="38" font-weight="400" fill="#ffffff">${esc(l)}</text>`;
+        // Parenthetical notes (e.g. SOL skips burn) render smaller + muted,
+        // like the screen's <small> treatment, instead of full-size.
+        const m = String(v).match(/^(.*) \((.*)\)$/);
+        if (m) {
+          const note = '(' + m[2] + ')';
+          const noteX = W - M - PAD;
+          const mainX = noteX - estW(note, 26) - 12;
+          p += `<text x="${mainX}" y="${py + 38}" text-anchor="end" font-size="38" font-weight="700" fill="${col}">${esc(m[1])}</text>`;
+          p += `<text x="${noteX}" y="${py + 38}" text-anchor="end" font-size="26" font-weight="400" fill="#ffffff" opacity="0.55">${esc(note)}</text>`;
+        } else {
+          p += `<text x="${W - M - PAD}" y="${py + 38}" text-anchor="end" font-size="38" font-weight="700" fill="${col}">${esc(v)}</text>`;
+        }
+        py += 54;
+      });
+      if (wg.fine) {
+        const lines = wrapLines(wg.fine, 62, 2);
+        lines.forEach((ln, i) => {
+          p += `<text x="540" y="${py + 32 + i * 36}" text-anchor="middle" font-size="26" font-weight="400" fill="#ffffff" opacity="0.6">${esc(ln)}</text>`;
+        });
+        py += lines.length * 36 + 8;
+      }
+    }
+    py += PAD;
+    const panelH = py - y;
+    out += `<rect x="${PX}" y="${y}" width="${PW}" height="${panelH}" rx="28" fill="#000000" fill-opacity="0.2"/>` + p;
+    y = py;
+    // Tip
+    if (o.tip) {
+      y += 28;
+      const lines = wrapLines(o.tip, 52, 2);
+      lines.forEach((ln, i) => {
+        out += `<text x="540" y="${y + i * 42}" text-anchor="middle" font-size="32" font-weight="400" fill="#ffffff" opacity="0.65">${esc(ln)}</text>`;
+      });
+      y += lines.length * 42;
+    }
+    // Footer
+    y += 56;
+    out += `<text x="540" y="${y}" text-anchor="middle" font-size="28" font-weight="700" fill="#ffffff" opacity="0.5" letter-spacing="3">🥊 PLAY AT SMACKAKOL.COM</text>`;
+    const H = y + 44;
+
+    return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" font-family="'Lilita One', 'Arial Black', system-ui, sans-serif">
+  ${fontFace}
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#2a0a4a"/><stop offset="1" stop-color="#0e0218"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.55" r="0.55">
+      <stop offset="0" stop-color="${accent}" stop-opacity="0.28"/><stop offset="1" stop-color="${accent}" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="${W}" height="${H}" fill="url(#bg)"/>
+  <rect width="${W}" height="${H}" fill="url(#glow)"/>
+  <rect x="14" y="14" width="1052" height="${H - 28}" rx="44" fill="none" stroke="${accent}" stroke-width="8"/>
+  ${out}
+</svg>`;
+  }
+
   function svgToPng(svg) {
     return new Promise((resolve, reject) => {
       const img = new Image();
@@ -70,9 +255,14 @@ SAK.FightCard = (() => {
       img.onload = () => {
         const draw = () => {
           try {
+            // Rasterize at the SVG's own size: the result card is portrait
+            // with a content-driven height, the fighter card stays 1080².
+            const mW = svg.match(/<svg[^>]*width="(\d+)"/);
+            const mH = svg.match(/<svg[^>]*height="(\d+)"/);
+            const pw = mW ? +mW[1] : W, ph = mH ? +mH[1] : H;
             const c = document.createElement('canvas');
-            c.width = W; c.height = H;
-            c.getContext('2d').drawImage(img, 0, 0, W, H);
+            c.width = pw; c.height = ph;
+            c.getContext('2d').drawImage(img, 0, 0, pw, ph);
             URL.revokeObjectURL(url);
             c.toBlob(b => b ? resolve(b) : reject(new Error('toBlob failed')), 'image/png');
           } catch (e) { reject(e); }
@@ -260,5 +450,5 @@ SAK.FightCard = (() => {
 </svg>`;
   }
 
-  return { build, buildFighterCard, share, shareToX };
+  return { build, buildResultCard, buildFighterCard, share, shareToX };
 })();
