@@ -1209,7 +1209,7 @@ SAK.Scene3D = (function () {
         // or if a badge for this print is already on the torso.
         if (!this.look || this.look.print !== print) return;
         if (this.torso.children.some(m => m.userData.printBadge === print)) return;
-        const badge = mesh(new T.CircleGeometry(0.17, 28),
+        const badge = mesh(new T.CircleGeometry(0.204, 28),
           new T.MeshBasicMaterial({ map: tex, transparent: true }), 0, 0.55 * B.h, chestZ);
         badge.userData.outfit = true;
         badge.userData.printBadge = print;

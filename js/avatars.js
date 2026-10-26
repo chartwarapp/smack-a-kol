@@ -184,7 +184,7 @@ SAK.avatarBodySVG = function (look) {
   // blocked inside SVG-as-img rasterization, same as the font + hand).
   const prints = (typeof SAK !== 'undefined' && SAK.CARD_ASSETS && SAK.CARD_ASSETS.prints) || {};
   const printImg = (look.print && look.print !== 'none' && prints[look.print])
-    ? `<image href="${prints[look.print]}" x="39" y="100" width="22" height="22" preserveAspectRatio="xMidYMid meet"/>`
+    ? `<image href="${prints[look.print]}" x="36.8" y="97.8" width="26.4" height="26.4" preserveAspectRatio="xMidYMid meet"/>`
     : '';
   const bw = { chonk: 8, gymbro: 4, noodle: -6, smol: -2 }[look.body] || 0;
   const tx0 = 27 - bw / 2, tx1 = 73 + bw / 2, tw = tx1 - tx0;
