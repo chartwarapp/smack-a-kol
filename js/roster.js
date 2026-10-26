@@ -50,7 +50,7 @@ SAK.KOLS = [
     taunts: ['Sub-second finality on your cheek.', 'Chewing glass, serving slaps.', 'Throughput: one slap per block.']
   },
   {
-    id: 'mikesailor', name: 'Mike Sailor', handle: '@NoSecondBestSlap', level: 7,
+    id: 'mikesailor', name: 'Slingy', handle: '@NoSecondBestSlap', level: 7,
     tagline: 'Laser eyes. Infinite conviction. Zero chill.',
     difficulty: 4, hp: 200, power: 22, accuracy: 0.82, winPts: 680, minBet: 500, payout: 2.8,
     look: { skin: '#f0b98f', shirt: '#ff9500', hair: '#cfcfd8', pants: '#1a1a2a', accessory: 'laser', accent: '#ff1a1a', body: 'chonk', hairStyle: 'buzz', eyes: 'big' },
