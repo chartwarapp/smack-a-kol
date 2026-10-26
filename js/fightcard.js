@@ -27,8 +27,18 @@ SAK.FightCard = (() => {
       ? `${esc(o.kolName).toUpperCase()} SENT TO ZERO`
       : 'GOT ABSOLUTELY REKT';
     const score = `${o.scoreP} — ${o.scoreK}`;
+    // LT 2026-10-25: post-fight cards carry the same branding as the
+    // fighter card — embedded Lilita One (cartoon comic font), the gold
+    // outlined SMACK-A-KOL wordmark, and the PLAY AT footer. The style
+    // rule makes every text element Lilita; the @font-face also triggers
+    // svgToPng's 350ms load wait so the font is in before rasterizing.
+    const assets = (typeof SAK !== 'undefined' && SAK.CARD_ASSETS) || {};
+    const fontFace = assets.font
+      ? `<style>@font-face { font-family: 'Lilita One'; src: url(${assets.font}) format('woff2'); } text { font-family: 'Lilita One', 'Arial Black', system-ui, sans-serif; }</style>`
+      : '';
 
-    return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" font-family="system-ui, -apple-system, sans-serif">
+    return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" font-family="'Lilita One', 'Arial Black', system-ui, sans-serif">
+  ${fontFace}
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0" stop-color="#2a0a4a"/><stop offset="1" stop-color="#0e0218"/>
@@ -39,16 +49,17 @@ SAK.FightCard = (() => {
   </defs>
   <rect width="${W}" height="${H}" fill="url(#bg)"/>
   <rect width="${W}" height="${H}" fill="url(#glow)"/>
-  <text x="540" y="104" text-anchor="middle" font-size="68" font-weight="900" fill="#ffd23f" letter-spacing="10">SMACK-A-KOL</text>
+  <text x="540" y="104" text-anchor="middle" font-size="72" font-weight="400" fill="#ffd23f" letter-spacing="6" paint-order="stroke" stroke="#12031f" stroke-width="8" stroke-linejoin="round">SMACK-A-KOL</text>
   <text x="540" y="152" text-anchor="middle" font-size="30" font-weight="700" fill="#ffffff" opacity="0.65" letter-spacing="4">${esc(o.modeLabel || 'CLASSIC KO')} · BEST OF ${o.bestOf || 3}</text>
   <text x="540" y="300" text-anchor="middle" font-size="128" font-weight="900" fill="${accent}" letter-spacing="6">${result}</text>
   <text x="540" y="360" text-anchor="middle" font-size="46" font-weight="800" fill="#ffffff">${esc(o.playerName).toUpperCase()}  ${score}  ${esc(o.kolName).toUpperCase()}</text>
   <svg x="330" y="420" width="420" height="420" viewBox="0 0 100 100">${hero}</svg>
-  <text x="540" y="908" text-anchor="middle" font-size="52" font-weight="900" fill="#ffffff">${esc(o.playerName).toUpperCase()}</text>
-  ${o.xHandle ? `<text x="540" y="936" text-anchor="middle" font-size="28" font-weight="700" fill="#1d9bf0">@${esc(o.xHandle.replace(/^@/, ''))}</text>` : ''}
-  <text x="540" y="956" text-anchor="middle" font-size="30" font-weight="700" fill="#ffffff" opacity="0.7" letter-spacing="3">${tagline}</text>
-  <text x="540" y="1010" text-anchor="middle" font-size="30" font-weight="700" fill="#ffd23f">BIGGEST HIT ${o.biggestHit || 0}   ·   +${o.pts || 0} PTS</text>
-  ${o.winSol ? `<text x="540" y="1052" text-anchor="middle" font-size="44" font-weight="900" fill="#14f195">+${(+o.winSol).toFixed(3).replace(/0+$/, '').replace(/\.$/, '')} SOL</text>` : (o.wagerSol ? `<text x="540" y="1052" text-anchor="middle" font-size="30" font-weight="700" fill="#ffffff" opacity="0.6">WAGER ${(+o.wagerSol).toFixed(3).replace(/0+$/, '').replace(/\.$/, '')} SOL</text>` : '')}
+  <text x="540" y="895" text-anchor="middle" font-size="52" font-weight="900" fill="#ffffff">${esc(o.playerName).toUpperCase()}</text>
+  ${o.xHandle ? `<text x="540" y="920" text-anchor="middle" font-size="28" font-weight="700" fill="#1d9bf0">@${esc(o.xHandle.replace(/^@/, ''))}</text>` : ''}
+  <text x="540" y="940" text-anchor="middle" font-size="30" font-weight="700" fill="#ffffff" opacity="0.7" letter-spacing="3">${tagline}</text>
+  <text x="540" y="975" text-anchor="middle" font-size="30" font-weight="700" fill="#ffd23f">BIGGEST HIT ${o.biggestHit || 0}   ·   +${o.pts || 0} PTS</text>
+  ${o.winSol ? `<text x="540" y="1015" text-anchor="middle" font-size="44" font-weight="900" fill="#14f195">+${(+o.winSol).toFixed(3).replace(/0+$/, '').replace(/\.$/, '')} SOL</text>` : (o.wagerSol ? `<text x="540" y="1015" text-anchor="middle" font-size="30" font-weight="700" fill="#ffffff" opacity="0.6">WAGER ${(+o.wagerSol).toFixed(3).replace(/0+$/, '').replace(/\.$/, '')} SOL</text>` : '')}
+  <text x="540" y="1058" text-anchor="middle" font-size="26" font-weight="700" fill="#ffffff" opacity="0.5" letter-spacing="3">🥊 PLAY AT SMACKAKOL.COM</text>
 </svg>`;
   }
 
