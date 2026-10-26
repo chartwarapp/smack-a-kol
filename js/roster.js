@@ -22,9 +22,9 @@ SAK.PARODY_DISCLAIMER = 'All KOLs are fictional parody cartoons. Not affiliated 
 
 SAK.KOLS = [
   {
-    id: 'unibonker', name: 'UniBonker', handle: '@UniBonker', level: 2,
+    id: 'unibonker', name: 'UniBonker', handle: '@UniBonker', level: 7,
     tagline: 'Beep. Boop. Bonk.',
-    difficulty: 2, hp: 85, power: 11, accuracy: 0.45, winPts: 160, minBet: 100, payout: 1.8,
+    difficulty: 4, hp: 200, power: 22, accuracy: 0.82, winPts: 680, minBet: 500, payout: 2.8,
     look: { skin: '#ffd23f', shirt: '#ffd23f', hair: '#1a1a1a', pants: '#ffd23f', accessory: 'none', accent: '#111111', body: 'classic', hairStyle: 'bald', eyes: 'round', parody: 'unibonker' },
     taunts: ['Beep boop. Your HP is now zero.', 'I run on 100% bonk energy.', 'Does not compute… how you lost that fast.']
   },
