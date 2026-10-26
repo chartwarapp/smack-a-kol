@@ -3681,8 +3681,8 @@
     const next = ss >= 5 ? 10 : 5;
     const toGo = next - ss;
     let html = ss === 0
-      ? `<span class="ss-hot">🔥 WIN 5 STRAIGHT WAGERED FIGHTS FOR A FREE FIGHT</span>`
-      : `<span class="ss-hot">🔥 STREAK ${ss} IN A ROW</span> — ${toGo} more straight wagered win${toGo === 1 ? '' : 's'} for ${next === 10 ? '2 free fights' : 'a free fight'}`;
+      ? `<span class="ss-hot">🔥 WIN 5 CONSECUTIVE WAGERED FIGHTS FOR A FREE FIGHT</span>`
+      : `<span class="ss-hot">🔥 STREAK ${ss} IN A ROW</span> — ${toGo} more consecutive wagered win${toGo === 1 ? '' : 's'} for ${next === 10 ? '2 free fights' : 'a free fight'}`;
     if (credits.length) {
       const grouped = {};
       for (const c of credits) { const k = c.currency + ':' + c.value; grouped[k] = (grouped[k] || 0) + 1; }
