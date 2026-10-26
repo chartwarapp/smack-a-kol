@@ -702,16 +702,43 @@
     const box = $('#pk-traits');
     if (!pkCustomLook) { box.innerHTML = ''; return; }
     const L = SAK.Account.toLook(pkCustomLook);
+    // Labels: id layers use the OPTIONS labels; color layers
+    // reverse-lookup the LAYERS tables by hex. Account rolls include
+    // hexes outside those tables (e.g. skin #f2c49b), which fall back
+    // to the hex itself — always truthful, never blank. (LT 2026-10-25:
+    // the old 4-row readout + dead facialHair/necklace/glasses/tattoo
+    // rows never kept up with the new layers.)
+    const optLabel = (key, id) => {
+      const list = (SAK.Account.OPTIONS && SAK.Account.OPTIONS[key]) || [];
+      const hit = list.find(o => (typeof o === 'string' ? o : o.id) === id);
+      return hit ? (typeof hit === 'string' ? hit : hit.label) : null;
+    };
+    const layerLabel = (layer, hex) => {
+      const list = (SAK.Traits && SAK.Traits.LAYERS && SAK.Traits.LAYERS[layer]) || [];
+      const hit = list.find(t => t.value === hex);
+      return hit ? hit.label : null;
+    };
+    const swatch = hex => `<span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:${hex};border:1px solid #0005;vertical-align:-1px;margin-right:4px"></span>`;
+    const colorRow = (label, layer, hex) => {
+      hex = hex || '#888888';
+      const name = layerLabel(layer, hex);
+      return [label, swatch(hex) + (name || hex.toUpperCase())];
+    };
+    const idRow = (label, key, id, fallback) => [label, (optLabel(key, id) || id || fallback).toUpperCase()];
     const rows = [
-      ['Species', (L.species || 'human').toUpperCase()],
+      idRow('Species', 'species', L.species, 'human'),
+      idRow('Body', 'body', L.body, 'classic'),
+      colorRow('Skin', 'skin', L.skin),
+      idRow('Eyes', 'eyes', L.eyes, 'round'),
+      colorRow('Eye Color', 'eyeColor', L.eyeColor),
+      idRow('Hair', 'hairStyle', L.hairStyle, 'short'),
+      colorRow('Hair Color', 'hairColor', L.hair),
       ['Outfit', (L.outfit || 'tee').toUpperCase()],
-      ['Hair', (L.hairStyle || 'short').toUpperCase()],
-      ['Eyes', (L.eyes || 'round').toUpperCase()],
+      ['Shirt', swatch(L.shirt || '#888888') + (L.shirt || '').toUpperCase()],
+      idRow('Shirt Print', 'print', L.print, 'none'),
+      colorRow('Pants', 'pants', L.pants),
+      idRow('Accessory', 'accessory', L.accessory, 'none'),
     ];
-    if (L.facialHair && L.facialHair !== 'none') rows.push(['Facial hair', L.facialHair.toUpperCase()]);
-    if (L.necklace && L.necklace !== 'none') rows.push(['Necklace', L.necklace.toUpperCase()]);
-    if (L.glasses && L.glasses !== 'none') rows.push(['Glasses', L.glasses.toUpperCase()]);
-    if (L.tattoo && L.tattoo !== 'none') rows.push(['Tattoos', L.tattoo.toUpperCase()]);
     box.innerHTML = rows.map(([k, v]) => `<div><span style="opacity:.6">${k}:</span> <b>${v}</b></div>`).join('');
   }
   function renderCreatorPreview() {
