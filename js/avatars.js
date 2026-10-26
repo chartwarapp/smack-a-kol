@@ -10,7 +10,13 @@ SAK.avatarSVG = function (look, opts) {
   // LT 2026-10-25: the fighter card passes the account-dialect avatar
   // (hairColor), while the 3D preview converts to the scene dialect
   // (hair) first — so accept both, or the hair falls back to black.
-  const s = look.skin, h = look.hair || look.hairColor || '#111', a = look.accent || '#111';
+  // Same gap for accessories: the scene dialect carries an accent
+  // (laser red, crown gold, unicorn white) that the account dialect
+  // lacks, so derive it from the accessory instead of defaulting black
+  // (which turned the card's unicorn horn black while the 3D horn is
+  // white). Other accessories keep the dark default, as in 3D.
+  const s = look.skin, h = look.hair || look.hairColor || '#111';
+  const a = look.accent || (look.accessory === 'laser' ? '#ff1a1a' : look.accessory === 'crown' ? '#ffd23f' : look.accessory === 'unicorn' ? '#ffffff' : '#111');
   const dead = !!opts.ko;
 
   const ec = look.eyeColor || '#222', es = look.eyes || 'round';
