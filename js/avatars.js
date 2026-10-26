@@ -7,7 +7,10 @@ window.SAK = window.SAK || {};
 SAK.avatarSVG = function (look, opts) {
   opts = opts || {};
   const bg = opts.bg || look.shirt;
-  const s = look.skin, h = look.hair, a = look.accent || '#111';
+  // LT 2026-10-25: the fighter card passes the account-dialect avatar
+  // (hairColor), while the 3D preview converts to the scene dialect
+  // (hair) first — so accept both, or the hair falls back to black.
+  const s = look.skin, h = look.hair || look.hairColor || '#111', a = look.accent || '#111';
   const dead = !!opts.ko;
 
   const ec = look.eyeColor || '#222', es = look.eyes || 'round';
@@ -154,5 +157,34 @@ SAK.avatarSVG = function (look, opts) {
     ${opts.blush ? '<ellipse cx="68" cy="62" rx="9" ry="6" fill="#ff2d2d" opacity="0.55"/>' : ''}
     ${dmgFx}
     ${acc}
+  </svg>`;
+};
+
+/* Full-body figure for the fighter card (LT 2026-10-25: whole body on the
+ * left, info on the right). Reuses the avatarSVG head with its portrait
+ * background + shirt wedge stripped, over a simple cartoon body, so hair,
+ * skin, species and shirt always match the 3D preview. viewBox 0 0 100 170. */
+SAK.avatarBodySVG = function (look) {
+  const head = SAK.avatarSVG(look, {})
+    .replace(/^<svg[^>]*>/, '').replace(/<\/svg>\s*$/, '')
+    .replace(/<rect width="100" height="100" rx="18" fill="[^"]*"\/>/, '')
+    .replace(/<rect y="80" width="100" height="20" fill="#0002"\/>/, '')
+    .replace(/<path d="M[^"]* 100 Q50 72 [^"]* 100 Z" fill="[^"]*" stroke="#0003" stroke-width="2"\/>/, '');
+  const s = look.skin || '#c98d5f';
+  const shirt = look.shirt || '#2f80ff';
+  const pants = '#232a3d', shoe = '#1a1a22';
+  const bw = { chonk: 8, gymbro: 4, noodle: -6, smol: -2 }[look.body] || 0;
+  const tx0 = 27 - bw / 2, tx1 = 73 + bw / 2, tw = tx1 - tx0;
+  return `<svg viewBox="0 0 100 170" xmlns="http://www.w3.org/2000/svg" class="avatar-body-svg">
+    <g transform="rotate(8 30 92)"><rect x="24" y="90" width="11" height="26" rx="5" fill="${shirt}"/><rect x="24.5" y="112" width="10" height="18" rx="5" fill="${s}"/><circle cx="29.5" cy="134" r="6" fill="${s}"/></g>
+    <g transform="rotate(-8 70 92)"><rect x="65" y="90" width="11" height="26" rx="5" fill="${shirt}"/><rect x="65.5" y="112" width="10" height="18" rx="5" fill="${s}"/><circle cx="70.5" cy="134" r="6" fill="${s}"/></g>
+    <rect x="36" y="132" width="12" height="28" rx="4" fill="${pants}"/>
+    <rect x="52" y="132" width="12" height="28" rx="4" fill="${pants}"/>
+    <ellipse cx="42" cy="162" rx="9" ry="5" fill="${shoe}"/>
+    <ellipse cx="58" cy="162" rx="9" ry="5" fill="${shoe}"/>
+    <rect x="44" y="76" width="12" height="12" fill="${s}"/>
+    <rect x="${tx0}" y="86" width="${tw}" height="44" rx="10" fill="${shirt}" stroke="#0003" stroke-width="2"/>
+    <rect x="${tx0}" y="128" width="${tw}" height="7" fill="#1a1a22"/>
+    <g>${head}</g>
   </svg>`;
 };
