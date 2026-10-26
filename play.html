@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <script src="js/gate.js?v=gate-1"></script>
+  <script src="js/gate.js?v=gate-2"></script>
   <meta name="robots" content="noindex, nofollow" />
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
@@ -520,6 +520,17 @@
           <p class="fine dark" id="admin-edge"></p>
         </div>
         <div class="admin-sec">
+          <h4>🔑 BETA CODES</h4>
+          <p class="fine dark">One code per person. Each code stays valid after first use — the tester enters it once and their device remembers it. Only hashes are stored, so a generated code can't be shown again: copy it now.</p>
+          <div style="display:flex;gap:8px;margin:8px 0;">
+            <input id="admin-beta-label" type="text" placeholder="Label (e.g. Rexdale)" style="flex:1;min-width:0;padding:10px;border-radius:10px;border:2px solid #ffffff33;background:#0e0218;color:#fff;font-size:15px;" />
+            <button class="btn btn-yellow" id="admin-beta-generate" style="width:auto;flex-shrink:0;">🎲 GENERATE</button>
+          </div>
+          <div id="admin-beta-new" class="fine dark" hidden></div>
+          <div id="admin-beta-list">Beta codes load when this panel opens.</div>
+          <button class="btn btn-yellow" id="admin-beta-refresh">🔄 REFRESH CODES</button>
+        </div>
+        <div class="admin-sec">
           <h4>🏦 VAULT TRACKER</h4>
           <div id="admin-vault">Live vault state loads when this panel opens.</div>
           <button class="btn btn-yellow" id="admin-vault-refresh">🔄 REFRESH VAULT</button>
@@ -598,6 +609,6 @@
 <script src="js/pvp-sync.js?v=pvp-guard-1"></script>
 <script src="js/solana-house.js?v=7"></script>
 <script src="js/contracts.js?v=1"></script>
-<script src="js/game-v3.js?v=admin-odds-1"></script>
+<script src="js/game-v3.js?v=beta-codes-1"></script>
 </body>
 </html>

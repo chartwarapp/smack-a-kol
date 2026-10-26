@@ -4883,6 +4883,114 @@
     refreshAdminTokenHouse();
   }
 
+  /* --- beta codes (admin): per-person gate passcodes ------------------ */
+  const BETA_CODE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+  function genBetaCode() {
+    const r = new Uint8Array(8);
+    crypto.getRandomValues(r);
+    return [...r].map(b => BETA_CODE_ALPHABET[b % 32]).join('');
+  }
+  async function sha256hex(s) {
+    const d = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s));
+    return [...new Uint8Array(d)].map(b => b.toString(16).padStart(2, '0')).join('');
+  }
+  const escBeta = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  // Signed beta-codes call (same wallet-signature pattern as admin-config).
+  async function betaCall(action, extra) {
+    const payload = { action, ...extra, ts: Date.now() };
+    const message = JSON.stringify(payload);
+    const signed = await Promise.race([
+      SAK.Wallet.signMessage(message),
+      new Promise((_, rej) => setTimeout(() => rej(new Error('Wallet did not return a signature (timed out)')), 60000)),
+    ]);
+    const sig = signed && signed.signature;
+    if (!sig) throw new Error('Wallet signature required');
+    const r = await fetch(SAK.BACKEND.url.replace(/\/$/, '') + '/functions/v1/beta-codes', {
+      method: 'POST',
+      headers: {
+        'apikey': SAK.BACKEND.anonKey,
+        'Authorization': 'Bearer ' + SAK.BACKEND.anonKey,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ ...payload, wallet: W.address, signature: sig, message }),
+    });
+    if (!r.ok) {
+      const t = await r.text().catch(() => '');
+      throw new Error(`beta-codes ${r.status}: ${t.slice(0, 120)}`);
+    }
+    return r.json();
+  }
+  async function refreshAdminBetaCodes() {
+    const el = $('#admin-beta-list');
+    if (!el) return;
+    el.textContent = 'Loading beta codes…';
+    try {
+      const { codes } = await betaCall('list', {});
+      if (!codes || !codes.length) {
+        el.innerHTML = '<div class="fine dark">No beta codes yet — generate one above.</div>';
+        return;
+      }
+      el.innerHTML = codes.map(c => {
+        const revoked = !!c.revoked_at;
+        const used = c.first_used_at ? 'first used ' + new Date(c.first_used_at).toLocaleDateString([], { month: 'short', day: 'numeric' }) : 'not used yet';
+        const created = new Date(c.created_at).toLocaleDateString([], { month: 'short', day: 'numeric' });
+        return `<div class="ob-row" data-beta-id="${c.id}" style="display:flex;justify-content:space-between;align-items:center;gap:8px;"><span style="flex:1;min-width:0;"><b>${escBeta(c.label || 'Untitled')}</b>` +
+          `<span class="fine dark"> · created ${created} · ${used}</span></span>` +
+          (revoked
+            ? `<span class="fine dark" style="color:#ff3b5c;flex-shrink:0;">REVOKED</span>`
+            : `<button class="btn btn-small" data-beta-revoke="1" style="width:auto;flex-shrink:0;">REVOKE</button>`) +
+          `</div>`;
+      }).join('');
+      // Two-tap arm on revoke (same pattern as the settle buttons).
+      el.querySelectorAll('[data-beta-revoke]').forEach(b => {
+        b.onclick = async () => {
+          if (!b.classList.contains('armed')) {
+            b.classList.add('armed'); b.textContent = 'SURE?';
+            setTimeout(() => { if (b.isConnected && b.classList.contains('armed')) { b.classList.remove('armed'); b.textContent = 'REVOKE'; } }, 3500);
+            return;
+          }
+          b.disabled = true; b.textContent = 'REVOKING…';
+          try {
+            await betaCall('revoke', { id: b.closest('[data-beta-id]').dataset.betaId });
+            toast('Beta code revoked — no new devices can use it', 2400);
+            refreshAdminBetaCodes();
+          } catch (e) {
+            toast('Revoke failed: ' + (e.message || e), 3000);
+            b.disabled = false; b.textContent = 'REVOKE'; b.classList.remove('armed');
+          }
+        };
+      });
+    } catch (e) {
+      const m = (e && e.message) || '';
+      el.innerHTML = (/signature|timed out/i.test(m)
+        ? '<div class="fine dark">Sign in your wallet to list beta codes, then refresh.</div>'
+        : '<div class="fine dark">Beta codes backend not deployed yet — run the SQL + deploy the beta-codes function, then refresh.</div>');
+    }
+  }
+  async function generateAdminBetaCode() {
+    const btn = $('#admin-beta-generate'); if (!btn) return;
+    const labelEl = $('#admin-beta-label');
+    const label = (labelEl && labelEl.value.trim()) || 'Tester';
+    const code = genBetaCode();
+    btn.disabled = true; btn.textContent = 'GENERATING…';
+    try {
+      const codeHash = await sha256hex(code);
+      await betaCall('create', { code_hash: codeHash, label });
+      const box = $('#admin-beta-new');
+      const shown = code.slice(0, 4) + '-' + code.slice(4);
+      box.hidden = false;
+      box.innerHTML = `New code for <b>${escBeta(label)}</b>: <b style="font-size:20px;letter-spacing:2px;">${shown}</b><br/>Copy this now — it can't be shown again.`;
+      if (labelEl) labelEl.value = '';
+      toast('Beta code created ✓', 2000);
+      refreshAdminBetaCodes();
+    } catch (e) {
+      toast(e.message && e.message.includes('beta-codes 404')
+        ? 'Beta codes backend not deployed yet — deploy the function first'
+        : 'Generate failed: ' + (e.message || e), 3200);
+    }
+    btn.disabled = false; btn.textContent = '🎲 GENERATE';
+  }
+
   async function openAdmin() {
     if (!W.isConnected) { toast('Connect wallet first 👛', 2000); return; }
     const cfg = await SAK.Api.getConfig();
@@ -5033,6 +5141,11 @@
     const plBtn = $('#admin-players-refresh');
     if (plBtn) plBtn.onclick = () => { A.click(); refreshAdminPlayers(); };
     refreshAdminPlayers();
+    const bb = $('#admin-beta-refresh');
+    if (bb) bb.onclick = () => { A.click(); refreshAdminBetaCodes(); };
+    const bg = $('#admin-beta-generate');
+    if (bg) bg.onclick = () => { A.click(); generateAdminBetaCode(); };
+    refreshAdminBetaCodes();
     // Check contract initialization status
     initContractStatus();
   }
