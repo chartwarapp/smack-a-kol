@@ -86,6 +86,12 @@ SAK.avatarSVG = function (look, opts) {
     </g>`;
   }
 
+  // UniBonker robot (LT 2026-10-26): antenna, forehead band, black oval
+  // eyes, silver ear discs — drawn over the standard face.
+  const unibonkerFx = look.parody === 'unibonker'
+    ? `<g><line x1="50" y1="20" x2="50" y2="4" stroke="#1a1a1a" stroke-width="2.5"/><circle cx="50" cy="4" r="3.5" fill="#ff5a36"/><rect x="22" y="32" width="56" height="10" rx="3" fill="#9fb8d8"/><ellipse cx="37" cy="49" rx="8.5" ry="11" fill="#111"/><ellipse cx="63" cy="49" rx="8.5" ry="11" fill="#111"/><circle cx="20" cy="50" r="9" fill="#c0c8d0"/><circle cx="80" cy="50" r="9" fill="#c0c8d0"/></g>`
+    : '';
+
   // V3: horns accessory (for Ansom Bull parody)
   let horns = '';
   if (look.accessory === 'horns' || look.parody === 'ansom') {
@@ -166,6 +172,7 @@ SAK.avatarSVG = function (look, opts) {
     ${mouth}
     ${facialHair}
     ${horns}
+    ${unibonkerFx}
     ${opts.blush ? '<ellipse cx="68" cy="62" rx="9" ry="6" fill="#ff2d2d" opacity="0.55"/>' : ''}
     ${dmgFx}
     ${tieFx}

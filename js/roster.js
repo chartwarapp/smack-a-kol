@@ -22,11 +22,11 @@ SAK.PARODY_DISCLAIMER = 'All KOLs are fictional parody cartoons. Not affiliated 
 
 SAK.KOLS = [
   {
-    id: 'kobee', name: 'Kobee', handle: '@UpOnlySlaps', level: 2,
-    tagline: 'Retired from posting. Un-retired just to slap you.',
+    id: 'unibonker', name: 'UniBonker', handle: '@UniBonker', level: 2,
+    tagline: 'Beep. Boop. Bonk.',
     difficulty: 2, hp: 85, power: 11, accuracy: 0.45, winPts: 160, minBet: 100, payout: 1.8,
-    look: { skin: '#f2c49b', shirt: '#ff7a1a', hair: '#7a4a24', pants: '#2b2b44', accessory: 'headphones', accent: '#222222', body: 'classic', hairStyle: 'spiky', eyes: 'round' },
-    taunts: ['UpOnly? More like SlapOnly.', 'Season 2 of this slap: coming soon™.', 'Hold on, I\'m recording this.']
+    look: { skin: '#ffd23f', shirt: '#ffd23f', hair: '#1a1a1a', pants: '#ffd23f', accessory: 'none', accent: '#111111', body: 'classic', hairStyle: 'bald', eyes: 'round', parody: 'unibonker' },
+    taunts: ['Beep boop. Your HP is now zero.', 'I run on 100% bonk energy.', 'Does not compute… how you lost that fast.']
   },
   {
     id: 'fabiony', name: 'Fabiony', handle: '@FabionySolana', level: 4,

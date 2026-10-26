@@ -1430,8 +1430,9 @@ SAK.Scene3D = (function () {
 
     /* =====================================================================
      * V3: PARODY FIGHTERS — cartoon parody overlays inspired by reference
-     * images. Triggered by look.parody: 'patty' | 'frankie' | 'ansom'.
-     * All parody meshes get userData.parody=true so rebuild() clears them.
+     * images. Triggered by look.parody: 'patty' | 'frankie' | 'ansom' |
+     * 'unibonker'. All parody meshes get userData.parody=true so rebuild()
+     * clears them.
      * ===================================================================== */
     buildParody() {
       const P = this.look.parody;
@@ -1441,9 +1442,63 @@ SAK.Scene3D = (function () {
         const m = mesh(geo, material, x, y, z);
         m.userData.parody = true; if (fn) fn(m); H.add(m); return m;
       };
+      const tadd = (geo, material, x, y, z, fn) => {
+        const m = mesh(geo, material, x, y, z);
+        m.userData.parody = true; if (fn) fn(m); this.torso.add(m); return m;
+      };
       if (P === 'patty') this.buildPatty(add);
       else if (P === 'frankie') this.buildFrankie(add);
       else if (P === 'ansom') this.buildAnsom(add);
+      else if (P === 'unibonker') this.buildUnibonker(add, tadd);
+    }
+
+    /** UniBonker: yellow robot (LT 2026-10-26) — antenna, metallic
+     * forehead band, silver ear discs, solid black oval eyes, and a
+     * speaker on the chest. Brows are hidden, not covered: their long
+     * tilted bars (y 0.633–0.727, x to ±0.343) poke through any band
+     * that also hugs the skull, so the band just sits on the forehead
+     * (radius 0.45 matches the skull's cross-section at y 0.68) and the
+     * brow meshes are switched off by their exact cylinder dims. */
+    buildUnibonker(add, tadd) {
+      const silver = new T.MeshStandardMaterial({ color: '#c0c8d0', metalness: 0.7, roughness: 0.35 });
+      const bandMat = new T.MeshStandardMaterial({ color: '#9fb8d8', metalness: 0.6, roughness: 0.35, side: T.DoubleSide });
+      const black = new T.MeshBasicMaterial({ color: '#111111' });
+      // No brows on a robot — hide the standard brow cylinders (added
+      // before this overlay runs; matched by exact dims, nothing else
+      // in the head shares them). Same for the upper-lash arcs: they
+      // arc above the eye ovals and would peek over them.
+      for (const m of this.head.children) {
+        const g = m.geometry;
+        if (g && g.type === 'CylinderGeometry' && g.parameters && Math.abs(g.parameters.height - 0.32) < 0.01) m.visible = false;
+      }
+      if (this.eyes) for (const m of this.eyes.children) {
+        if (m.geometry && m.geometry.type === 'TorusGeometry') m.visible = false;
+      }
+      // Antenna — thin dark rod + orange tip ball, base sunk into the skull top.
+      add(new T.CylinderGeometry(0.015, 0.015, 0.35, 6), new T.MeshBasicMaterial({ color: '#1a1a1a' }), 0, 1.05, 0);
+      add(new T.SphereGeometry(0.045, 10, 8), new T.MeshBasicMaterial({ color: '#ff5a36' }), 0, 1.25, 0);
+      // Forehead band — curved segment hugging the skull at y 0.68.
+      const band = add(new T.CylinderGeometry(0.45, 0.45, 0.10, 24, 1, true, -0.9, 1.8), bandMat, 0, 0.68, 0);
+      band.castShadow = false;
+      // Silver ear discs over the standard ears.
+      for (const sx of [-1, 1]) {
+        const disc = add(new T.CylinderGeometry(0.14, 0.14, 0.08, 16), silver, sx * 0.52, 0.42, 0);
+        disc.rotation.z = Math.PI / 2;
+      }
+      // Solid black oval eyes over the standard eyes — wider than the
+      // sclera (0.12) so no white peeks out at an angle, tall enough to
+      // cover the eye top (0.62) while clearing the band above (0.63).
+      for (const sx of [-1, 1]) {
+        const oval = add(new T.SphereGeometry(0.12, 16, 12), black, sx * 0.18, 0.50, 0.56);
+        oval.scale.set(1.25, 1.0, 0.5);
+      }
+      // Chest speaker — silver ring, black cone, yellow center dot.
+      const B = this.body || { w: 1, h: 1, d: 1, taper: 1 };
+      const chestZ = (0.5 * B.w * Math.min(1.25, B.taper) + 0.035) * 0.68 * B.d + 0.012;
+      tadd(new T.CircleGeometry(0.20, 24), black, 0, 0.55, chestZ + 0.02);
+      const ring = tadd(new T.TorusGeometry(0.22, 0.03, 8, 28), silver, 0, 0.55, chestZ + 0.03);
+      ring.castShadow = false;
+      tadd(new T.CircleGeometry(0.07, 16), new T.MeshBasicMaterial({ color: '#ffd23f' }), 0, 0.55, chestZ + 0.035);
     }
 
     /** Patty Spice: blue crystal bull — curved horns, spiky black hair, glowing visor. */
