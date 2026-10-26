@@ -179,6 +179,13 @@ SAK.avatarBodySVG = function (look) {
   const s = look.skin || '#c98d5f';
   const shirt = look.shirt || '#2f80ff';
   const pants = look.pants || '#1d2a4d', shoe = '#1a1a22';
+  // Shirt print (LT 2026-10-25): the rolled logo badge on the chest,
+  // from the embedded data URIs in card-assets.js (external refs are
+  // blocked inside SVG-as-img rasterization, same as the font + hand).
+  const prints = (typeof SAK !== 'undefined' && SAK.CARD_ASSETS && SAK.CARD_ASSETS.prints) || {};
+  const printImg = (look.print && look.print !== 'none' && prints[look.print])
+    ? `<image href="${prints[look.print]}" x="39" y="100" width="22" height="22" preserveAspectRatio="xMidYMid meet"/>`
+    : '';
   const bw = { chonk: 8, gymbro: 4, noodle: -6, smol: -2 }[look.body] || 0;
   const tx0 = 27 - bw / 2, tx1 = 73 + bw / 2, tw = tx1 - tx0;
   return `<svg viewBox="0 0 100 170" xmlns="http://www.w3.org/2000/svg" class="avatar-body-svg">
@@ -191,6 +198,7 @@ SAK.avatarBodySVG = function (look) {
     <rect x="44" y="76" width="12" height="12" fill="${s}"/>
     <rect x="${tx0}" y="86" width="${tw}" height="44" rx="10" fill="${shirt}" stroke="#0003" stroke-width="2"/>
     <rect x="${tx0}" y="128" width="${tw}" height="7" fill="#1a1a22"/>
+    ${printImg}
     <g>${head}</g>
   </svg>`;
 };

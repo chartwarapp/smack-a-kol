@@ -124,6 +124,21 @@ SAK.Traits = (() => {
       { id: 'p7', label: 'Crimson', rarity: 'epic', value: '#d42a2a' },
       { id: 'p8', label: 'Gold', rarity: 'legendary', value: '#ffd23f' },
     ],
+    // Shirt prints (LT 2026-10-25): logo badges that roll like any
+    // other layer and sit on the chest. 'none' carries a weight
+    // override (like Human) so about half of fighters keep a plain
+    // shirt and prints stay a treat. Logos live in assets/print-*.png
+    // (circular-masked from LT's uploads) + embedded in card-assets.js
+    // for the fighter card.
+    print: [
+      { id: 'none', label: 'None', rarity: 'common', weight: 180 },
+      { id: 'btc', label: 'Bitcoin', rarity: 'common' },
+      { id: 'sol', label: 'Solana', rarity: 'common' },
+      { id: 'fomo', label: 'FOMO', rarity: 'uncommon' },
+      { id: 'zec', label: 'Zcash', rarity: 'uncommon' },
+      { id: 'stonks', label: 'STONKS', rarity: 'rare' },
+      { id: 'pumpfun', label: 'PUMPFUN', rarity: 'epic' },
+    ],
     accessory: [
       { id: 'none', label: 'None', rarity: 'common' },
       { id: 'headband', label: 'Headband', rarity: 'common' },
@@ -138,11 +153,11 @@ SAK.Traits = (() => {
     ],
   };
 
-  const LAYER_ORDER = ['species', 'body', 'skin', 'eyes', 'eyeColor', 'hairStyle', 'hairColor', 'outfit', 'pants', 'accessory'];
+  const LAYER_ORDER = ['species', 'body', 'skin', 'eyes', 'eyeColor', 'hairStyle', 'hairColor', 'outfit', 'print', 'pants', 'accessory'];
   const LAYER_LABELS = {
     species: 'Species', body: 'Body', skin: 'Skin', eyes: 'Eyes', eyeColor: 'Eye Color',
     hairStyle: 'Hair', hairColor: 'Hair Color', gloves: 'Gloves',
-    outfit: 'Outfit', pants: 'Pants', accessory: 'Accessory',
+    outfit: 'Outfit', print: 'Shirt Print', pants: 'Pants', accessory: 'Accessory',
   };
 
   const MAX_REROLLS = 5;
@@ -212,6 +227,7 @@ SAK.Traits = (() => {
       // gloves/outfit map to visual variants the 3D builder can read later
       gloves: get('gloves', 'wrap'),
       outfit: get('outfit', 'tee'),
+      print: get('print', 'none'),
       pants: get('pants', '#1d2a4d'),
       accessory: get('accessory', 'none'),
       shirt: '#2f80ff', // derived from outfit in Phase 2

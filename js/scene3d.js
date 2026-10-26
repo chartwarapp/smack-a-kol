@@ -328,6 +328,18 @@ SAK.Scene3D = (function () {
   }
   let tankTex = null, camoTex = null, giTex = null, pinTex = null,
     sparkTex = null, capeTex = null, chartTex = null, flameTex = null, moneyTex = null;
+  // Shirt-print logo badges (LT 2026-10-25): circular-masked PNGs in
+  // assets/, loaded lazily. A fighter whose texture hasn't arrived yet
+  // gets its badge the moment it loads (buildPrintBadge guards on the
+  // current print id, so a re-roll mid-load can't double-badge).
+  const printTexCache = {};
+  function printTexture(id, cb) {
+    if (printTexCache[id]) { cb(printTexCache[id]); return; }
+    new T.TextureLoader().load('assets/print-' + id + '.png',
+      tex => { if ('colorSpace' in tex) tex.colorSpace = T.SRGBColorSpace; printTexCache[id] = tex; cb(tex); },
+      undefined,
+      () => cb(null));
+  }
   function tankTexture() { // racer stripes across the chest
     if (tankTex) return tankTex;
     const [c, x] = cnv('#f5f5f5');
@@ -645,6 +657,7 @@ SAK.Scene3D = (function () {
       this.bellyMesh = null; // LT 2026-10-25: belly sphere removed — torso stays smooth
       this.torso.add(mesh(new T.BoxGeometry(0.86 * Math.max(B.w / Math.max(1, B.taper * 0.85), 0.8), 0.1, 0.42 * B.d), pants, 0, 0.03, 0)); // belt
       this.buildOutfit();
+      this.buildPrintBadge();
       const neck = mesh(new T.CylinderGeometry(0.14, 0.16, 0.18, 12), skin, 0, 0.92 * B.h, 0);
       this.torso.add(neck);
 
@@ -1175,6 +1188,33 @@ SAK.Scene3D = (function () {
           break;
         }
       }
+    }
+
+    /** Chest logo badge for look.print (LT 2026-10-25): a flat circle
+     * on the chest front, sized from this fighter's body so it sits
+     * proud of the torso and of any outfit overlay (same front-surface
+     * math as printOverlay, plus a hair). Runs for every outfit
+     * including the plain tee — that's why it lives outside
+     * buildOutfit's early tee return. MeshBasicMaterial keeps the logo
+     * vivid (unlit, like a real print). Tagged userData.outfit so a
+     * rebuild disposes it with the rest of the outfit. */
+    buildPrintBadge() {
+      const print = this.look && this.look.print;
+      if (!print || print === 'none') return;
+      const B = this.body || { w: 1, h: 1, d: 1, taper: 1 };
+      const chestZ = (0.5 * B.w * Math.min(1.25, B.taper) + 0.035) * 0.68 * B.d + 0.012;
+      printTexture(print, tex => {
+        if (!tex) return;
+        // Skip if the fighter re-rolled while the texture was loading,
+        // or if a badge for this print is already on the torso.
+        if (!this.look || this.look.print !== print) return;
+        if (this.torso.children.some(m => m.userData.printBadge === print)) return;
+        const badge = mesh(new T.CircleGeometry(0.17, 28),
+          new T.MeshBasicMaterial({ map: tex, transparent: true }), 0, 0.55 * B.h, chestZ);
+        badge.userData.outfit = true;
+        badge.userData.printBadge = print;
+        this.torso.add(badge);
+      });
     }
 
     /** Hair style (avatar.hairStyle); KOLs without one keep the classic cap. */

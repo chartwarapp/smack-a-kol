@@ -1145,7 +1145,7 @@
     // Merge trait roll if they rerolled (gloves/outfit/accessory carry over)
     if (subRoll) {
       const av = SAK.Traits.toAvatar(subRoll);
-      base.gloves = av.gloves; base.outfit = av.outfit;
+      base.gloves = av.gloves; base.outfit = av.outfit; base.print = av.print;
       base.accessory = av.accessory; base.hairStyle = av.hairStyle;
       base.traits = subRoll; // save the full roll for NFT metadata later
     }
