@@ -2205,10 +2205,18 @@
          <div class="result-sub">${F.duel.p} vs ${F.duel.k}. Nobody pumped, nobody dumped.</div>`
       : win
       ? `<div class="result-title">${pick(C.winTitles)}</div>
-         ${SAK.avatarSVG(k.look, { ko: true, wrecked: true, blush: true })}
+         <div class="result-vs">
+           <div class="rv-side"><span class="rv-tag rv-winner">WINNER</span>${SAK.avatarSVG(playerLook())}</div>
+           <span class="rv-vs">VS</span>
+           <div class="rv-side"><span class="rv-tag rv-loser">LOSER</span>${SAK.avatarSVG(k.look, { ko: true, wrecked: true, blush: true })}</div>
+         </div>
          <div class="result-sub">${sub(pick(C.winSubs))}${F.challenge ? ` · ${F.challenge.pWins}–${F.challenge.kWins} (Bo${F.challenge.bestOf})` : ''}</div>`
       : `<div class="result-title">${pick(C.loseTitles)}</div>
-         ${SAK.avatarSVG(playerLook(), { ko: true, wrecked: true, blush: true })}
+         <div class="result-vs">
+           <div class="rv-side"><span class="rv-tag rv-loser">LOSER</span>${SAK.avatarSVG(playerLook(), { ko: true, wrecked: true, blush: true })}</div>
+           <span class="rv-vs">VS</span>
+           <div class="rv-side"><span class="rv-tag rv-winner">WINNER</span>${SAK.avatarSVG(k.look)}</div>
+         </div>
          <div class="result-sub">${sub(pick(C.loseSubs))}${F.challenge ? ` · ${F.challenge.pWins}–${F.challenge.kWins} (Bo${F.challenge.bestOf})` : ''}<br><small>Tip: ride your jerky meter into the ★ — closer than opponent wins the round</small></div>`;
     html += `<div class="breakdown">
         <div class="bd-head">PLAY-TO-EARN</div>
