@@ -95,6 +95,12 @@ SAK.avatarSVG = function (look, opts) {
     </g>`;
   }
 
+  // Tie (Fabiony, LT 2026-10-26): knot + body over the shirt, drawn late
+  // so the knot sits on the collar under the chin.
+  const tieFx = look.outfit === 'tie'
+    ? `<g><rect x="45" y="73" width="10" height="7" rx="2" fill="#9945ff"/><path d="M47 80 L53 80 L52 98 L48 98 Z" fill="#14f195"/></g>`
+    : '';
+
   // Animal species overlays (drawn right after the head circle, under hair/eyes).
   let speciesFx = '';
   const sp = look.species || 'human';
@@ -162,6 +168,7 @@ SAK.avatarSVG = function (look, opts) {
     ${horns}
     ${opts.blush ? '<ellipse cx="68" cy="62" rx="9" ry="6" fill="#ff2d2d" opacity="0.55"/>' : ''}
     ${dmgFx}
+    ${tieFx}
     ${acc}
   </svg>`;
 };

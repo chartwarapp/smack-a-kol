@@ -897,7 +897,7 @@ SAK.Scene3D = (function () {
             arm.hand.children.forEach(ch => { if (!ch.userData.glove && ch.type === 'Group') ch.visible = false; });
             break;
           }
-          case 'gold': {
+        case 'gold': {
             // Golden fists — metallic gold material on knuckles
             const goldMat = new T.MeshStandardMaterial({ color: '#ffd23f', metalness: 0.85, roughness: 0.25 });
             const goldGeo = new T.CapsuleGeometry(0.045, 0.15, 6, 16);
@@ -1004,6 +1004,17 @@ SAK.Scene3D = (function () {
           add(new T.BoxGeometry(0.09, 0.35, 0.03), om('#ff3b5c'), 0, 0.58, 0.38); // tie
           add(new T.BoxGeometry(0.06, 0.08, 0.02), om('#ff3b5c'), 0, 0.78, 0.38); // tie knot
           add(new T.BoxGeometry(0.1, 0.06, 0.02), om('#ffffff'), -0.22, 0.68, 0.39); // pocket square
+          break;
+        }
+        case 'tie': {
+          // Tie only — dress shirt + tie, no jacket (Fabiony, LT 2026-10-26).
+          // Body-aware z: the suit's fixed z buries the tie inside wide
+          // (chonk) torsos, so sit it just proud of THIS body's chest,
+          // the same chestZ the print badge uses. Solana colours: green
+          // tie, purple knot (the reference tie's gradient, as solids).
+          const chestZ = (0.5 * B.w * Math.min(1.25, B.taper) + 0.035) * 0.68 * B.d + 0.012;
+          add(new T.BoxGeometry(0.09, 0.35, 0.03), om('#14f195'), 0, 0.58, chestZ + 0.02); // tie
+          add(new T.BoxGeometry(0.06, 0.08, 0.02), om('#9945ff'), 0, 0.78, chestZ + 0.03); // tie knot
           break;
         }
         case 'gold': {

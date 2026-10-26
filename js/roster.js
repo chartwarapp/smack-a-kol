@@ -29,11 +29,11 @@ SAK.KOLS = [
     taunts: ['UpOnly? More like SlapOnly.', 'Season 2 of this slap: coming soon™.', 'Hold on, I\'m recording this.']
   },
   {
-    id: 'murrad', name: 'Murrad', handle: '@SupercycleSlap', level: 4,
-    tagline: 'Preaching the memecoin supercycle, one slap at a time.',
+    id: 'fabiony', name: 'Fabiony', handle: '@FabionySolana', level: 4,
+    tagline: 'Little blue cat. Big Solana conviction.',
     difficulty: 3, hp: 130, power: 15, accuracy: 0.62, winPts: 320, minBet: 250, payout: 2.2,
-    look: { skin: '#d9a37a', shirt: '#2ee6a6', hair: '#1b1029', pants: '#0f3d3a', accessory: 'shades', accent: '#111111', body: 'gymbro', hairStyle: 'bun', eyes: 'angry' },
-    taunts: ['It\'s a supercycle, ser.', 'Cult slaps only.', 'Your bags are not ready.']
+    look: { species: 'cat', body: 'chonk', skin: '#a8d0f0', shirt: '#ffffff', hair: '#1a1a1a', pants: '#1a1a2a', accessory: 'visor', accent: '#111111', hairStyle: 'bald', eyes: 'round', outfit: 'tie' },
+    taunts: ['Visor down. Paws up. Let\'s slap.', 'Meow means moon where I come from.', 'I bought the dip. I stayed for the slap.']
   },
   {
     id: 'arthurhaze', name: 'Arthur Haze', handle: '@EssaysAndSlaps', level: 5,
