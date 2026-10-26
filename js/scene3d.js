@@ -1010,11 +1010,14 @@ SAK.Scene3D = (function () {
           // Tie only — dress shirt + tie, no jacket (Fabiony, LT 2026-10-26).
           // Body-aware z: the suit's fixed z buries the tie inside wide
           // (chonk) torsos, so sit it just proud of THIS body's chest,
-          // the same chestZ the print badge uses. Solana colours: green
-          // tie, purple knot (the reference tie's gradient, as solids).
+          // the same chestZ the print badge uses. Colours from the look
+          // (tie / tieKnot) so CupSalty gets a red tie; default is
+          // Fabiony's Solana green tie + purple knot.
           const chestZ = (0.5 * B.w * Math.min(1.25, B.taper) + 0.035) * 0.68 * B.d + 0.012;
-          add(new T.BoxGeometry(0.09, 0.35, 0.03), om('#14f195'), 0, 0.58, chestZ + 0.02); // tie
-          add(new T.BoxGeometry(0.06, 0.08, 0.02), om('#9945ff'), 0, 0.78, chestZ + 0.03); // tie knot
+          const tieCol = (this.look && this.look.tie) || '#14f195';
+          const knotCol = (this.look && this.look.tieKnot) || '#9945ff';
+          add(new T.BoxGeometry(0.09, 0.35, 0.03), om(tieCol), 0, 0.58, chestZ + 0.02); // tie
+          add(new T.BoxGeometry(0.06, 0.08, 0.02), om(knotCol), 0, 0.78, chestZ + 0.03); // tie knot
           break;
         }
         case 'gold': {
@@ -1431,8 +1434,8 @@ SAK.Scene3D = (function () {
     /* =====================================================================
      * V3: PARODY FIGHTERS — cartoon parody overlays inspired by reference
      * images. Triggered by look.parody: 'patty' | 'frankie' | 'ansom' |
-     * 'unibonker'. All parody meshes get userData.parody=true so rebuild()
-     * clears them.
+     * 'unibonker' | 'cupsalty' | 'solflakey'. All parody meshes get
+     * userData.parody=true so rebuild() clears them.
      * ===================================================================== */
     buildParody() {
       const P = this.look.parody;
@@ -1450,6 +1453,8 @@ SAK.Scene3D = (function () {
       else if (P === 'frankie') this.buildFrankie(add);
       else if (P === 'ansom') this.buildAnsom(add);
       else if (P === 'unibonker') this.buildUnibonker(add, tadd);
+      else if (P === 'cupsalty') this.buildCupsalty(add, tadd);
+      else if (P === 'solflakey') this.buildSolflakey(add, tadd);
     }
 
     /** UniBonker: yellow robot (LT 2026-10-26) — antenna, metallic
@@ -1499,6 +1504,67 @@ SAK.Scene3D = (function () {
       const ring = tadd(new T.TorusGeometry(0.22, 0.03, 8, 28), silver, 0, 0.55, chestZ + 0.03);
       ring.castShadow = false;
       tadd(new T.CircleGeometry(0.07, 16), new T.MeshBasicMaterial({ color: '#ffd23f' }), 0, 0.55, chestZ + 0.035);
+    }
+
+    /** CupSalty: sponge parody (LT 2026-10-26) — camo cap, olive sponge
+     * spots on head + torso, permanent buck teeth over the lower lip.
+     * Brows hidden (a sponge has none); lashes kept (they read as the
+     * reference's lashes on the big blue eyes). */
+    buildCupsalty(add, tadd) {
+      const olive = mat('#9ab54d');
+      const white = mat('#ffffff');
+      const camo = mat('#ffffff', { map: camoTexture() });
+      // No brows on a sponge — same dim-match hide as UniBonker.
+      for (const m of this.head.children) {
+        const g = m.geometry;
+        if (g && g.type === 'CylinderGeometry' && g.parameters && Math.abs(g.parameters.height - 0.32) < 0.01) m.visible = false;
+      }
+      // Camo cap — dome over the skull top + forward brim.
+      const cap = add(new T.SphereGeometry(0.53, 20, 12, 0, Math.PI * 2, 0, Math.PI * 0.35), camo, 0, 0.42, 0);
+      outline(cap, 1.03);
+      add(new T.BoxGeometry(0.34, 0.03, 0.22), camo, 0, 0.66, 0.50);
+      // Buck teeth — two capsules hanging over the lower lip, always visible.
+      for (const sx of [-1, 1]) {
+        const toothGeo = new T.CapsuleGeometry(0.028, 0.05, 3, 8);
+        add(toothGeo, white, sx * 0.033, 0.13, 0.50);
+      }
+      // Sponge spots — half-embedded bumps on the head, flat spots on the chest.
+      for (const [x, y, z] of [[-0.38, 0.62, 0.30], [0.40, 0.30, 0.28], [0.30, 0.55, 0.35], [-0.42, 0.28, 0.22]]) {
+        add(new T.SphereGeometry(0.07, 10, 8), olive, x, y, z);
+      }
+      const B = this.body || { w: 1, h: 1, d: 1, taper: 1 };
+      const chestZ = (0.5 * B.w * Math.min(1.25, B.taper) + 0.035) * 0.68 * B.d + 0.012;
+      for (const [x, y] of [[-0.25, 0.55], [0.25, 0.55], [0, 0.32]]) {
+        const sp = tadd(new T.SphereGeometry(0.07, 10, 8), olive, x, y, chestZ);
+        sp.scale.z = 0.5;
+      }
+    }
+
+    /** SolFlakey: pink mullet + backwards black cap + dark beard
+     * (LT 2026-10-26). The cap dome (0.58) is sized to swallow the pink
+     * 'long' hair cap (0.545) so no pink pokes through the top; the
+     * brim points BACK. The beard copies the built-in beard geometry
+     * in dark brown — the built-in one takes the HAIR colour, which
+     * here is pink, so it can't be used directly. */
+    buildSolflakey(add, tadd) {
+      const black = mat('#1a1a1a');
+      const dark = mat('#2a1a12');
+      // No brows showing — they poke through the cap in pink (hair colour).
+      for (const m of this.head.children) {
+        const g = m.geometry;
+        if (g && g.type === 'CylinderGeometry' && g.parameters && Math.abs(g.parameters.height - 0.32) < 0.01) m.visible = false;
+      }
+      const cap = add(new T.SphereGeometry(0.56, 20, 12, 0, Math.PI * 2, 0, Math.PI * 0.42), black, 0, 0.44, 0);
+      outline(cap, 1.03);
+      add(new T.BoxGeometry(0.34, 0.03, 0.22), black, 0, 0.60, -0.52); // backwards brim
+      const beard = add(new T.SphereGeometry(0.34, 16, 12), dark, 0, 0.02, 0.3, m => {
+        m.scale.set(1.15, 0.75, 0.8);
+      });
+      outline(beard, 1.08);
+      const tuft = add(new T.ConeGeometry(0.09, 0.16, 8), dark, 0, -0.18, 0.42, m => {
+        m.rotation.x = Math.PI;
+      });
+      outline(tuft, 1.15);
     }
 
     /** Patty Spice: blue crystal bull — curved horns, spiky black hair, glowing visor. */

@@ -102,9 +102,22 @@ SAK.avatarSVG = function (look, opts) {
   }
 
   // Tie (Fabiony, LT 2026-10-26): knot + body over the shirt, drawn late
-  // so the knot sits on the collar under the chin.
+  // so the knot sits on the collar under the chin. Colours from the
+  // look (tie / tieKnot); default is Fabiony's green + purple.
   const tieFx = look.outfit === 'tie'
-    ? `<g><rect x="45" y="73" width="10" height="7" rx="2" fill="#9945ff"/><path d="M47 80 L53 80 L52 98 L48 98 Z" fill="#14f195"/></g>`
+    ? `<g><rect x="45" y="73" width="10" height="7" rx="2" fill="${look.tieKnot || '#9945ff'}"/><path d="M47 80 L53 80 L52 98 L48 98 Z" fill="${look.tie || '#14f195'}"/></g>`
+    : '';
+
+  // SolFlakey (LT 2026-10-26): black cap dome over the pink hair
+  // (no front brim — the cap is backwards) + dark beard framing the
+  // jaw, mouth left clear via the even-odd cutout.
+  const solflakeyFx = look.parody === 'solflakey'
+    ? `<g><rect x="27" y="35" width="19" height="10" fill="${s}"/><rect x="54" y="35" width="19" height="10" fill="${s}"/><path d="M22 36 Q50 4 78 36 Z" fill="#1a1a1a"/><path d="M30 58 Q30 82 50 84 Q70 82 70 58 L64 58 Q64 74 50 76 Q36 74 36 58 Z" fill="#2a1a12" fill-rule="evenodd"/></g>`
+    : '';
+  // CupSalty sponge (LT 2026-10-26): brow covers (a sponge has no
+  // brows), olive cheek spots, buck teeth over the smile, camo cap.
+  const cupsaltyFx = look.parody === 'cupsalty'
+    ? `<g><rect x="27" y="35" width="19" height="10" fill="${s}"/><rect x="54" y="35" width="19" height="10" fill="${s}"/><circle cx="22" cy="62" r="4" fill="#9ab54d"/><circle cx="80" cy="58" r="5" fill="#9ab54d"/><rect x="44" y="70" width="6" height="10" rx="2" fill="#fff" stroke="#0003" stroke-width="1"/><rect x="50" y="70" width="6" height="10" rx="2" fill="#fff" stroke="#0003" stroke-width="1"/><path d="M22 36 Q50 4 78 36 Z" fill="#6b7c3f"/><ellipse cx="38" cy="26" rx="10" ry="6" fill="#4a5c2a"/><ellipse cx="62" cy="22" rx="8" ry="5" fill="#8a9a4b"/><rect x="48" y="38" width="30" height="7" rx="3" fill="#6b7c3f"/></g>`
     : '';
 
   // Animal species overlays (drawn right after the head circle, under hair/eyes).
@@ -173,6 +186,8 @@ SAK.avatarSVG = function (look, opts) {
     ${facialHair}
     ${horns}
     ${unibonkerFx}
+    ${cupsaltyFx}
+    ${solflakeyFx}
     ${opts.blush ? '<ellipse cx="68" cy="62" rx="9" ry="6" fill="#ff2d2d" opacity="0.55"/>' : ''}
     ${dmgFx}
     ${tieFx}

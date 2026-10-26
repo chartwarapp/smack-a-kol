@@ -22,11 +22,25 @@ SAK.PARODY_DISCLAIMER = 'All KOLs are fictional parody cartoons. Not affiliated 
 
 SAK.KOLS = [
   {
+    id: 'solflakey', name: 'SolFlakey', handle: '@SolFlakey', level: 1,
+    tagline: 'Pink hair. Backwards cap. Flaky plans, heavy hands.',
+    difficulty: 1, hp: 70, power: 9, accuracy: 0.40, winPts: 120, minBet: 50, payout: 1.6,
+    look: { skin: '#f2c49b', shirt: '#1f8a4c', hair: '#ff5a8a', pants: '#1a1a2a', accessory: 'shades', accent: '#111111', body: 'classic', hairStyle: 'long', eyes: 'round', outfit: 'tracksuit', parody: 'solflakey' },
+    taunts: ['I said I\'d show up. I showed up to slap.', 'Flaky by name, heavy by hand.', 'My plans change. My slaps don\'t.']
+  },
+  {
     id: 'unibonker', name: 'UniBonker', handle: '@UniBonker', level: 7,
     tagline: 'Beep. Boop. Bonk.',
     difficulty: 4, hp: 200, power: 22, accuracy: 0.82, winPts: 680, minBet: 500, payout: 2.8,
     look: { skin: '#ffd23f', shirt: '#ffd23f', hair: '#1a1a1a', pants: '#ffd23f', accessory: 'none', accent: '#111111', body: 'classic', hairStyle: 'bald', eyes: 'round', parody: 'unibonker' },
     taunts: ['Beep boop. Your HP is now zero.', 'I run on 100% bonk energy.', 'Does not compute… how you lost that fast.']
+  },
+  {
+    id: 'cupsalty', name: 'CupSalty', handle: '@CupSalty', level: 3,
+    tagline: 'Salutes first. Rugs second. Smiles always.',
+    difficulty: 3, hp: 105, power: 13, accuracy: 0.53, winPts: 240, minBet: 150, payout: 2.0,
+    look: { skin: '#ffe14d', shirt: '#ffffff', hair: '#1a1a1a', pants: '#6b4423', accessory: 'none', accent: '#111111', body: 'classic', hairStyle: 'bald', eyes: 'big', eyeColor: '#3a6fd8', outfit: 'tie', tie: '#ff3b5c', tieKnot: '#c1121f', parody: 'cupsalty' },
+    taunts: ['The only thing I hold is your bags.', 'Salute first, rug second.', 'I pulled the rug. You pulled a muscle.']
   },
   {
     id: 'fabiony', name: 'Fabiony', handle: '@FabionySolana', level: 4,
