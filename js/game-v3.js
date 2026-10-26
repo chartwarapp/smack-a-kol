@@ -4477,8 +4477,8 @@
     ['pts_per_win', 'PTS per win', 'free-play reward'],
   ];
   const HOUSE_TUNABLES = [
-    ['house_win_bps', 'Player win rate', 'basis points (4500 = 45%)'],
-    ['house_payout_bps', 'Win payout', 'basis points (19000 = 1.9x)'],
+    ['house_win_bps', 'Player win rate', 'basis points'],
+    ['house_payout_bps', 'Win payout', 'basis points'],
   ];
   /* --- vault tracker (admin): live house vault + gameplay stats -------- */
   async function refreshAdminVault() {
@@ -4903,6 +4903,16 @@
       const p = +($('#admin-house [data-cfg="house_payout_bps"]').value || 19000);
       const edge = (10000 - (w * p) / 10000) / 100;
       $('#admin-edge').textContent = `House edge: ${edge.toFixed(2)}%`;
+      // Helper text is a live conversion of the input, not a static
+      // example — a stale "(4500 = 45%)" after saving 5500 reads as if
+      // the save didn't take (LT 2026-10-26).
+      const paintUnit = (key, text) => {
+        const inp = $('#admin-house [data-cfg="' + key + '"]');
+        const sm = inp && inp.closest('.tunable') && inp.closest('.tunable').querySelector('small');
+        if (sm) sm.textContent = text;
+      };
+      paintUnit('house_win_bps', `basis points (${w} = ${w / 100}%)`);
+      paintUnit('house_payout_bps', `basis points (${p} = ${p / 10000}x)`);
     };
     $('#admin-house').oninput = paintEdge; paintEdge();
     // Sound effects controls
