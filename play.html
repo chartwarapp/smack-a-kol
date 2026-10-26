@@ -10,7 +10,7 @@
   <!-- Chunky game font (optional – falls back to system fonts offline) -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Lilita+One&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/style.css?v=gloves-1" />
+  <link rel="stylesheet" href="css/style.css?v=streak-1" />
 </head>
 <body>
 <div id="app">
@@ -114,6 +114,7 @@
         <button type="button" class="mode-btn" data-sm="free"><b>🎮 FREE</b><small>No SOL · earn PTS</small></button>
         <button type="button" class="mode-btn selected" data-sm="wager"><b>◎ WAGER SOL</b><small>Bet vs the house · win ×1.9</small></button>
       </div>
+      <div id="solo-streak-bar" class="solo-streak-bar"></div>
       <div id="solo-wager-bar">
         <div id="solo-currency" class="mode-row" style="margin:0 0 6px;">
           <button type="button" class="mode-btn selected" data-sc="SOL"><b>◎ SOL</b></button>
@@ -123,6 +124,7 @@
         <div id="solo-bets" class="bet-chips"></div>
         <div id="solo-max" class="fine dark" style="margin:2px 0 4px;"></div>
         <div id="solo-status" class="fine" style="min-height:14px;color:#ffd23f;font-weight:700"></div>
+        <label id="solo-freefight-row" class="solo-ff-row hidden"><input type="checkbox" id="solo-use-freefight"> <span id="solo-ff-label"></span></label>
       </div>
       <div id="solo-kol-detail" class="kol-detail"></div>
       <div id="solo-kol-list" class="kol-list"></div>
@@ -225,6 +227,16 @@
   <section id="screen-result" class="screen overlay">
     <div class="result-card" id="result-card"></div>
   </section>
+  <div id="streak-celebration" class="modal hidden">
+    <div class="modal-card streak-pop">
+      <div class="streak-pop-burst">🎉 🔥 🎉</div>
+      <div class="streak-pop-title" id="sc-title"></div>
+      <div class="streak-pop-sub">You did that. No losses, no mercy.</div>
+      <div class="streak-pop-reward" id="sc-reward"></div>
+      <div class="fine" style="text-align:center;color:#aaa;">Your free fight is banked — spend it from the solo lobby whenever you like.</div>
+      <button type="button" class="btn btn-yellow" id="sc-close" style="width:100%;margin-top:12px;">🎁 LET'S GO</button>
+    </div>
+  </div>
 
   <!-- ================= MODALS ================= -->
   <div id="modal-wallet" class="modal hidden">
@@ -562,7 +574,7 @@
 <script src="https://unpkg.com/@solana/web3.js@1.95.3/lib/index.iife.min.js"></script>
 <script src="js/config.js?v=gloves-1"></script>
 <script src="js/roster.js?v=profile-first-1"></script>
-<script src="js/storage.js?v=gloves-1"></script>
+<script src="js/storage.js?v=streak-1"></script>
 <script src="js/account.js?v=print-1"></script>
 <script src="js/traits.js?v=print-1"></script>
 <script src="js/wallet.js?v=https-fix-2"></script>
@@ -584,6 +596,6 @@
 <script src="js/pvp-sync.js?v=pvp-guard-1"></script>
 <script src="js/solana-house.js?v=7"></script>
 <script src="js/contracts.js?v=1"></script>
-<script src="js/game-v3.js?v=traits-1"></script>
+<script src="js/game-v3.js?v=streak-1"></script>
 </body>
 </html>

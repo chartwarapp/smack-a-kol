@@ -2046,6 +2046,24 @@
         if (res) F.opts.soloResult = res;
       }, 1500);
     }
+    // Free fight (streak reward): no on-chain bet — a win queues a
+    // payout for the settlement service; a loss costs nothing.
+    if (F.opts && F.opts.freeFight && win && !draw) {
+      const credit = F.opts.freeFight;
+      const wallet = F.opts.freeFightWallet || W.address;
+      setTimeout(async () => {
+        if (!wallet) { toast('Connect your wallet so the house can pay your free-fight win', 3000); return; }
+        const ok = await SAK.StreakRewards.queuePayout(credit, wallet);
+        if (ok) toast('🎁 Free-fight payout queued — it lands automatically', 3000);
+        else {
+          // Queue failed (table missing / offline): refund the credit
+          // rather than eating a reward the player earned.
+          if (!Array.isArray(S.freeFights)) S.freeFights = [];
+          S.freeFights.unshift(credit); SAK.Storage.save();
+          toast('🎁 Payout queue failed — your free fight was refunded', 3000);
+        }
+      }, 500);
+    }
     const modeMult = SAK.MODES[F.mode].ptsMult;
     const boost = V.boost, boostMul = 1 + boost;
     const streakBefore = st.streak;
@@ -2118,6 +2136,27 @@
     if (F.fireArmed) { F.fireArmed = false; S.powerups.fist = Math.min(SAK.POWERUPS.fist.max, (S.powerups.fist || 0) + 1); if (Scene) Scene.setFireArmed(false); }
     if (win) { st.wins++; st.streak++; st.bestStreak = Math.max(st.bestStreak, st.streak); S.beaten[k.id] = true; A.win(); }
     else if (!draw) { st.losses++; st.streak = 0; A.lose(); }
+    // ---- Solo streak rewards (LT 2026-10-25): wagered Solo only ----
+    let streakGrant = null;
+    if (F.opts && F.opts.soloHouse && !draw) {
+      const sh = F.opts.soloHouse;
+      const cur = sh.currency === 'SMACK' ? 'SMACK' : 'SOL';
+      const val = cur === 'SMACK' ? (sh.wagerTokens || 0) : parseFloat(sh.wagerSol || 0);
+      if (win) {
+        st.soloStreak = (st.soloStreak || 0) + 1;
+        const n = SAK.StreakRewards.grantFor(st.soloStreak);
+        if (n > 0) {
+          if (val > 0) {
+            streakGrant = { count: n, currency: cur, value: val, streak: st.soloStreak };
+            if (!Array.isArray(S.freeFights)) S.freeFights = [];
+            for (let i = 0; i < n; i++) S.freeFights.push({ currency: cur, value: val, fromStreak: st.soloStreak, grantedAt: Date.now() });
+          }
+          if (st.soloStreak === 10) st.soloStreak = 0;
+        }
+      } else {
+        st.soloStreak = 0;
+      }
+    }
     // Rewards program: achievements + referral bonus (after stats update)
     checkAchievements(win, !!F.wasKoWin);
     checkReferralReward(win);
@@ -2176,6 +2215,20 @@
         ${rows.map(([l, v]) => `<div><span>${l}</span><b>+${fmt(v)}</b></div>`).join('')}
         <div class="total pts-total"><span>MATCH PTS</span><span>${ptsHTML('')} +${fmt(pts)}</span></div>
         ${betHtml}
+        ${streakGrant ? `<div class="bd-head" style="margin-top:8px;">🔥 ${streakGrant.streak}-FIGHT WIN STREAK!</div>
+        <div><span>${streakGrant.count} FREE FIGHT${streakGrant.count > 1 ? 'S' : ''} EARNED</span><b style="color:#4ade80;">${SAK.StreakRewards.fmtValue(streakGrant.currency, streakGrant.value)}${streakGrant.count > 1 ? ' EACH' : ''}</b></div>` : ''}
+        ${F.opts && F.opts.freeFight ? (() => {
+          const c = F.opts.freeFight;
+          const val = SAK.StreakRewards.fmtValue(c.currency, c.value);
+          if (win) return `<div class="bd-head" style="margin-top:8px;">🎁 FREE FIGHT (DEVNET)</div>
+            <div><span>Free fight value</span><b>${val}</b></div>
+            <div><span>You won</span><b style="color:#4ade80;">+${SAK.StreakRewards.fmtValue(c.currency, SAK.StreakRewards.payoutFor(c))}</b></div>
+            <div class="fine" style="font-size:11px;color:#888;">⏳ The house pays this automatically — no wallet step needed</div>`;
+          if (!draw) return `<div class="bd-head" style="margin-top:8px;">🎁 FREE FIGHT (DEVNET)</div>
+            <div><span>Free fight value</span><b>${val}</b></div>
+            <div><span>You lost</span><b>Nothing lost — the fight was free</b></div>`;
+          return '';
+        })() : ''}
         ${F.opts && F.opts.chainChallenge ? (() => {
           const w = parseFloat(F.opts.chainWagerSol || 0);
           const fee = 0.05;
@@ -2285,6 +2338,7 @@
     card.className = 'result-card ' + (win ? 'win' : 'lose');
     card.innerHTML = html;
     show('result');
+    if (streakGrant) setTimeout(() => SAK.StreakRewards.showCelebration(streakGrant), 1200);
     const rematchBtn = $('#r-rematch');
     if (rematchBtn) rematchBtn.onclick = () => startFight(k, reBet, { mode: F.mode, pvp: F.opts && F.opts.pvp });
     const againBtn = $('#r-solo-again');
@@ -3563,6 +3617,47 @@
   let soloSelected = 0;
   let soloPtsBet = 0;
 
+  /* ---- SOLO STREAK REWARDS (LT 2026-10-25) ----
+   * Wagered Solo wins only: FREE-mode, PvP and PTS-bet fights never
+   * touch the streak, and a wagered Solo loss resets it. At 5 straight
+   * wins: 1 free fight worth the 5th fight's wager. At 10: 2 free fights
+   * worth the 10th wager each; the streak then resets for a new cycle.
+   * Credits are FIFO, spendable from the solo lobby on any KOL. A
+   * free-fight win pays 1.9x the credit value; a loss costs nothing.
+   * Payouts queue in Supabase (free_fight_payouts) for the settlement
+   * service — devnet prototype: the service pays from the house float.
+   * Mainnet needs a contract payout instruction + authoritative fights. */
+  SAK.StreakRewards = {
+    grantFor(streak) { return streak === 5 ? 1 : streak === 10 ? 2 : 0; },
+    fmtValue(currency, value) {
+      if (currency === 'SMACK') return fmtTokAmt(value) + ' SMACK';
+      return (Math.round(value * 1000) / 1000) + ' SOL';
+    },
+    payoutFor(credit) {
+      return credit.currency === 'SMACK' ? Math.floor(credit.value * 1.9) : Math.round(credit.value * 1.9 * 1000) / 1000;
+    },
+    showCelebration(grant) {
+      const m = $('#streak-celebration'); if (!m) return;
+      $('#sc-title').textContent = `🔥 ${grant.streak}-FIGHT WIN STREAK!`;
+      $('#sc-reward').textContent = grant.count === 1
+        ? `🎁 1 FREE FIGHT · ${this.fmtValue(grant.currency, grant.value)}`
+        : `🎁 2 FREE FIGHTS · ${this.fmtValue(grant.currency, grant.value)} EACH`;
+      m.classList.remove('hidden');
+      const close = $('#sc-close');
+      if (close) close.onclick = () => { m.classList.add('hidden'); A.click(); };
+    },
+    async queuePayout(credit, wallet) {
+      const payout = this.payoutFor(credit);
+      const id = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : ('ff-' + Date.now() + '-' + Math.floor(Math.random() * 1e9));
+      try {
+        await sbQueue('/free_fight_payouts', 'POST', {
+          id, wallet, currency: credit.currency, amount: payout,
+          credit_value: credit.value, from_streak: credit.fromStreak, status: 'pending',
+        });
+        return true;
+      } catch (e) { return false; }
+    },
+  };
   function openSolo() {
     if (!S.profile) return openFighter(true);   // first run: create your fighter, then play
     renderSoloLobby();
@@ -3577,6 +3672,38 @@
     const tg = $('#solo-toggle .mode-btn[data-sm="wager"] b');
     if (tg) tg.innerHTML = soloCurrency === 'SMACK' ? '<img class="smack-hand" src="assets/hand-icon-sm.png" alt=""> WAGER SMACK' : '◎ WAGER SOL';
   }
+  let useFreeFight = false;   // spend a streak credit on the next SMACK (never auto-consumed)
+  function renderStreakBar() {
+    const bar = $('#solo-streak-bar'); if (!bar) return;
+    const ss = (S.stats && S.stats.soloStreak) || 0;
+    if (!Array.isArray(S.freeFights)) S.freeFights = [];
+    const credits = S.freeFights;
+    const next = ss >= 5 ? 10 : 5;
+    const toGo = next - ss;
+    let html = `<span class="ss-hot">🔥 STREAK ${ss}</span> — ${toGo} more wagered win${toGo === 1 ? '' : 's'} to ${next === 10 ? '2 free fights' : 'a free fight'}`;
+    if (credits.length) {
+      const grouped = {};
+      for (const c of credits) { const k = c.currency + ':' + c.value; grouped[k] = (grouped[k] || 0) + 1; }
+      const parts = Object.entries(grouped).map(([k, n]) => {
+        const [cur, v] = k.split(':');
+        return (n > 1 ? n + ' × ' : '') + SAK.StreakRewards.fmtValue(cur, parseFloat(v));
+      });
+      html += `<br><span class="ss-gift">🎁 FREE FIGHT${credits.length > 1 ? 'S' : ''} BANKED:</span> ${parts.join(' · ')}`;
+    }
+    bar.innerHTML = html;
+    const row = $('#solo-freefight-row');
+    if (row) {
+      const showRow = soloMode === 'wager' && credits.length > 0;
+      row.classList.toggle('hidden', !showRow);
+      if (!showRow) useFreeFight = false;
+      else {
+        const first = credits[0];
+        $('#solo-ff-label').textContent = `Use a free fight (${SAK.StreakRewards.fmtValue(first.currency, first.value)}) — win pays ×1.9, lose nothing${credits.length > 1 ? ` · ${credits.length} available` : ''}`;
+        const cb = $('#solo-use-freefight');
+        if (cb) cb.checked = useFreeFight;
+      }
+    }
+  }
   function renderSoloLobby() {
     paintSoloCurrency();
     $$('#solo-toggle .mode-btn').forEach(b => b.classList.toggle('selected', b.dataset.sm === soloMode));
@@ -3584,6 +3711,7 @@
     const br = $('#solo-bet-row'); if (br) br.classList.toggle('hidden', soloMode !== 'free');
     if (soloMode === 'wager') renderSoloBets();
     renderSoloCards();
+    renderStreakBar();
   }
   function renderSoloCards() {
     const list = soloKols();
@@ -3655,6 +3783,12 @@
   function renderSoloChallengeBtn() {
     const k = soloKols()[soloSelected]; const btn = $('#btn-solo-challenge'); if (!k || !btn) return;
     if (soloMode === 'wager') {
+      const ff = useFreeFight && S.freeFights && S.freeFights.length ? S.freeFights[0] : null;
+      if (ff) {
+        btn.className = 'btn btn-xl btn-green';
+        btn.innerHTML = `🎁 SMACK · FREE FIGHT (${SAK.StreakRewards.fmtValue(ff.currency, ff.value)})`;
+        return;
+      }
       btn.className = 'btn btn-xl btn-red';
       btn.innerHTML = soloCurrency === 'SMACK'
         ? `🖐 SMACK · BET ${smackWager.toLocaleString('en-US')} SMACK`
@@ -3670,6 +3804,8 @@
     renderSoloLobby(); selectSoloKol(soloSelected, true);
     if (soloMode === 'wager') refreshHouseMax();
   }));
+  const ffCb = $('#solo-use-freefight');
+  if (ffCb) ffCb.addEventListener('change', () => { useFreeFight = ffCb.checked; renderSoloChallengeBtn(); });
   $$('#solo-currency .mode-btn').forEach(b => b.addEventListener('click', () => {
     A.click();
     if (soloCurrency === b.dataset.sc) return;
@@ -3685,6 +3821,14 @@
     const k = soloKols()[soloSelected]; if (!k) return;
     A.click();
     if (soloMode === 'free') { startFight(k, soloPtsBet, { mode: 'classic', soloLobby: 'free' }); return; }
+    // Streak credit: spend one (FIFO) on a stakeless fight. The house
+    // needs a wallet address to pay a win to, but no signature.
+    if (useFreeFight && S.freeFights && S.freeFights.length) {
+      if (!W.isConnected) { toast('Connect your wallet first \u{1F45B} — the house needs an address to pay your free-fight win', 2200); openWalletModal(); return; }
+      const credit = S.freeFights.shift(); SAK.Storage.save(); useFreeFight = false;
+      startFight(k, 0, { mode: 'classic', soloLobby: 'freeFight', freeFight: credit, freeFightWallet: W.address });
+      return;
+    }
     if (!W.isConnected) { toast('Connect your wallet first \u{1F45B}', 2200); openWalletModal(); return; }
     if (!SAK.SolanaHouse) { toast('House module not loaded', 2000); return; }
     const btn = soloChallengeBtn; btn.disabled = true; const oldLabel = btn.innerHTML; btn.textContent = 'PLACING BET…';

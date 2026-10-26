@@ -15,7 +15,7 @@ SAK.Storage = (function () {
       upgrades: { health: 0, power: 0 },
       powerups: { fist: 0, helmet: 1, rage: 1 },   // consumable inventory (starter pack)
       lastFreeFistDate: null,          // YYYY-MM-DD of last daily free Golden Fist
-      stats: { wins: 0, losses: 0, streak: 0, bestStreak: 0, perfects: 0, biggestHit: 0, lifetimePts: 0 },
+      stats: { wins: 0, losses: 0, streak: 0, bestStreak: 0, perfects: 0, biggestHit: 0, lifetimePts: 0, soloStreak: 0 },   // soloStreak: consecutive wagered Solo wins only (streak rewards, LT 2026-10-25)
       loginStreak: 0,                  // consecutive daily logins
       lastLoginDate: null,             // YYYY-MM-DD of last daily bonus
       achievements: {},               // achievementId -> timestamp unlocked
@@ -27,6 +27,7 @@ SAK.Storage = (function () {
       profile: null,                   // player fighter { name, colour, phrase } (null = not created yet)                  // user-submitted parody KOLs (see SAK.UGC)
       settings: { sound: true, haptics: true, battleMusic: true },
       gloves: { owned: ['wrap'], equipped: 'wrap' },   // Gloves shop (LT 2026-10-25): owned tier ids, equipped id
+      freeFights: [],   // Streak rewards (LT 2026-10-25): [{currency:'SOL'|'SMACK', value, fromStreak:5|10, grantedAt}] — FIFO spend
     };
   }
 

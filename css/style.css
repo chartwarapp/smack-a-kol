@@ -1395,3 +1395,17 @@ body.on-menu #ticker { display: none; }
 #solo-bets .solo-custom-wrap { flex: 1.2 1 0; min-width: 0; padding: 3px 4px 4px; }
 #solo-bets .solo-custom-wrap input { font-size: 12px; }
 #solo-bets .solo-custom-wrap input::placeholder { font-size: 9.5px; }
+
+/* ---- Solo streak rewards (LT 2026-10-25) ---- */
+.solo-streak-bar { margin: 0 0 8px; padding: 8px 10px; background: rgba(0,0,0,.25); border-radius: 10px; color: #fff; font-size: 12px; line-height: 1.5; }
+.solo-streak-bar:empty { display: none; }
+.solo-streak-bar .ss-hot { color: #ff9f2e; font-weight: 800; }
+.solo-streak-bar .ss-gift { color: #4ade80; font-weight: 800; }
+.solo-ff-row { display: flex; align-items: center; gap: 8px; margin-top: 8px; padding: 8px 10px; background: rgba(74,222,128,.15); border: 2px solid #4ade80; border-radius: 10px; color: #fff; font-size: 13px; font-weight: 700; cursor: pointer; }
+.solo-ff-row input { width: 18px; height: 18px; accent-color: #4ade80; }
+.streak-pop { background: linear-gradient(180deg, #2a1250, #160a2e); color: #fff; border-color: #f5c542 !important; text-align: center; animation: none; }
+.streak-pop-burst { font-size: 30px; letter-spacing: 4px; animation: streakGlow 1.2s ease-in-out infinite; }
+.streak-pop-title { font-size: 26px; font-weight: 900; color: #f5c542; line-height: 1.2; }
+.streak-pop-sub { color: #ddd; font-size: 14px; }
+.streak-pop-reward { font-size: 20px; font-weight: 900; color: #4ade80; }
+@keyframes streakGlow { 0%, 100% { opacity: 1; } 50% { opacity: .55; } }
