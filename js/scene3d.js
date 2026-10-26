@@ -4336,12 +4336,32 @@ SAK.Scene3D = (function () {
     const p = F.pose, sd = F.armSide;
     const E = SAK.Ease;
 
-    // Camera: pull back wide to show the ring, crowd, and celebrating winner
-    const wx = F.root.position.x, wz = F.root.position.z;
-    const camDir = new T.Vector3(0.4, 0.55, F.facing > 0 ? 1 : -1).normalize();
-    SAK.Tween.to(camBase.look, { x: wx * 0.5, y: 1.4, z: wz * 0.5 }, 0.6, E.inOutQuad);
+    // Camera: side view framing BOTH fighters, NEVER down the fight axis.
+    // LT RULE (2026-10-25): the final frame must never stack the winner over
+    // the fallen loser. The old camera sat behind the winner looking down the
+    // fighter line (camDir ≈ parallel to it), so the standing winner occluded
+    // the loser — the exact shot LT flagged. Now the camera sits perpendicular
+    // to the winner→loser line, on the current camera's side (no jarring swing),
+    // looking at the midpoint for in-ring KOs or at the winner alone for
+    // fly-outs (loser 10+ units out in the crowd — nothing left to occlude).
+    const W = F.root.position;
+    const L = (who === 'player' ? kol : player);
+    const lx = (L && L.root) ? L.root.position.x : W.x;
+    const lz = (L && L.root) ? L.root.position.z : W.z;
+    const dxl = lx - W.x, dzl = lz - W.z;
+    const distWL = Math.hypot(dxl, dzl);
+    let sx = 1, sz = 0;
+    if (distWL > 0.1) { sx = -dzl / distWL; sz = dxl / distWL; }
+    // Stay on the current camera's side of the line.
+    const curX = camera.position.x - (W.x + lx) / 2, curZ = camera.position.z - (W.z + lz) / 2;
+    if (sx * curX + sz * curZ < 0) { sx = -sx; sz = -sz; }
+    const inRing = distWL <= 4;
+    const lookX = inRing ? (W.x + lx) / 2 : W.x;
+    const lookZ = inRing ? (W.z + lz) / 2 : W.z;
+    const lookY = inRing ? 1.0 : 1.4;
+    SAK.Tween.to(camBase.look, { x: lookX, y: lookY, z: lookZ }, 0.6, E.inOutQuad);
     SAK.Tween.to(camBase.pos, {
-      x: wx * 0.5 + camDir.x * 7.5, y: 1.4 + camDir.y * 7.5, z: wz * 0.5 + camDir.z * 7.5
+      x: lookX + sx * 7.5, y: lookY + 0.55 * 7.5, z: lookZ + sz * 7.5
     }, 0.6, E.inOutQuad);
 
     // Winner grins through the whole dance
@@ -4941,6 +4961,35 @@ SAK.Scene3D = (function () {
     }
     if (stars.parent) F.head.remove(stars);
     stars.traverse(o => { if (o.geometry) o.geometry.dispose(); if (o.material) o.material.dispose(); });
+    // LT RULE (2026-10-25): fighters never land overlapping. Ground KOs rest
+    // ~2.2 apart with the loser falling away from the winner, but enforce a
+    // hard floor anyway so no variant (or future variant) can ever end with
+    // the bodies stacked: if the loser's root is within 1.0 of the winner's,
+    // slide the loser straight away along the winner→loser line. The landed
+    // pose is frozen (update() returns early on phase 'land'), so a root
+    // slide sticks and keeps the stamped pose — a settle, not a pop.
+    {
+      const W = (who === 'player' ? kol : player);
+      if (W && W.root) {
+        const dx = F.root.position.x - W.root.position.x;
+        const dz = F.root.position.z - W.root.position.z;
+        const d = Math.hypot(dx, dz);
+        const MIN_SEP = 1.0;
+        if (d < MIN_SEP) {
+          const nx = d > 1e-4 ? dx / d : 1, nz = d > 1e-4 ? dz / d : 0;
+          await SAK.Tween.to(F.root.position, {
+            x: W.root.position.x + nx * MIN_SEP,
+            z: W.root.position.z + nz * MIN_SEP
+          }, 0.25, SAK.Ease.outCubic);
+        }
+      }
+    }
+    // Hand the camera to the victory shot: koCam (loser-tracking) and any
+    // lingering role-cam weight would otherwise override victory()'s side
+    // view every frame — the final frame must be the side view, not a
+    // leftover track. (koCam is re-nulled after the dance as before.)
+    koCam = null;
+    roleCam.w = 0;
     await victory(who === 'player' ? 'kol' : 'player'); // winner celebrates with a random dance
 
     koCam = null;
