@@ -29,13 +29,6 @@ SAK.KOLS = [
     taunts: ['I said I\'d show up. I showed up to slap.', 'Flaky by name, heavy by hand.', 'My plans change. My slaps don\'t.']
   },
   {
-    id: 'unibonker', name: 'UniBonker', handle: '@UniBonker', level: 7,
-    tagline: 'Beep. Boop. Bonk.',
-    difficulty: 4, hp: 200, power: 22, accuracy: 0.82, winPts: 680, minBet: 500, payout: 2.8,
-    look: { skin: '#ffd23f', shirt: '#ffd23f', hair: '#1a1a1a', pants: '#ffd23f', accessory: 'none', accent: '#111111', body: 'classic', hairStyle: 'bald', eyes: 'round', parody: 'unibonker' },
-    taunts: ['Beep boop. Your HP is now zero.', 'I run on 100% bonk energy.', 'Does not compute… how you lost that fast.']
-  },
-  {
     id: 'cupsalty', name: 'CupSalty', handle: '@CupSalty', level: 3,
     tagline: 'Salutes first. Rugs second. Smiles always.',
     difficulty: 3, hp: 105, power: 13, accuracy: 0.53, winPts: 240, minBet: 150, payout: 2.0,
@@ -74,6 +67,13 @@ SAK.KOLS = [
    * Cartoon parody presets inspired by reference images. The `parody` field
    * triggers special 3D geometry in the Fighter builder (horns, visor, etc.).
    * These are original parody characters, not depictions of real people. */
+  {
+    id: 'unibonker', name: 'UniBonker', handle: '@UniBonker', level: 7,
+    tagline: 'Beep. Boop. Bonk.',
+    difficulty: 4, hp: 200, power: 22, accuracy: 0.82, winPts: 680, minBet: 500, payout: 2.8,
+    look: { skin: '#ffd23f', shirt: '#ffd23f', hair: '#1a1a1a', pants: '#ffd23f', accessory: 'none', accent: '#111111', body: 'classic', hairStyle: 'bald', eyes: 'round', parody: 'unibonker' },
+    taunts: ['Beep boop. Your HP is now zero.', 'I run on 100% bonk energy.', 'Does not compute… how you lost that fast.']
+  },
   {
     id: 'pattyspice', name: 'Patty Spice', handle: '@PattySpiceSlaps', level: 9,
     tagline: 'Blue crystal bull. Horns up. Visor down.',
