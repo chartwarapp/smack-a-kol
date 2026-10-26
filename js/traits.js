@@ -21,9 +21,11 @@ SAK.Traits = (() => {
   // Each layer: array of { id, label, rarity, value }
   // value maps to the existing avatar look fields where possible.
   const LAYERS = {
-    // Species (LT 2026-10-23): all 9 species already have 3D geometry +
-    // portrait art; Human carries a weight override so ~2/3 of rolls stay
-    // human and animals read as a treat (Panda = the legendary chase).
+    // Species (LT 2026-10-23; frog retired 2026-10-25 — its eyes-on-top
+    // look didn't read well): all 8 remaining species already have 3D
+    // geometry + portrait art; Human carries a weight override so ~2/3
+    // of rolls stay human and animals read as a treat (Panda = the
+    // legendary chase).
     species: [
       { id: 'human', label: 'Human', rarity: 'common', weight: 180 },
       { id: 'bear', label: 'Bear 🐻', rarity: 'uncommon' },
@@ -31,7 +33,6 @@ SAK.Traits = (() => {
       { id: 'ape', label: 'Ape 🦍', rarity: 'rare' },
       { id: 'dog', label: 'Dog 🐶', rarity: 'rare' },
       { id: 'cat', label: 'Cat 🐱', rarity: 'rare' },
-      { id: 'frog', label: 'Frog 🐸', rarity: 'epic' },
       { id: 'rabbit', label: 'Rabbit 🐰', rarity: 'epic' },
       { id: 'panda', label: 'Panda 🐼', rarity: 'legendary' },
     ],

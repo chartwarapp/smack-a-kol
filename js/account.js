@@ -18,6 +18,9 @@ SAK.Account = (function () {
     species: [
       { id: 'human', label: 'Human' }, { id: 'bear', label: 'Bear' }, { id: 'bull', label: 'Bull' },
       { id: 'ape', label: 'Ape' }, { id: 'dog', label: 'Dog' }, { id: 'cat', label: 'Cat' },
+      // Frog retired from rolls 2026-10-25 (LT: the eyes-on-top look
+      // doesn't read well) but kept here so sanitize still accepts it —
+      // an old frog save keeps its look instead of resetting to human.
       { id: 'frog', label: 'Frog' }, { id: 'rabbit', label: 'Rabbit' }, { id: 'panda', label: 'Panda' }
     ],
     body: [
@@ -63,7 +66,8 @@ SAK.Account = (function () {
   }
 
   // Species odds mirror SAK.Traits: ~2/3 human, animals as the treat.
-  const SPECIES_W = [['human', 180], ['bear', 25], ['bull', 25], ['ape', 10], ['dog', 10], ['cat', 10], ['frog', 4], ['rabbit', 4], ['panda', 1]];
+  // Frog retired 2026-10-25 (LT) — no weight, so it can never roll.
+  const SPECIES_W = [['human', 180], ['bear', 25], ['bull', 25], ['ape', 10], ['dog', 10], ['cat', 10], ['rabbit', 4], ['panda', 1]];
   function pickSpecies() {
     let total = 0; for (const [, w] of SPECIES_W) total += w;
     let r = Math.random() * total;
