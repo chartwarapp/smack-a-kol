@@ -43,6 +43,7 @@ SAK.Account = (function () {
     skin: ['#ffe0c4', '#f6c9a0', '#f2c49b', '#e0a77a', '#c98b5f', '#a8714d', '#7a4a2e', '#9fd3ff', '#b6ff9f'],
     hairColor: ['#1a1a1a', '#3b2416', '#7a4a24', '#ffcf33', '#e9e9f5', '#ff5a36', '#22c3ff', '#ff7ad9', '#39ff88'],
     eyeColor: ['#1a1a1a', '#3a6fd8', '#2e9e4f', '#7a4a24', '#9b5cff', '#ff3b5c', '#ffd23f'],
+    pants: ['#1d2a4d', '#2b3a5c', '#3a3a4a', '#5c2b3a', '#1a4a3a', '#8a7a5c', '#d42a2a', '#ffd23f'],
     shirt: ['#2f80ff', '#ff4fa3', '#2ee6a6', '#ffe23d', '#ff7a1a', '#9b5cff', '#ff3b5c', '#1f1f2e', '#39ff88', '#ffffff']
   };
   const ids = k => OPTIONS[k].map(o => (typeof o === 'string' ? o : o.id));
@@ -50,7 +51,7 @@ SAK.Account = (function () {
 
   function defaultAvatar() {
     const L = SAK.PLAYER.look;
-    return { species: 'human', body: 'classic', hairStyle: 'short', hairColor: L.hair, skin: L.skin, eyes: 'round', eyeColor: '#1a1a1a', accessory: L.accessory, shirt: L.shirt };
+    return { species: 'human', body: 'classic', hairStyle: 'short', hairColor: L.hair, skin: L.skin, eyes: 'round', eyeColor: '#1a1a1a', accessory: L.accessory, shirt: L.shirt, pants: L.pants };
   }
 
   /** Clamp any (possibly old / hand-edited) avatar to valid values. */
@@ -59,7 +60,7 @@ SAK.Account = (function () {
     a = a || {};
     const hex = v => typeof v === 'string' && /^#[0-9a-f]{6}$/i.test(v);
     const PICK = ['species', 'body', 'hairStyle', 'eyes', 'accessory'];
-    for (const k of ['species', 'body', 'hairStyle', 'hairColor', 'skin', 'eyes', 'eyeColor', 'accessory', 'shirt']) {
+    for (const k of ['species', 'body', 'hairStyle', 'hairColor', 'skin', 'eyes', 'eyeColor', 'accessory', 'shirt', 'pants']) {
       out[k] = PICK.includes(k) ? (ids(k).includes(a[k]) ? a[k] : d[k]) : (hex(a[k]) ? a[k] : d[k]);
     }
     return out;
@@ -79,7 +80,7 @@ SAK.Account = (function () {
     return {
       species: pickSpecies(),
       body: pick(ids('body')), hairStyle: pick(ids('hairStyle')), hairColor: pick(OPTIONS.hairColor), skin: pick(OPTIONS.skin),
-      eyes: pick(ids('eyes')), eyeColor: pick(OPTIONS.eyeColor), accessory: pick(ids('accessory')), shirt: pick(OPTIONS.shirt)
+      eyes: pick(ids('eyes')), eyeColor: pick(OPTIONS.eyeColor), accessory: pick(ids('accessory')), shirt: pick(OPTIONS.shirt), pants: pick(OPTIONS.pants)
     };
   }
 
@@ -87,7 +88,7 @@ SAK.Account = (function () {
   function toLook(avatar) {
     const a = sanitize(avatar);
     return {
-      skin: a.skin, shirt: a.shirt, hair: a.hairColor, pants: SAK.PLAYER.look.pants, accessory: a.accessory,
+      skin: a.skin, shirt: a.shirt, hair: a.hairColor, pants: a.pants, accessory: a.accessory,
       accent: a.accessory === 'laser' ? '#ff1a1a' : a.accessory === 'crown' ? '#ffd23f' : '#ffffff',
       body: a.body, hairStyle: a.hairStyle, eyes: a.eyes, eyeColor: a.eyeColor, species: a.species
     };

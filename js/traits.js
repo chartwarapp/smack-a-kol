@@ -110,6 +110,20 @@ SAK.Traits = (() => {
       { id: 'money', label: 'Money Print 💵', rarity: 'epic' },
       { id: 'royal', label: 'Royal Robe', rarity: 'legendary' },
     ],
+    // Pants (LT 2026-10-25): pants used to be one fixed dark navy for
+    // every fighter — now they roll like any other layer. Navy is the
+    // old in-game color (SAK.PLAYER.look.pants), so old saves default
+    // to it and nothing changes for existing fighters.
+    pants: [
+      { id: 'p1', label: 'Navy', rarity: 'common', value: '#1d2a4d' },
+      { id: 'p2', label: 'Denim', rarity: 'common', value: '#2b3a5c' },
+      { id: 'p3', label: 'Charcoal', rarity: 'common', value: '#3a3a4a' },
+      { id: 'p4', label: 'Burgundy', rarity: 'uncommon', value: '#5c2b3a' },
+      { id: 'p5', label: 'Forest', rarity: 'uncommon', value: '#1a4a3a' },
+      { id: 'p6', label: 'Khaki', rarity: 'rare', value: '#8a7a5c' },
+      { id: 'p7', label: 'Crimson', rarity: 'epic', value: '#d42a2a' },
+      { id: 'p8', label: 'Gold', rarity: 'legendary', value: '#ffd23f' },
+    ],
     accessory: [
       { id: 'none', label: 'None', rarity: 'common' },
       { id: 'headband', label: 'Headband', rarity: 'common' },
@@ -124,11 +138,11 @@ SAK.Traits = (() => {
     ],
   };
 
-  const LAYER_ORDER = ['species', 'body', 'skin', 'eyes', 'eyeColor', 'hairStyle', 'hairColor', 'outfit', 'accessory'];
+  const LAYER_ORDER = ['species', 'body', 'skin', 'eyes', 'eyeColor', 'hairStyle', 'hairColor', 'outfit', 'pants', 'accessory'];
   const LAYER_LABELS = {
     species: 'Species', body: 'Body', skin: 'Skin', eyes: 'Eyes', eyeColor: 'Eye Color',
     hairStyle: 'Hair', hairColor: 'Hair Color', gloves: 'Gloves',
-    outfit: 'Outfit', accessory: 'Accessory',
+    outfit: 'Outfit', pants: 'Pants', accessory: 'Accessory',
   };
 
   const MAX_REROLLS = 5;
@@ -198,9 +212,9 @@ SAK.Traits = (() => {
       // gloves/outfit map to visual variants the 3D builder can read later
       gloves: get('gloves', 'wrap'),
       outfit: get('outfit', 'tee'),
+      pants: get('pants', '#1d2a4d'),
       accessory: get('accessory', 'none'),
       shirt: '#2f80ff', // derived from outfit in Phase 2
-      pants: '#1f1f2e',
     };
   }
 

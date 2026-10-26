@@ -178,7 +178,7 @@ SAK.avatarBodySVG = function (look) {
     .replace(/<path d="M[^"]* 100 Q50 72 [^"]* 100 Z" fill="[^"]*" stroke="#0003" stroke-width="2"\/>/, '');
   const s = look.skin || '#c98d5f';
   const shirt = look.shirt || '#2f80ff';
-  const pants = '#232a3d', shoe = '#1a1a22';
+  const pants = look.pants || '#1d2a4d', shoe = '#1a1a22';
   const bw = { chonk: 8, gymbro: 4, noodle: -6, smol: -2 }[look.body] || 0;
   const tx0 = 27 - bw / 2, tx1 = 73 + bw / 2, tw = tx1 - tx0;
   return `<svg viewBox="0 0 100 170" xmlns="http://www.w3.org/2000/svg" class="avatar-body-svg">
