@@ -1390,6 +1390,17 @@ body.on-menu #ticker { display: none; }
 .mc-cancel:disabled { opacity: .5; }
 .mc-empty { text-align: center; color: #888; font-size: 13px; padding: 12px; }
 
+/* FIGHT READY bar (2026-10-27): persistent JOIN FIGHT cards for accepted
+   challenges — the retryable entry that replaces the one-shot popup chain. */
+#fight-ready-bar { margin: 8px 0 4px; }
+.mc-join {
+  flex: none; font-family: var(--font); font-size: 14px; font-weight: 800;
+  color: #000; background: linear-gradient(180deg, #39ff88, #1fb855); border: 2px solid var(--ink); border-radius: 10px;
+  box-shadow: 0 3px 0 var(--ink); padding: 10px 16px; cursor: pointer;
+}
+.mc-join:active { transform: translateY(2px); box-shadow: none; }
+.mc-join:disabled { opacity: .5; }
+
 /* ---- Solo Challenge tiers (2026-10-22 restructure) ---- */
 .kol-card .kc-tier { position: absolute; top: 2px; left: 2px; font-size: 9px; font-weight: 800; padding: 2px 5px; border-radius: 8px; letter-spacing: .02em; text-shadow: none; }
 .tier-contender { background: #38bdf8; color: #082f49; }

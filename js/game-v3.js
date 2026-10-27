@@ -2881,6 +2881,8 @@
   // so challenge popups appear even if the PvP lobby isn't open.
   // ---- My Challenges (sent, awaiting accept) ----
   let mySentChallenges = [];
+  // FIGHT READY (2026-10-27): accepted/fighting challenges in either
+  // direction, refreshed by the status poll — the persistent JOIN cards.
 
   function timeAgo(ts) {
     if (!ts) return '';
@@ -2916,6 +2918,80 @@
       list.querySelectorAll('.mc-cancel').forEach(btn => {
         btn.onclick = () => cancelSentChallenge(btn.dataset.addr, btn);
       });
+    }
+  }
+
+  /* --- FIGHT READY cards (2026-10-27) ---------------------------------- */
+  // Persistent JOIN FIGHT cards for accepted/fighting challenges, either
+  // direction. This is the retryable entry the old flow lacked: the popup
+  // chain was one-shot (a reload, RPC hiccup, or lobby timeout stranded
+  // the acceptor with no button back in). The card re-renders on every
+  // status poll, so it also surfaces challenges accepted BEFORE this build
+  // (e.g. an Accepted-but-unplayed fight with SOL locked in escrow).
+  // JOIN still goes through the lobby handshake (both-online gate) — the
+  // gate stays, but now it sits behind a card you can tap again instead
+  // of a popup you can only catch once. On timeout/leave you land back
+  // in the lobby with the card still there.
+  let fightReadyChallenges = [];
+  function renderFightReady() {
+    const bar = $('#fight-ready-bar');
+    const list = $('#fight-ready-list');
+    if (!bar || !list) return;
+    const rows = (fightReadyChallenges || []).filter(ch => ch && ch.challenge_addr);
+    if (rows.length === 0) {
+      bar.classList.add('hidden');
+      list.innerHTML = '';
+      return;
+    }
+    bar.classList.remove('hidden');
+    list.innerHTML = rows.map(ch => {
+      const opp = (ch.challenger === W.address ? ch.opponent : ch.challenger) || '';
+      const oppShort = opp ? (opp.slice(0, 4) + '…' + opp.slice(-4)) : 'opponent';
+      const wager = ch.wager_sol ? ('◎ ' + Number(ch.wager_sol).toFixed(2) + ' SOL') : 'SOL wager';
+      const state = ch.status === 'fighting' ? 'FIGHT IN PROGRESS — rejoin' : 'ACCEPTED — fight ready';
+      return '<div class="mc-row">' +
+        '<div class="mc-info"><div class="mc-opp">🥊 ' + esc(oppShort) + '</div>' +
+        '<div class="mc-meta">' + esc(wager) + ' · ' + esc(state) + '</div></div>' +
+        '<button class="mc-join" data-addr="' + esc(ch.challenge_addr) + '">JOIN FIGHT</button>' +
+        '</div>';
+    }).join('');
+    list.querySelectorAll('.mc-join').forEach(btn => {
+      btn.onclick = () => {
+        const ch = (fightReadyChallenges || []).find(x => x.challenge_addr === btn.dataset.addr);
+        if (ch) joinFightReady(ch, btn);
+      };
+    });
+  }
+
+  async function joinFightReady(ch, btn) {
+    if (!SAK.SolanaEscrow || !W.address) { toast('Connect your wallet first', 2000); return; }
+    if (btn) btn.disabled = true;
+    try {
+      toast('Joining fight…', 2000);
+      // Chain is the authority: only an Accepted challenge is joinable.
+      // Anything else (Resolved, Cancelled, expired) drops the card.
+      const live = await SAK.SolanaEscrow.getChallenge(ch.challenge_addr);
+      if (!live) throw new Error('Challenge not found on-chain');
+      if (live.stateName !== 'Accepted') {
+        toast('This fight is ' + live.stateName + ' — no longer joinable', 2600);
+        fightReadyChallenges = (fightReadyChallenges || []).filter(x => x.challenge_addr !== ch.challenge_addr);
+        renderFightReady();
+        return;
+      }
+      const role = live.challenger === W.address ? 'challenger' : 'acceptor';
+      const opponentWallet = role === 'challenger' ? live.opponent : live.challenger;
+      let snaps = null;
+      if (SAK.PvpSync && SAK.PvpSync.getFighterSnapshots) {
+        try { snaps = await SAK.PvpSync.getFighterSnapshots(ch.challenge_addr); } catch (e) {}
+      }
+      const opponentLook = role === 'challenger' ? (snaps && snaps.acceptorLook) : (snaps && snaps.challengerLook);
+      const shadow = await resolvePvpShadow(opponentWallet, opponentLook);
+      startPvpFightWithLobby(shadow,
+        { mode: 'classic', pvp: true, chainChallenge: ch.challenge_addr, chainWagerSol: live.wagerSol, chainRole: role, chainOpponentWallet: opponentWallet },
+        ch.challenge_addr, W.address, opponentWallet);
+    } catch (e) {
+      toast('Could not join: ' + (e.message || e), 2600);
+      if (btn) btn.disabled = false;
     }
   }
 
@@ -3029,9 +3105,11 @@
     if (!SAK.PvpSync || !W.address || window._globalChallengeWatch) return;
     window._globalChallengeWatch = true;
     if (!window._seenIncomingChallenges) window._seenIncomingChallenges = new Set();
-    SAK.PvpSync.startStatusPolling(W.address, ({ awaiting, accepted, incoming }) => {
+    SAK.PvpSync.startStatusPolling(W.address, ({ awaiting, accepted, incoming, fightReady }) => {
       mySentChallenges = awaiting || [];
       try { renderMyChallenges(); } catch (e) {}
+      fightReadyChallenges = fightReady || [];
+      try { renderFightReady(); } catch (e) {}
       // Update lobby badge if visible
       try {
         const badge = $('#pvp-badge');
@@ -3058,6 +3136,8 @@
   function stopGlobalChallengeWatch() {
     window._globalChallengeWatch = false;
     if (SAK.PvpSync) SAK.PvpSync.stopStatusPolling();
+    fightReadyChallenges = [];
+    try { renderFightReady(); } catch (e) {}
   }
 
   async function openPvp() {

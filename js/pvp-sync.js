@@ -183,7 +183,7 @@ SAK.PvpSync = (function () {
       // Only consider challenges from the last 24h (max expiry); older ones are stale
       const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
       const rows = await api()._req('GET',
-        `/pvp_challenges?or=(challenger.eq.${encodeURIComponent(wallet)},opponent.eq.${encodeURIComponent(wallet)})&status=in.(open,accepted)&created_at=gte.${encodeURIComponent(dayAgo)}&select=*&order=created_at.desc`);
+        `/pvp_challenges?or=(challenger.eq.${encodeURIComponent(wallet)},opponent.eq.${encodeURIComponent(wallet)})&status=in.(open,accepted,fighting)&created_at=gte.${encodeURIComponent(dayAgo)}&select=*&order=created_at.desc`);
       const awaiting = (rows || []).filter(c => c.status === 'open' && c.challenger === wallet);
       // ACCEPTED badge: only when YOU are the challenger and the fight hasn't
       // started yet — that's the one case with an action (join the fight).
@@ -197,10 +197,19 @@ SAK.PvpSync = (function () {
       const acceptedAsOpponent = (rows || []).filter(c =>
         c.status === 'accepted' && c.opponent === wallet
       );
-      return { awaiting, accepted, incoming, acceptedAsOpponent };
+      // FIGHT READY (2026-10-27): accepted OR already-fighting challenges in
+      // EITHER direction. These get a persistent JOIN FIGHT card in the
+      // lobby — the retryable entry that replaces the one-shot popup chain.
+      // 'fighting' is included on purpose: a fight that started but a side
+      // dropped (reload, timeout) must be rejoinable, not stranded.
+      const fightReady = (rows || []).filter(c =>
+        (c.status === 'accepted' || c.status === 'fighting') &&
+        (c.challenger === wallet || c.opponent === wallet)
+      );
+      return { awaiting, accepted, incoming, acceptedAsOpponent, fightReady };
     } catch (e) {
       console.warn('[PvpSync] challenge poll failed', e.message);
-      return { awaiting: [], accepted: [] };
+      return { awaiting: [], accepted: [], incoming: [], acceptedAsOpponent: [], fightReady: [] };
     }
   }
 

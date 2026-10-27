@@ -12,7 +12,7 @@
   <!-- Chunky game font (optional – falls back to system fonts offline) -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Lilita+One&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/style.css?v=result-vs-1" />
+  <link rel="stylesheet" href="css/style.css?v=fightready-1" />
 </head>
 <body>
 <div id="app">
@@ -316,6 +316,10 @@
         <button id="my-challenges-toggle" class="mc-toggle">📋 MY CHALLENGES <span id="my-challenges-count" class="mc-count hidden"></span><span class="mc-chev">▾</span></button>
         <div id="my-challenges-list" class="mc-list hidden"></div>
       </div>
+      <div id="fight-ready-bar" class="hidden">
+        <div class="mc-toggle" style="background:#0f5c2e;">🥊 FIGHT READY — tap JOIN to enter</div>
+        <div id="fight-ready-list" class="mc-list"></div>
+      </div>
       <div id="pvp-lobby">
         <p class="fine dark" id="pvp-info-box">Live fighters below are <b>really online</b> — challenge them directly with a SOL wager. Private meter per device: you only see <b>your</b> needle (ATTACK or BRACE). Closer to the green centre wins each round.</p>
         <div id="pvp-modes" class="mode-row light"></div>
@@ -613,9 +617,9 @@
 <script src="js/fighter-lock.js?v=1"></script>
 <script src="js/solana-escrow.js?v=1"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.0/dist/umd/supabase.min.js"></script>
-<script src="js/pvp-sync.js?v=pvp-guard-1"></script>
+<script src="js/pvp-sync.js?v=fightready-1"></script>
 <script src="js/solana-house.js?v=7"></script>
 <script src="js/contracts.js?v=1"></script>
-<script src="js/game-v3.js?v=chairboy-1"></script>
+<script src="js/game-v3.js?v=fightready-1"></script>
 </body>
 </html>
