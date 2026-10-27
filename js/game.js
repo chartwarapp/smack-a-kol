@@ -5078,7 +5078,7 @@
       el.oninput = () => { paint(); scfg[key] = fromSlider(+el.value); SAK.Audio.saveSoundCfg(); };
       paint();
     };
-    bindVol('master', 'master'); bindVol('slap', 'slap'); bindVol('crowd', 'crowd'); bindVol('react', 'react');
+    bindVol('master', 'master'); bindVol('slap', 'slap'); bindVol('crowd', 'crowd'); bindVol('react', 'react'); bindVol('commentary', 'commentary');
     const bindToggle = (id, key) => {
       const el = $('#snd-' + id + '-toggle');
       if (!el) return;

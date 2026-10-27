@@ -8,7 +8,7 @@ SAK.Audio = (function () {
   // Admin sound controls (LT 2026-10-13) — defined early so all functions can use it
   const soundCfg = {
     master: 0.5, slap: 1.0, crowd: 1.0, react: 1.0,
-    reactOn: true, defeatOn: true,
+    reactOn: true, defeatOn: true, commentary: 1.0,
   };
   try {
     const saved = JSON.parse(localStorage.getItem('sak_sound_cfg') || '{}');
@@ -392,7 +392,7 @@ SAK.Audio = (function () {
     }
   }
 
-  /* ---- Smack King live commentary (LT 2026-10-27, batch 1: lines 1-6 + line 7) ----
+  /* ---- Smack King live commentary (LT 2026-10-27, lines 1-8) ----
      LT-requested AI announcer voice lines, played on landed slaps,
      LAYERED over the real slap SFX (never replacing them). These are
      separate from the real-recording slap/crowd bar: if a line isn't
@@ -406,6 +406,7 @@ SAK.Audio = (function () {
     { id: 'smackking-05', file: 'assets/sfx/smackking-05.mp3' }, // He felt that one in his seed phrase!
     { id: 'smackking-06', file: 'assets/sfx/smackking-06.mp3' }, // Slapped so hard his wallet disconnected!
     { id: 'smackking-07', file: 'assets/sfx/smackking-07.mp3' }, // Liquidity exited!
+    { id: 'smackking-08', file: 'assets/sfx/smackking-08.mp3' }, // He just got rugged by a right hand!
   ];
   const commentaryBufs = {};
   let commentarySrc = null, commentaryLoading = false, lastCommentaryIdx = -1;
@@ -419,8 +420,10 @@ SAK.Audio = (function () {
     });
   }
   // One line per landed slap, random (never the same line twice in a row),
-  // never overlapping another line. Gain 0.4 sits under the slap crack
-  // (~0.9) and the crowd swell (~0.45); +0.08s delay lets the crack hit first.
+  // never overlapping another line. Base gain 0.8 sits just under the slap
+  // crack (~0.9) and above the crowd swell (~0.45), times the commentary
+  // volume slider (soundCfg.commentary, 0-1.5, admin SOUND EFFECTS);
+  // +0.08s delay lets the crack hit first.
   function playCommentary() {
     if (!ready() || commentarySrc || commentaryLoading) return;
     let idx = Math.floor(Math.random() * COMMENTARY_BANK.length);
@@ -448,7 +451,7 @@ SAK.Audio = (function () {
     const idx = COMMENTARY_BANK.findIndex(b => b.id === id);
     if (idx >= 0) lastCommentaryIdx = idx;
     const src = ctx.createBufferSource(); src.buffer = buf;
-    const g = ctx.createGain(); g.gain.value = 0.4;
+    const g = ctx.createGain(); g.gain.value = 0.8 * soundCfg.commentary;
     src.connect(g); g.connect(master);
     commentarySrc = src;
     src.onended = () => { if (commentarySrc === src) commentarySrc = null; };
