@@ -64,10 +64,7 @@ SAK.Audio = (function () {
     { id: 'bell', file: 'assets/sfx/bell_boxing.mp3' },
     { id: 'defeat_dizzy', file: 'assets/sfx/defeat_dizzy.mp3' },
     { id: 'defeat_trombone', file: 'assets/sfx/defeat_trombone.mp3' },
-    { id: 'defeat_silly', file: 'assets/sfx/defeat_silly.mp3' },
     { id: 'react_boing', file: 'assets/sfx/react_boing.mp3' },
-    { id: 'react_whistle1', file: 'assets/sfx/react_whistle1.mp3' },
-    { id: 'react_whistle2', file: 'assets/sfx/react_whistle2.mp3' },
   ];
   const crowdBufs = {};
   function loadCrowdBank() {
@@ -531,8 +528,9 @@ SAK.Audio = (function () {
   }
 
   // Funny cartoon reaction on every face slap — random pick, layered OVER the hand slap (never replaces it)
+  // LT 2026-10-27: whistle layers cancelled, boing only
   function playSlapReact() {
-    const reacts = ['react_boing', 'react_whistle1', 'react_whistle2'];
+    const reacts = ['react_boing'];
     const pick = reacts[Math.floor(Math.random() * reacts.length)];
     const buf = crowdBufs[pick] || slapBufs[pick];
     if (!buf) {
@@ -680,7 +678,7 @@ SAK.Audio = (function () {
     fire() { if (!ready()) return; noise(0.5, 900, 0.6, 0.4, 'lowpass'); tone(220, 0.5, 'sawtooth', 0.15, 0, 880); },
     ko() {
       if (!ready()) return;
-      // Funny painful KO: heaviest real slap layered with cartoon explosion (no synth)
+      // KO: heaviest real slap only (LT 2026-10-27: silly boom layer cancelled, new layer options pending)
       const playBuf = (id, vol, delay) => {
         const buf = slapBufs[id] || crowdBufs[id];
         if (!buf) return;
@@ -689,7 +687,6 @@ SAK.Audio = (function () {
         src.connect(g); g.connect(master); src.start(ctx.currentTime + (delay || 0));
       };
       playBuf('monster', 1.0, 0);          // heavy real slap impact
-      playBuf('defeat_silly', 0.55, 0.08);  // cartoon explosion right after
     },
     win() { if (!ready()) return; [523, 659, 784, 1046].forEach((f, i) => tone(f, 0.35, 'triangle', 0.2, i * 0.11)); crowdWin(); },
     realCheer() { playRealCheer(); }, // real victory recording only, no synth

@@ -5215,11 +5215,8 @@
     const SND_DEFS = [
       ['slap', '👋 Slap', 'every face slap', true],
       ['react_boing', '🌀 Boing', 'random layer on face slaps', true],
-      ['react_whistle1', '🎵 Whistle 1', 'random layer on face slaps', true],
-      ['react_whistle2', '🎵 Whistle 2', 'random layer on face slaps', true],
       ['defeat_dizzy', '😵 Dizzy', 'random on defeat', true],
       ['defeat_trombone', '🎺 Trombone', 'random on defeat', true],
-      ['defeat_silly', '💥 Silly Boom', 'KO layer only', true],
       ['ko', '🥊 KO Impact', 'final knockout hit (layered)', false],
     ];
     // Collapsible folder for the preview/replace editor: collapsed by
