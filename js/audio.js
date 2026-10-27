@@ -393,7 +393,7 @@ SAK.Audio = (function () {
     }
   }
 
-  /* ---- Smack King live commentary (LT 2026-10-27, lines 1-17) ----
+  /* ---- Smack King live commentary (LT 2026-10-27, lines 1-24) ----
      LT-requested AI announcer voice lines, played on landed slaps,
      LAYERED over the real slap SFX (never replacing them). These are
      separate from the real-recording slap/crowd bar: if a line isn't
@@ -417,6 +417,13 @@ SAK.Audio = (function () {
     { id: 'smackking-15', file: 'assets/sfx/smackking-15.mp3' }, // His chart just crashed — and so did he!
     { id: 'smackking-16', file: 'assets/sfx/smackking-16.mp3' }, // He's seeing red candles now!
     { id: 'smackking-17', file: 'assets/sfx/smackking-17.mp3' }, // Slap of the century! Somebody check his holdings!
+    { id: 'smackking-18', file: 'assets/sfx/smackking-18.mp3' }, // He talked a big game, now he's eating canvas!
+    { id: 'smackking-19', file: 'assets/sfx/smackking-19.mp3' }, // That's what happens when you shill and don't deliver!
+    { id: 'smackking-20', file: 'assets/sfx/smackking-20.mp3' }, // He's wobbling like a memecoin on launch day!
+    { id: 'smackking-21', file: 'assets/sfx/smackking-21.mp3' }, // That slap had more impact than his last launch!
+    { id: 'smackking-22', file: 'assets/sfx/smackking-22.mp3' }, // No crying in the casino — but he's crying now!
+    { id: 'smackking-23', file: 'assets/sfx/smackking-23.mp3' }, // Call the medics — and his broker!
+    { id: 'smackking-24', file: 'assets/sfx/smackking-24.mp3' }, // And the crowd goes wild — that's payback!
   ];
   const commentaryBufs = {};
   let commentarySrc = null, commentaryLoading = false, lastCommentaryIdx = -1;
