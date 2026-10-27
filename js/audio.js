@@ -392,7 +392,7 @@ SAK.Audio = (function () {
     }
   }
 
-  /* ---- Smack King live commentary (LT 2026-10-27, lines 1-16) ----
+  /* ---- Smack King live commentary (LT 2026-10-27, lines 1-17) ----
      LT-requested AI announcer voice lines, played on landed slaps,
      LAYERED over the real slap SFX (never replacing them). These are
      separate from the real-recording slap/crowd bar: if a line isn't
@@ -415,6 +415,7 @@ SAK.Audio = (function () {
     { id: 'smackking-14', file: 'assets/sfx/smackking-14.mp3' }, // That was not a slap, that was a margin call!
     { id: 'smackking-15', file: 'assets/sfx/smackking-15.mp3' }, // His chart just crashed — and so did he!
     { id: 'smackking-16', file: 'assets/sfx/smackking-16.mp3' }, // He's seeing red candles now!
+    { id: 'smackking-17', file: 'assets/sfx/smackking-17.mp3' }, // Slap of the century! Somebody check his holdings!
   ];
   const commentaryBufs = {};
   let commentarySrc = null, commentaryLoading = false, lastCommentaryIdx = -1;
