@@ -63,6 +63,13 @@ SAK.KOLS = [
     look: { skin: '#5f3a20', shirt: '#1a1a1a', hair: '#1a1a1a', pants: '#1a1a2a', accessory: 'shades', accent: '#111111', body: 'gymbro', hairStyle: 'buzz', eyes: 'angry', facialHair: 'goatee', outfit: 'tactical', parody: 'slingy', cardBg: '#ffd23f', cardShirt: '#ffd23f' },
     taunts: ['There is no second-best slap.', 'I just bought more slaps.', 'Laser-focused on your cheek. 👁👁']
   },
+  {
+    id: 'chairboy', name: 'Chairboy', handle: '@ChairboySlaps', level: 8,
+    tagline: 'Take a seat. This slap is reserved.',
+    difficulty: 4, hp: 220, power: 24, accuracy: 0.84, winPts: 780, minBet: 750, payout: 2.9,
+    look: { skin: '#f2e6d8', shirt: '#f2e6d8', hair: '#f2e6d8', pants: '#1a1a2a', accessory: 'none', accent: '#22d3ee', body: 'classic', hairStyle: 'bald', eyes: 'round', eyeColor: '#ff9a1f', outfit: 'tee', parody: 'chairboy', cardBg: '#12121e' },
+    taunts: ['Take a seat. This slap is reserved.', 'The chair recognizes you — as exit liquidity.', 'You just got chaired. 🪑']
+  },
   /* ---- V3 Parody Fighters -------------------------------------------------
    * Cartoon parody presets inspired by reference images. The `parody` field
    * triggers special 3D geometry in the Fighter builder (horns, visor, etc.).

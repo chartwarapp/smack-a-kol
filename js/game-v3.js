@@ -3656,7 +3656,7 @@
    * their difficulty/accuracy data). FREE mode: no SOL, PTS only.
    * WAGER mode: SOL bet vs the house at a flat 1.9x. The classic
    * picker (same 8 + fan KOLs) stays reachable from FREE mode. */
-  const SOLO_KOL_IDS = ['solflakey', 'cupsalty', 'fabiony', 'arthurhaze', 'tolly', 'mikesailor', 'unibonker', 'pattyspice', 'frankienogood', 'ansombull', 'alone'];
+  const SOLO_KOL_IDS = ['solflakey', 'cupsalty', 'fabiony', 'arthurhaze', 'tolly', 'mikesailor', 'chairboy', 'unibonker', 'pattyspice', 'frankienogood', 'ansombull', 'alone'];
   const soloKols = () => SOLO_KOL_IDS.map(id => SAK.KOLS.find(k => k.id === id)).filter(Boolean);
   function soloTier(k) {
     const lvl = (k && k.level) || 1;

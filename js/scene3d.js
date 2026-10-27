@@ -1457,6 +1457,7 @@ SAK.Scene3D = (function () {
       else if (P === 'solflakey') this.buildSolflakey(add, tadd);
       else if (P === 'slingy') this.buildSlingy(add, tadd);
       else if (P === 'alone') this.buildAlone(add, tadd);
+      else if (P === 'chairboy') this.buildChairboy(add, tadd);
       else if (P === 'tolly') this.buildTolly(add, tadd);
     }
 
@@ -1651,6 +1652,67 @@ SAK.Scene3D = (function () {
       const chestZ = (0.5 * B.w * Math.min(1.25, B.taper) + 0.035) * 0.68 * B.d + 0.012;
       const plate = tadd(new T.PlaneGeometry(0.55, 0.34), new T.MeshBasicMaterial({ map: tex }), 0, 0.50, chestZ + 0.03);
       plate.castShadow = false;
+    }
+
+    /** Chairboy, pixel-visor parody (LT 2026-10-27): wide black visor
+     * with glowing orange square eyes, plus a blue gradient data-bar
+     * across the forehead — the reference's pixel head translated into
+     * the game's smooth cartoon style. Brows are hidden (they would
+     * float above the visor); the base eyes sit behind the visor box,
+     * which fully covers them. */
+    buildChairboy(add, tadd) {
+      const black = mat('#111118');
+      // Hide the brows — same dim-match as Alone/SolFlakey.
+      for (const m of this.head.children) {
+        const g = m.geometry;
+        if (g && g.type === 'CylinderGeometry' && g.parameters && Math.abs(g.parameters.height - 0.32) < 0.01) m.visible = false;
+      }
+      // Wide black visor across the eyes (eye line y 0.50). Height
+      // 0.26 so it fully covers the eye whites (sclera tops reach
+      // y 0.62) — a shorter visor left white arcs peeking above it.
+      add(new T.BoxGeometry(0.64, 0.26, 0.10), black, 0, 0.50, 0.52);
+      // Glowing orange square eyes on the visor front (emissive, never
+      // a new dynamic light — iPhone light-count rule).
+      const eyeMat = new T.MeshStandardMaterial({ color: '#ff9a1f', emissive: new T.Color('#ff9a1f'), emissiveIntensity: 1.4, roughness: 0.4 });
+      for (const sx of [-1, 1]) {
+        add(new T.BoxGeometry(0.09, 0.09, 0.02), eyeMat, sx * 0.18, 0.50, 0.58);
+      }
+      // Blue gradient data-bar across the forehead — canvas texture
+      // plane, like Alone's chest print. Head surface at y 0.68 is
+      // z ≈ 0.43, so z 0.45 sits just proud.
+      const [c, x] = cnv('#000000');
+      const grad = x.createLinearGradient(0, 0, 256, 0);
+      grad.addColorStop(0, '#e0f2fe'); grad.addColorStop(0.35, '#38bdf8');
+      grad.addColorStop(0.7, '#22d3ee'); grad.addColorStop(1, '#2dd4bf');
+      x.fillStyle = grad; x.fillRect(0, 0, 256, 256);
+      const tex = mkTex(c);
+      const bar = add(new T.PlaneGeometry(0.50, 0.09), new T.MeshBasicMaterial({ map: tex }), 0, 0.68, 0.45);
+      bar.castShadow = false;
+      // Flame-flare hair (LT 2026-10-27): pointed tongues fanning
+      // across the top of the head, sweeping left like the reference's
+      // pixel flare, in the body's own pale color — outlined so the
+      // hair reads against the same-colored head.
+      const skin = mat(this.look.skin || '#f2e6d8');
+      const tongues = [[-0.32, -0.55, 0.48], [-0.17, -0.35, 0.42], [0.0, -0.10, 0.38], [0.17, 0.15, 0.34], [0.30, 0.35, 0.28]];
+      for (const [tx, tilt, th] of tongues) {
+        const tongue = add(new T.ConeGeometry(0.10, th, 8), skin, tx, 0.92, 0, m => { m.rotation.z = tilt; });
+        outline(tongue, 1.08);
+      }
+      // Left-side flickers echoing the reference's left spray.
+      for (const [fx, fy, ft, fh, fr] of [[-0.48, 0.32, -1.1, 0.22, 0.06], [-0.50, 0.14, -1.25, 0.16, 0.05]]) {
+        const flick = add(new T.ConeGeometry(fr, fh, 8), skin, fx, fy, 0, m => { m.rotation.z = ft; });
+        outline(flick, 1.08);
+      }
+      // Hoodie sweater (LT 2026-10-27, no suit): the base 'hoodie'
+      // outfit is camo + green, so the pale pieces are drawn here —
+      // hood resting on the back, kangaroo pocket, dark drawstrings.
+      const dark = mat('#1a1a2a');
+      const hood = tadd(new T.SphereGeometry(0.24, 10, 8, 0, Math.PI * 2, 0, Math.PI * 0.6), skin, 0, 0.78, -0.3);
+      hood.rotation.x = 0.5;
+      const pocket = tadd(new T.BoxGeometry(0.3, 0.18, 0.06), skin, 0, 0.25, 0.32);
+      outline(pocket, 1.1);
+      for (const sx of [-0.08, 0.08])
+        tadd(new T.CylinderGeometry(0.012, 0.012, 0.18, 5), dark, sx, 0.68, 0.33);
     }
 
     /** Tolly rework (LT 2026-10-27): cap, shades, beard and Solana
