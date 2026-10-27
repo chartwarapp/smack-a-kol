@@ -21,10 +21,9 @@
  * ========================================================================= */
 (function () {
   var CODE = 'SMACKTIME'; // <-- change this one word to rotate the master code
-  // Early-access signup: the repost step links here. LT: swap in the exact
-  // pinned-post URL when handy — until then it points at the @smackakol
-  // profile, where the pinned post sits at the top.
-  var PINNED_POST_URL = 'https://x.com/smackakol';
+  // Early-access signup: the repost step links to the pinned post
+  // (LT-supplied URL, 2026-10-27).
+  var PINNED_POST_URL = 'https://x.com/smackakol/status/2115040640807428372?s=46';
   var KEY = 'sak_gate_v1';
 
   // djb2 — kept for the MASTER flag (existing unlocked devices store
