@@ -137,6 +137,7 @@ SAK.Audio = (function () {
     if (slapLoading || !ctx) return;
     slapLoading = true;
     loadCrowdBank();
+    loadCommentaryBank();
     // A custom slap replaces the entire random bank with the one upload
     loadCustomInto('slap', {}).then(ok => {
       if (ok) getCustomSound('slap').then(async (blob) => {
@@ -391,6 +392,69 @@ SAK.Audio = (function () {
     }
   }
 
+  /* ---- Smack King live commentary (LT 2026-10-27, batch 1: lines 1-6 + line 7) ----
+     LT-requested AI announcer voice lines, played on landed slaps,
+     LAYERED over the real slap SFX (never replacing them). These are
+     separate from the real-recording slap/crowd bar: if a line isn't
+     loaded, stay silent — no synth fallback. Later batches (7-24) slot
+     in by adding entries to COMMENTARY_BANK. ---- */
+  const COMMENTARY_BANK = [
+    { id: 'smackking-01', file: 'assets/sfx/smackking-01.mp3' }, // Slapped the coins right out of his mouth!
+    { id: 'smackking-02', file: 'assets/sfx/smackking-02.mp3' }, // Ouch... that was hard!
+    { id: 'smackking-03', file: 'assets/sfx/smackking-03.mp3' }, // Damn, that hurt like getting drained!
+    { id: 'smackking-04', file: 'assets/sfx/smackking-04.mp3' }, // That slap sent his portfolio to zero!
+    { id: 'smackking-05', file: 'assets/sfx/smackking-05.mp3' }, // He felt that one in his seed phrase!
+    { id: 'smackking-06', file: 'assets/sfx/smackking-06.mp3' }, // Slapped so hard his wallet disconnected!
+    { id: 'smackking-07', file: 'assets/sfx/smackking-07.mp3' }, // Liquidity exited!
+  ];
+  const commentaryBufs = {};
+  let commentarySrc = null, commentaryLoading = false, lastCommentaryIdx = -1;
+  function loadCommentaryBank() {
+    if (!ctx) return;
+    COMMENTARY_BANK.forEach(b => {
+      fetch(b.file).then(r => { if (!r.ok) throw 0; return r.arrayBuffer(); })
+        .then(ab => ctx.decodeAudioData(ab))
+        .then(buf => { commentaryBufs[b.id] = buf; })
+        .catch(() => { /* silent — a missing line just never plays */ });
+    });
+  }
+  // One line per landed slap, random (never the same line twice in a row),
+  // never overlapping another line. Gain 0.4 sits under the slap crack
+  // (~0.9) and the crowd swell (~0.45); +0.08s delay lets the crack hit first.
+  function playCommentary() {
+    if (!ready() || commentarySrc || commentaryLoading) return;
+    let idx = Math.floor(Math.random() * COMMENTARY_BANK.length);
+    if (COMMENTARY_BANK.length > 1 && idx === lastCommentaryIdx) idx = (idx + 1) % COMMENTARY_BANK.length;
+    const entry = COMMENTARY_BANK[idx];
+    const buf = commentaryBufs[entry.id];
+    if (!buf) {
+      // Not preloaded yet — fetch on demand, play only if nothing started since.
+      commentaryLoading = true;
+      fetch(entry.file).then(r => { if (!r.ok) throw 0; return r.arrayBuffer(); })
+        .then(ab => ctx.decodeAudioData(ab))
+        .then(b => {
+          commentaryBufs[entry.id] = b;
+          commentaryLoading = false;
+          if (!commentarySrc) playCommentaryBuf(entry.id);
+        })
+        .catch(() => { commentaryLoading = false; });
+      return;
+    }
+    playCommentaryBuf(entry.id);
+  }
+  function playCommentaryBuf(id) {
+    const buf = commentaryBufs[id];
+    if (!buf || !ctx || commentarySrc) return;
+    const idx = COMMENTARY_BANK.findIndex(b => b.id === id);
+    if (idx >= 0) lastCommentaryIdx = idx;
+    const src = ctx.createBufferSource(); src.buffer = buf;
+    const g = ctx.createGain(); g.gain.value = 0.4;
+    src.connect(g); g.connect(master);
+    commentarySrc = src;
+    src.onended = () => { if (commentarySrc === src) commentarySrc = null; };
+    src.start(ctx.currentTime + 0.08);
+  }
+
   // Funny cartoon reaction on every face slap — random pick, layered OVER the hand slap (never replaces it)
   function playSlapReact() {
     const reacts = ['react_boing', 'react_whistle1', 'react_whistle2'];
@@ -512,6 +576,7 @@ SAK.Audio = (function () {
       if (!ready()) return;
       crowdSlap(strength * soundCfg.crowd);  // crowd gasps/cheers on every slap
       if (soundCfg.reactOn) playSlapReact();      // funny cartoon reaction, layered over the slap
+      playCommentary();                            // Smack King line, layered over the slap, never overlapping another line
       if (playSlapBuf(strength)) return;   // real recorded slap
       // synth fallback (bank not loaded yet / fetch failed) — noise only, no tones
       const s = Math.min(1.5, strength);
