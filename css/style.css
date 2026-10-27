@@ -1400,6 +1400,18 @@ body.on-menu #ticker { display: none; }
 }
 .mc-join:active { transform: translateY(2px); box-shadow: none; }
 .mc-join:disabled { opacity: .5; }
+.mc-dismiss {
+  flex: none; font-family: var(--font); font-size: 14px; font-weight: 800;
+  color: #888; background: transparent; border: 2px solid #ccc; border-radius: 10px;
+  padding: 10px 12px; cursor: pointer;
+}
+.mc-dismiss:active { transform: translateY(2px); }
+.mc-dismiss-all {
+  width: 100%; font-family: var(--font); font-size: 12px; font-weight: 700; letter-spacing: 1px;
+  color: #666; background: transparent; border: 2px dashed #bbb; border-radius: 10px;
+  padding: 8px; cursor: pointer; margin-top: 2px;
+}
+.mc-dismiss-all:active { transform: translateY(1px); }
 
 /* ---- Solo Challenge tiers (2026-10-22 restructure) ---- */
 .kol-card .kc-tier { position: absolute; top: 2px; left: 2px; font-size: 9px; font-weight: 800; padding: 2px 5px; border-radius: 8px; letter-spacing: .02em; text-shadow: none; }

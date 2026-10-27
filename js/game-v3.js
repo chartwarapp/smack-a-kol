@@ -2933,11 +2933,31 @@
   // of a popup you can only catch once. On timeout/leave you land back
   // in the lobby with the card still there.
   let fightReadyChallenges = [];
+  // FIGHT READY dismissals (2026-10-27): hiding a card is LOCAL ONLY — it
+  // removes the row from this phone's lobby, it does NOT cancel the
+  // on-chain challenge or refund anything. The contract has no cancel or
+  // refund path for Accepted/Fighting challenges (cancelChallenge and
+  // refundExpired both require Open), so a dismissed fight's SOL stays
+  // locked until the fight is played + settled or a future contract-level
+  // stuck-fight resolution exists. Same 7-day prune as incoming dismissals.
+  function dismissedFightReady() {
+    try { return JSON.parse(localStorage.getItem('sak_dismissed_fightready') || '{}'); } catch (e) { return {}; }
+  }
+  function dismissFightReadyForever(addr) {
+    try {
+      const d = dismissedFightReady();
+      d[addr] = Date.now();
+      const cutoff = Date.now() - 7 * 24 * 60 * 60 * 1000;
+      Object.keys(d).forEach(k => { if (!d[k] || d[k] < cutoff) delete d[k]; });
+      localStorage.setItem('sak_dismissed_fightready', JSON.stringify(d));
+    } catch (e) {}
+  }
   function renderFightReady() {
     const bar = $('#fight-ready-bar');
     const list = $('#fight-ready-list');
     if (!bar || !list) return;
-    const rows = (fightReadyChallenges || []).filter(ch => ch && ch.challenge_addr);
+    const dismissed = dismissedFightReady();
+    const rows = (fightReadyChallenges || []).filter(ch => ch && ch.challenge_addr && !dismissed[ch.challenge_addr]);
     if (rows.length === 0) {
       bar.classList.add('hidden');
       list.innerHTML = '';
@@ -2953,14 +2973,29 @@
         '<div class="mc-info"><div class="mc-opp">🥊 ' + esc(oppShort) + '</div>' +
         '<div class="mc-meta">' + esc(wager) + ' · ' + esc(state) + '</div></div>' +
         '<button class="mc-join" data-addr="' + esc(ch.challenge_addr) + '">JOIN FIGHT</button>' +
+        '<button class="mc-dismiss" data-addr="' + esc(ch.challenge_addr) + '" aria-label="Hide this card">✕</button>' +
         '</div>';
-    }).join('');
+    }).join('') +
+    '<button class="mc-dismiss-all" id="fight-ready-dismiss-all">DISMISS ALL CARDS</button>';
     list.querySelectorAll('.mc-join').forEach(btn => {
       btn.onclick = () => {
         const ch = (fightReadyChallenges || []).find(x => x.challenge_addr === btn.dataset.addr);
         if (ch) joinFightReady(ch, btn);
       };
     });
+    list.querySelectorAll('.mc-dismiss').forEach(btn => {
+      btn.onclick = () => {
+        dismissFightReadyForever(btn.dataset.addr);
+        renderFightReady();
+        toast('Card hidden — the challenge itself is unchanged', 2200);
+      };
+    });
+    const allBtn = list.querySelector('#fight-ready-dismiss-all');
+    if (allBtn) allBtn.onclick = () => {
+      rows.forEach(ch => dismissFightReadyForever(ch.challenge_addr));
+      renderFightReady();
+      toast(rows.length + ' cards hidden — challenges unchanged', 2200);
+    };
   }
 
   async function joinFightReady(ch, btn) {
