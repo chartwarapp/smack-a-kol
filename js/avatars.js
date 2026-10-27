@@ -184,7 +184,7 @@ SAK.avatarSVG = function (look, opts) {
     <rect width="100" height="100" rx="18" fill="${bg}"/>
     <rect y="80" width="100" height="20" fill="#0002"/>
     ${hairBack}
-    <path d="M${sw[0]} 100 Q50 72 ${sw[1]} 100 Z" fill="${look.shirt}" stroke="#0003" stroke-width="2"/>
+    <path d="M${sw[0]} 100 Q50 72 ${sw[1]} 100 Z" fill="${look.cardShirt || look.shirt}" stroke="#0003" stroke-width="2"/>
     <circle cx="50" cy="50" r="30" fill="${s}" stroke="#0003" stroke-width="2"/>
     ${speciesFx}
     ${hairFront}

@@ -60,7 +60,7 @@ SAK.KOLS = [
     id: 'mikesailor', name: 'Slingy', handle: '@NoSecondBestSlap', level: 7,
     tagline: 'Laser eyes. Infinite conviction. Zero chill.',
     difficulty: 4, hp: 200, power: 22, accuracy: 0.82, winPts: 680, minBet: 500, payout: 2.8,
-    look: { skin: '#5f3a20', shirt: '#1a1a1a', hair: '#1a1a1a', pants: '#1a1a2a', accessory: 'shades', accent: '#111111', body: 'gymbro', hairStyle: 'buzz', eyes: 'angry', facialHair: 'goatee', outfit: 'tactical', parody: 'slingy', cardBg: '#ffd23f' },
+    look: { skin: '#5f3a20', shirt: '#1a1a1a', hair: '#1a1a1a', pants: '#1a1a2a', accessory: 'shades', accent: '#111111', body: 'gymbro', hairStyle: 'buzz', eyes: 'angry', facialHair: 'goatee', outfit: 'tactical', parody: 'slingy', cardBg: '#ffd23f', cardShirt: '#ffd23f' },
     taunts: ['There is no second-best slap.', 'I just bought more slaps.', 'Laser-focused on your cheek. 👁👁']
   },
   /* ---- V3 Parody Fighters -------------------------------------------------
