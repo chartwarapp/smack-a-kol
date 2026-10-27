@@ -1434,7 +1434,7 @@ SAK.Scene3D = (function () {
     /* =====================================================================
      * V3: PARODY FIGHTERS — cartoon parody overlays inspired by reference
      * images. Triggered by look.parody: 'patty' | 'frankie' | 'ansom' |
-     * 'unibonker' | 'cupsalty' | 'solflakey'. All parody meshes get
+     * 'unibonker' | 'cupsalty' | 'solflakey' | 'slingy' | 'alone'. All parody meshes get
      * userData.parody=true so rebuild() clears them.
      * ===================================================================== */
     buildParody() {
@@ -1455,6 +1455,8 @@ SAK.Scene3D = (function () {
       else if (P === 'unibonker') this.buildUnibonker(add, tadd);
       else if (P === 'cupsalty') this.buildCupsalty(add, tadd);
       else if (P === 'solflakey') this.buildSolflakey(add, tadd);
+      else if (P === 'slingy') this.buildSlingy(add, tadd);
+      else if (P === 'alone') this.buildAlone(add, tadd);
     }
 
     /** UniBonker: yellow robot (LT 2026-10-26) — antenna, metallic
@@ -1565,6 +1567,89 @@ SAK.Scene3D = (function () {
         m.rotation.x = Math.PI;
       });
       outline(tuft, 1.15);
+    }
+
+    /** Slingy Blade-style parody (LT 2026-10-26): black rectangular shades
+     * come from the base 'shades' accessory and the black goatee from
+     * base facialHair; this overlay adds the gray hairline patch, the
+     * mustache, the gray chin patch on the goatee tip, and the silver
+     * hex chest emblem over the tactical vest. */
+    buildSlingy(add, tadd) {
+      const black = mat('#1a1a1a');
+      const gray = mat('#d8d8d8');
+      const silver = new T.MeshStandardMaterial({ color: '#c0c8d0', metalness: 0.7, roughness: 0.35 });
+      // Gray patch straddling the front hairline (buzz cap rim at the
+      // front is y ≈ 0.79, surface z ≈ 0.35) — half in the black hair.
+      const patch = add(new T.SphereGeometry(0.075, 12, 10), gray, -0.10, 0.79, 0.33);
+      patch.scale.set(1.1, 0.55, 0.6);
+      // Mustache over the mouth (base goatee covers the chin only) —
+      // capsules laid horizontal with a slight outer droop.
+      for (const sx of [-1, 1]) {
+        const mo = add(new T.CapsuleGeometry(0.035, 0.10, 4, 8), black, sx * 0.09, 0.26, 0.47);
+        mo.rotation.z = Math.PI / 2 - sx * 0.25;
+      }
+      // Gray chin: a wide flattened blob wrapping the lower goatee
+      // (wider than the capsule, so it reads as a gray chin section,
+      // not a bead on the tip).
+      const chin = add(new T.SphereGeometry(0.07, 12, 10), gray, 0, 0.05, 0.48);
+      chin.scale.set(1.3, 0.8, 0.7);
+      // Silver hex emblem on the chest, proud of the torso surface
+      // (same chestZ calibration as UniBonker's speaker).
+      const B = this.body || { w: 1, h: 1, d: 1, taper: 1 };
+      const chestZ = (0.5 * B.w * Math.min(1.25, B.taper) + 0.035) * 0.68 * B.d + 0.012;
+      const hex = tadd(new T.CylinderGeometry(0.10, 0.10, 0.03, 6), silver, 0, 0.55, chestZ + 0.08);
+      hex.rotation.x = Math.PI / 2;
+      hex.castShadow = false;
+    }
+
+    /** Alone, Pump.fun-founder parody (LT 2026-10-26): black cap dome
+     * with yellow front panel + yellow brim band, big white oval
+     * sunglasses, and a STOP BEING POOR chest print. The 'tank' outfit's
+     * racer stripes are hidden (they're the only mapped torso mesh) so
+     * the chest reads as the plain white tank from the reference. */
+    buildAlone(add, tadd) {
+      const black = mat('#1a1a1a');
+      const yellow = mat('#ffd23f');
+      const white = mat('#ffffff');
+      // Gray brows read as floating antennae over the white glasses —
+      // hide them like the other parodies (dim-match, nothing else in
+      // the head shares the 0.32 brow cylinders).
+      for (const m of this.head.children) {
+        const g = m.geometry;
+        if (g && g.type === 'CylinderGeometry' && g.parameters && Math.abs(g.parameters.height - 0.32) < 0.01) m.visible = false;
+      }
+      // Cap — black dome swallowing the gray 'long' cap, like SolFlakey.
+      const cap = add(new T.SphereGeometry(0.56, 20, 12, 0, Math.PI * 2, 0, Math.PI * 0.42), black, 0, 0.44, 0);
+      outline(cap, 1.03);
+      // Yellow front panel on the dome, above the brim band.
+      const panel = add(new T.SphereGeometry(0.17, 16, 12), yellow, 0, 0.78, 0.34);
+      panel.scale.set(1.2, 0.7, 0.4);
+      // Yellow brim band across the front, below the panel.
+      add(new T.BoxGeometry(0.62, 0.10, 0.08), yellow, 0, 0.62, 0.46);
+      // White oval sunglasses — white shells + dark lenses, over the eyes.
+      for (const sx of [-1, 1]) {
+        const shell = add(new T.SphereGeometry(0.14, 16, 12), white, sx * 0.18, 0.50, 0.54);
+        shell.scale.set(1.0, 1.05, 0.35);
+        const lens = add(new T.SphereGeometry(0.105, 16, 12), black, sx * 0.18, 0.50, 0.575);
+        lens.scale.set(1.0, 1.0, 0.3);
+      }
+      add(new T.BoxGeometry(0.10, 0.04, 0.04), white, 0, 0.53, 0.55); // bridge
+      // Tiny flat black mouth over the base mouth, like the reference.
+      add(new T.BoxGeometry(0.14, 0.03, 0.02), black, 0, 0.20, 0.49);
+      // Hide the tank's racer-stripe wrap (the only mapped torso mesh),
+      // leaving the plain white torso underneath.
+      this.torso.traverse(o => {
+        if (o.isMesh && o.material && o.material.map) o.visible = false;
+      });
+      // STOP BEING POOR chest print — canvas texture plane on the chest.
+      const [c, x] = cnv('#ffffff');
+      x.fillStyle = '#111111'; x.textAlign = 'center'; x.font = 'bold 44px Arial';
+      x.fillText('STOP', 128, 52); x.fillText('BEING', 128, 100); x.fillText('POOR', 128, 148);
+      const tex = mkTex(c);
+      const B = this.body || { w: 1, h: 1, d: 1, taper: 1 };
+      const chestZ = (0.5 * B.w * Math.min(1.25, B.taper) + 0.035) * 0.68 * B.d + 0.012;
+      const plate = tadd(new T.PlaneGeometry(0.55, 0.34), new T.MeshBasicMaterial({ map: tex }), 0, 0.50, chestZ + 0.03);
+      plate.castShadow = false;
     }
 
     /** Patty Spice: blue crystal bull — curved horns, spiky black hair, glowing visor. */

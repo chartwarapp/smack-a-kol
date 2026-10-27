@@ -60,7 +60,7 @@ SAK.KOLS = [
     id: 'mikesailor', name: 'Slingy', handle: '@NoSecondBestSlap', level: 7,
     tagline: 'Laser eyes. Infinite conviction. Zero chill.',
     difficulty: 4, hp: 200, power: 22, accuracy: 0.82, winPts: 680, minBet: 500, payout: 2.8,
-    look: { skin: '#f0b98f', shirt: '#ff9500', hair: '#cfcfd8', pants: '#1a1a2a', accessory: 'laser', accent: '#ff1a1a', body: 'chonk', hairStyle: 'buzz', eyes: 'big' },
+    look: { skin: '#5f3a20', shirt: '#1a1a1a', hair: '#1a1a1a', pants: '#1a1a2a', accessory: 'shades', accent: '#111111', body: 'gymbro', hairStyle: 'buzz', eyes: 'angry', facialHair: 'goatee', outfit: 'tactical', parody: 'slingy', cardBg: '#ffd23f' },
     taunts: ['There is no second-best slap.', 'I just bought more slaps.', 'Laser-focused on your cheek. 👁👁']
   },
   /* ---- V3 Parody Fighters -------------------------------------------------
@@ -94,6 +94,13 @@ SAK.KOLS = [
     difficulty: 5, hp: 300, power: 30, accuracy: 0.9, winPts: 1200, minBet: 1000, payout: 3.5,
     look: { skin: '#7a4a2e', shirt: '#1a1a1a', hair: '#0f0f0f', pants: '#0f0f0f', accessory: 'none', accent: '#39ff88', body: 'gymbro', hairStyle: 'afro', eyes: 'angry', eyeColor: '#22ff66', parody: 'ansom', gloves: 'spike', outfit: 'hoodie' },
     taunts: ['The horns see your fear.', 'Darkness slaps back.', 'You were never bullish on this.']
+  },
+  {
+    id: 'alone', name: 'Alone', handle: '@Alone9', level: 10,
+    tagline: 'Don\'t tread on me. Stop being poor.',
+    difficulty: 5, hp: 280, power: 28, accuracy: 0.88, winPts: 1100, minBet: 1000, payout: 3.4,
+    look: { skin: '#f5d3b8', shirt: '#ffffff', hair: '#c8c8d0', pants: '#1a1a2a', accessory: 'none', accent: '#111111', body: 'noodle', hairStyle: 'long', eyes: 'round', eyeColor: '#3a3a3a', outfit: 'tank', parody: 'alone', cardBg: '#5ecb88' },
+    taunts: ['Don\'t tread on this slap. 🐍', 'This slap just launched — already up 100x.', 'You just got rugged by a slap.']
   }
 ];
 

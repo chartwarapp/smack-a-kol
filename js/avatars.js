@@ -6,7 +6,7 @@ window.SAK = window.SAK || {};
 
 SAK.avatarSVG = function (look, opts) {
   opts = opts || {};
-  const bg = opts.bg || look.shirt;
+  const bg = opts.bg || look.cardBg || look.shirt;
   // LT 2026-10-25: the fighter card passes the account-dialect avatar
   // (hairColor), while the 3D preview converts to the scene dialect
   // (hair) first — so accept both, or the hair falls back to black.
@@ -119,6 +119,17 @@ SAK.avatarSVG = function (look, opts) {
   const cupsaltyFx = look.parody === 'cupsalty'
     ? `<g><rect x="27" y="35" width="19" height="10" fill="${s}"/><rect x="54" y="35" width="19" height="10" fill="${s}"/><circle cx="22" cy="62" r="4" fill="#9ab54d"/><circle cx="80" cy="58" r="5" fill="#9ab54d"/><rect x="44" y="70" width="6" height="10" rx="2" fill="#fff" stroke="#0003" stroke-width="1"/><rect x="50" y="70" width="6" height="10" rx="2" fill="#fff" stroke="#0003" stroke-width="1"/><path d="M22 36 Q50 4 78 36 Z" fill="#6b7c3f"/><ellipse cx="38" cy="26" rx="10" ry="6" fill="#4a5c2a"/><ellipse cx="62" cy="22" rx="8" ry="5" fill="#8a9a4b"/><rect x="48" y="38" width="30" height="7" rx="3" fill="#6b7c3f"/></g>`
     : '';
+  // Slingy Blade-style parody (LT 2026-10-26): gray hairline patch,
+  // mustache + goatee with gray chin patch, over the base shades.
+  const slingyFx = look.parody === 'slingy'
+    ? `<g><path d="M40 22 Q45 17 51 19 L49 26 Q44 24 41 27 Z" fill="#d8d8d8"/><ellipse cx="41" cy="62" rx="8" ry="3.5" fill="#1a1a1a" transform="rotate(-10 41 62)"/><ellipse cx="59" cy="62" rx="8" ry="3.5" fill="#1a1a1a" transform="rotate(10 59 62)"/><path d="M43 67 Q50 65 57 67 Q57 78 50 79 Q43 78 43 67 Z" fill="#1a1a1a"/><ellipse cx="50" cy="77" rx="4" ry="2.5" fill="#d8d8d8"/></g>`
+    : '';
+  // Alone (LT 2026-10-26): black cap + yellow front panel + yellow
+  // brim band with DON'T TREAD ON ME, white oval sunglasses, flat
+  // little mouth like the reference.
+  const aloneFx = look.parody === 'alone'
+    ? `<g><path d="M22 36 Q50 4 78 36 Z" fill="#1a1a1a"/><ellipse cx="50" cy="26" rx="15" ry="8" fill="#ffd23f"/><path d="M42 28 q4 -4 8 0 t8 0" stroke="#2a5c2a" stroke-width="1.5" fill="none" stroke-linecap="round"/><rect x="22" y="31" width="56" height="8" fill="#ffd23f"/><text x="50" y="37.5" text-anchor="middle" font-size="5" font-weight="bold" fill="#111" font-family="Arial, sans-serif">DON'T TREAD ON ME</text><ellipse cx="37" cy="51" rx="11" ry="10" fill="#fff" stroke="#0003" stroke-width="1"/><ellipse cx="63" cy="51" rx="11" ry="10" fill="#fff" stroke="#0003" stroke-width="1"/><ellipse cx="37" cy="51" rx="8" ry="8" fill="#1a1a1a"/><ellipse cx="63" cy="51" rx="8" ry="8" fill="#1a1a1a"/><rect x="39" y="64" width="22" height="12" fill="${s}"/><rect x="46" y="67" width="8" height="2.5" rx="1" fill="#1a1a1a"/></g>`
+    : '';
 
   // Animal species overlays (drawn right after the head circle, under hair/eyes).
   let speciesFx = '';
@@ -188,6 +199,8 @@ SAK.avatarSVG = function (look, opts) {
     ${unibonkerFx}
     ${cupsaltyFx}
     ${solflakeyFx}
+    ${slingyFx}
+    ${aloneFx}
     ${opts.blush ? '<ellipse cx="68" cy="62" rx="9" ry="6" fill="#ff2d2d" opacity="0.55"/>' : ''}
     ${dmgFx}
     ${tieFx}
@@ -217,6 +230,10 @@ SAK.avatarBodySVG = function (look) {
     : '';
   const bw = { chonk: 8, gymbro: 4, noodle: -6, smol: -2 }[look.body] || 0;
   const tx0 = 27 - bw / 2, tx1 = 73 + bw / 2, tw = tx1 - tx0;
+  // Alone (LT 2026-10-26): STOP BEING POOR print on the tank.
+  const aloneShirt = look.parody === 'alone'
+    ? `<text x="50" y="102" text-anchor="middle" font-size="10" font-weight="bold" fill="#111" font-family="Arial, sans-serif">STOP</text><text x="50" y="113" text-anchor="middle" font-size="10" font-weight="bold" fill="#111" font-family="Arial, sans-serif">BEING</text><text x="50" y="124" text-anchor="middle" font-size="10" font-weight="bold" fill="#111" font-family="Arial, sans-serif">POOR</text>`
+    : '';
   return `<svg viewBox="0 0 100 170" xmlns="http://www.w3.org/2000/svg" class="avatar-body-svg">
     <g transform="rotate(8 30 92)"><rect x="24" y="90" width="11" height="26" rx="5" fill="${shirt}"/><rect x="24.5" y="112" width="10" height="18" rx="5" fill="${s}"/><circle cx="29.5" cy="134" r="6" fill="${s}"/></g>
     <g transform="rotate(-8 70 92)"><rect x="65" y="90" width="11" height="26" rx="5" fill="${shirt}"/><rect x="65.5" y="112" width="10" height="18" rx="5" fill="${s}"/><circle cx="70.5" cy="134" r="6" fill="${s}"/></g>
@@ -228,6 +245,7 @@ SAK.avatarBodySVG = function (look) {
     <rect x="${tx0}" y="86" width="${tw}" height="44" rx="10" fill="${shirt}" stroke="#0003" stroke-width="2"/>
     <rect x="${tx0}" y="128" width="${tw}" height="7" fill="#1a1a22"/>
     ${printImg}
+    ${aloneShirt}
     <g>${head}</g>
   </svg>`;
 };
