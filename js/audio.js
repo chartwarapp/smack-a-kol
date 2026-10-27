@@ -138,6 +138,7 @@ SAK.Audio = (function () {
     slapLoading = true;
     loadCrowdBank();
     loadCommentaryBank();
+    loadOpeningBank();
     // A custom slap replaces the entire random bank with the one upload
     loadCustomInto('slap', {}).then(ok => {
       if (ok) getCustomSound('slap').then(async (blob) => {
@@ -467,6 +468,61 @@ SAK.Audio = (function () {
     src.start(ctx.currentTime + 0.08);
   }
 
+  /* ---- Smack King fight-opening lines (LT 2026-10-27) ----
+     SEPARATE bank from the slap COMMENTARY_BANK — one line per fight,
+     played at the very start of a fight before the ROUND 1 card, never
+     mixed into the slap rotation. Same conventions: respects the sound
+     toggle, silent on load failure, no synth fallback. ---- */
+  const OPENING_BANK = [
+    { id: 'smackking-open-01', file: 'assets/sfx/smackking-open-01.mp3' }, // Prepare to Smack a K-O-L!
+    { id: 'smackking-open-02', file: 'assets/sfx/smackking-open-02.mp3' }, // Get your Hand ready!
+    { id: 'smackking-open-03', file: 'assets/sfx/smackking-open-03.mp3' }, // The Slap off is starting!
+    { id: 'smackking-open-04', file: 'assets/sfx/smackking-open-04.mp3' }, // Let's see who really larping!
+    { id: 'smackking-open-05', file: 'assets/sfx/smackking-open-05.mp3' }, // Someone is about to get rugged!
+    { id: 'smackking-open-06', file: 'assets/sfx/smackking-open-06.mp3' }, // Who is gonna drain the liquidity!
+  ];
+  const openingBufs = {};
+  let lastOpeningIdx = -1;
+  function loadOpeningBank() {
+    if (!ctx) return;
+    OPENING_BANK.forEach(b => {
+      fetch(b.file).then(r => { if (!r.ok) throw 0; return r.arrayBuffer(); })
+        .then(ab => ctx.decodeAudioData(ab))
+        .then(buf => { openingBufs[b.id] = buf; })
+        .catch(() => { /* silent — a missing line just never plays */ });
+    });
+  }
+  // One line per fight, random (never the same line two fights in a row).
+  // Returns a promise resolving when the line ends — the fight intro
+  // awaits it, so the line plays BEFORE the bell + ROUND 1 card and never
+  // clashes with the bell. Resolves immediately when sound is off, the
+  // commentary slider is at 0, or the line fails to load (silent, no
+  // synth fallback, no dead air). A duration + 1s safety timeout guards
+  // against a hung intro if onended never fires.
+  function playOpening() {
+    if (!ready() || soundCfg.commentary <= 0) return Promise.resolve();
+    let idx = Math.floor(Math.random() * OPENING_BANK.length);
+    if (OPENING_BANK.length > 1 && idx === lastOpeningIdx) idx = (idx + 1) % OPENING_BANK.length;
+    const entry = OPENING_BANK[idx];
+    const buf = openingBufs[entry.id];
+    const play = (b) => new Promise((resolve) => {
+      lastOpeningIdx = idx;
+      const src = ctx.createBufferSource(); src.buffer = b;
+      const g = ctx.createGain(); g.gain.value = 0.8 * soundCfg.commentary;
+      src.connect(g); g.connect(master);
+      let done = false;
+      const fin = () => { if (!done) { done = true; resolve(); } };
+      src.onended = fin;
+      setTimeout(fin, (b.duration + 1) * 1000);
+      src.start();
+    });
+    if (buf) return play(buf);
+    return fetch(entry.file).then(r => { if (!r.ok) throw 0; return r.arrayBuffer(); })
+      .then(ab => ctx.decodeAudioData(ab))
+      .then(b => { openingBufs[entry.id] = b; return play(b); })
+      .catch(() => { /* silent */ });
+  }
+
   // Funny cartoon reaction on every face slap — random pick, layered OVER the hand slap (never replaces it)
   function playSlapReact() {
     const reacts = ['react_boing', 'react_whistle1', 'react_whistle2'];
@@ -640,6 +696,9 @@ SAK.Audio = (function () {
         noise(0.08, 150, 0.6, 0.3, 'lowpass');
       }
     },
+    /** Smack King fight-opening line — one per fight, awaited by the
+        fight intro so it plays before the bell + ROUND 1 card. */
+    playOpening,
     /** Boxing ring bell — three classic dings with metallic partials. */
     bell() {
       if (!ready()) return;

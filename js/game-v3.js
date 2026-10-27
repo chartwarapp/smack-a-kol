@@ -1434,10 +1434,11 @@
     show('fight');
     sayPlayer(playerPhrase());
     setTimeout(() => F && F.token === token && say(pick(kol.taunts)), 900);
-    // Fight start: VS names → ROUND 1 (+ bell) → READY → SLAP
+    // Fight start: VS names → opening line → ROUND 1 (+ bell) → READY → SLAP
     (async () => {
       const pName = profile().name || 'YOU';
       await vsCardIntro(pName, kol.name);
+      if (typeof A !== 'undefined' && A.playOpening) await A.playOpening();
       if (typeof A !== 'undefined' && A.bell) A.bell();
       await roundCardIntro(1);
       await banner('READY...', '#fff', 700);
