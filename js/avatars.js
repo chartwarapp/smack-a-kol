@@ -131,7 +131,12 @@ SAK.avatarSVG = function (look, opts) {
     ? `<g><path d="M22 36 Q50 4 78 36 Z" fill="#1a1a1a"/><ellipse cx="50" cy="26" rx="15" ry="8" fill="#ffd23f"/><path d="M42 28 q4 -4 8 0 t8 0" stroke="#2a5c2a" stroke-width="1.5" fill="none" stroke-linecap="round"/><rect x="22" y="31" width="56" height="8" fill="#ffd23f"/><text x="50" y="37.5" text-anchor="middle" font-size="5" font-weight="bold" fill="#111" font-family="Arial, sans-serif">DON'T TREAD ON ME</text><ellipse cx="37" cy="51" rx="11" ry="10" fill="#fff" stroke="#0003" stroke-width="1"/><ellipse cx="63" cy="51" rx="11" ry="10" fill="#fff" stroke="#0003" stroke-width="1"/><ellipse cx="37" cy="51" rx="8" ry="8" fill="#1a1a1a"/><ellipse cx="63" cy="51" rx="8" ry="8" fill="#1a1a1a"/><rect x="39" y="64" width="22" height="12" fill="${s}"/><rect x="46" y="67" width="8" height="2.5" rx="1" fill="#1a1a1a"/></g>`
     : '';
 
-  // Animal species overlays (drawn right after the head circle, under hair/eyes).
+  // Tolly rework (LT 2026-10-27): brow cover (cap shadow), black
+  // shades, full beard — cap comes from accessory 'cap', Solana logo
+  // from look.print 'sol' on the body card + 3D chest badge.
+  const tollyFx = look.parody === 'tolly'
+    ? `<g><rect x="26" y="36" width="48" height="9" fill="${s}"/><rect x="25" y="42" width="22" height="12" rx="4" fill="#111"/><rect x="53" y="42" width="22" height="12" rx="4" fill="#111"/><rect x="45" y="45" width="10" height="3" fill="#111"/><path d="M30 58 Q30 82 50 84 Q70 82 70 58 L64 58 Q64 74 50 76 Q36 74 36 58 Z" fill="#1a1a1a" fill-rule="evenodd"/></g>`
+    : '';
   let speciesFx = '';
   const sp = look.species || 'human';
   if (sp === 'bear') {
@@ -201,6 +206,7 @@ SAK.avatarSVG = function (look, opts) {
     ${solflakeyFx}
     ${slingyFx}
     ${aloneFx}
+    ${tollyFx}
     ${opts.blush ? '<ellipse cx="68" cy="62" rx="9" ry="6" fill="#ff2d2d" opacity="0.55"/>' : ''}
     ${dmgFx}
     ${tieFx}

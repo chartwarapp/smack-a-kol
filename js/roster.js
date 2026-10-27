@@ -53,7 +53,7 @@ SAK.KOLS = [
     id: 'tolly', name: 'Tolly', handle: '@400msSlaps', level: 6,
     tagline: 'Runs on 400ms blocks. Chews glass. Slaps faster.',
     difficulty: 4, hp: 180, power: 20, accuracy: 0.76, winPts: 540, minBet: 500, payout: 2.6,
-    look: { skin: '#f4c7a1', shirt: '#14f195', hair: '#3b2416', pants: '#3a1f6b', accessory: 'visor', accent: '#9945ff', body: 'gymbro', hairStyle: 'mohawk', eyes: 'angry' },
+    look: { skin: '#f4c7a1', shirt: '#1a1a2a', hair: '#1a1a1a', pants: '#3a1f6b', accessory: 'cap', accent: '#9945ff', body: 'gymbro', hairStyle: 'buzz', eyes: 'angry', facialHair: 'beard', glasses: 'shades', print: 'sol', parody: 'tolly' },
     taunts: ['Sub-second finality on your cheek.', 'Chewing glass, serving slaps.', 'Throughput: one slap per block.']
   },
   {

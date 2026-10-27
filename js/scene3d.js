@@ -1457,6 +1457,7 @@ SAK.Scene3D = (function () {
       else if (P === 'solflakey') this.buildSolflakey(add, tadd);
       else if (P === 'slingy') this.buildSlingy(add, tadd);
       else if (P === 'alone') this.buildAlone(add, tadd);
+      else if (P === 'tolly') this.buildTolly(add, tadd);
     }
 
     /** UniBonker: yellow robot (LT 2026-10-26) — antenna, metallic
@@ -1650,6 +1651,18 @@ SAK.Scene3D = (function () {
       const chestZ = (0.5 * B.w * Math.min(1.25, B.taper) + 0.035) * 0.68 * B.d + 0.012;
       const plate = tadd(new T.PlaneGeometry(0.55, 0.34), new T.MeshBasicMaterial({ map: tex }), 0, 0.50, chestZ + 0.03);
       plate.castShadow = false;
+    }
+
+    /** Tolly rework (LT 2026-10-27): cap, shades, beard and Solana
+     * chest badge all come from base fields (accessory 'cap',
+     * glasses 'shades', facialHair 'beard', print 'sol'). The only
+     * overlay job is hiding the brows — their long tilted ends poke
+     * out of the cap dome above the shades. */
+    buildTolly(add, tadd) {
+      for (const m of this.head.children) {
+        const g = m.geometry;
+        if (g && g.type === 'CylinderGeometry' && g.parameters && Math.abs(g.parameters.height - 0.32) < 0.01) m.visible = false;
+      }
     }
 
     /** Patty Spice: blue crystal bull — curved horns, spiky black hair, glowing visor. */
