@@ -5034,6 +5034,49 @@
     btn.disabled = false; btn.textContent = '🎲 GENERATE';
   }
 
+  async function refreshAdminEarlyAccess() {
+    const el = $('#admin-early-list');
+    if (!el) return;
+    el.textContent = 'Loading signups…';
+    try {
+      const payload = { action: 'list', ts: Date.now() };
+      const message = JSON.stringify(payload);
+      const signed = await Promise.race([
+        SAK.Wallet.signMessage(message),
+        new Promise((_, rej) => setTimeout(() => rej(new Error('Wallet did not return a signature (timed out)')), 60000)),
+      ]);
+      const sig = signed && signed.signature;
+      if (!sig) throw new Error('Wallet signature required');
+      const r = await fetch(SAK.BACKEND.url.replace(/\/$/, '') + '/functions/v1/early-access', {
+        method: 'POST',
+        headers: {
+          'apikey': SAK.BACKEND.anonKey,
+          'Authorization': 'Bearer ' + SAK.BACKEND.anonKey,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ ...payload, wallet: W.address, signature: sig, message }),
+      });
+      if (!r.ok) throw new Error(`early-access ${r.status}`);
+      const { signups } = await r.json();
+      if (!signups || !signups.length) {
+        el.innerHTML = '<div class="fine dark">No signups yet — the gate form is live, so they will land here.</div>';
+        return;
+      }
+      el.innerHTML = `<div class="fine dark" style="margin-bottom:6px;">${signups.length} signup${signups.length === 1 ? '' : 's'}</div>` + signups.map(s => {
+        const when = new Date(s.created_at).toLocaleDateString([], { month: 'short', day: 'numeric' }) + ' ' +
+          new Date(s.created_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+        return `<div class="ob-row" style="display:block;"><b>@${escBeta(s.x_handle)}</b>` +
+          `<span class="fine dark"> · ${when}${s.reposted ? ' · ✅ repost confirmed' : ''}</span><br/>` +
+          `<span style="font-family:monospace;font-size:12px;word-break:break-all;">${escBeta(s.wallet)}</span></div>`;
+      }).join('');
+    } catch (e) {
+      const m = (e && e.message) || '';
+      el.innerHTML = (/signature|timed out/i.test(m)
+        ? '<div class="fine dark">Sign in your wallet to list signups, then refresh.</div>'
+        : '<div class="fine dark">Early-access backend not deployed yet — deploy the early-access function, then refresh.</div>');
+    }
+  }
+
   async function openAdmin() {
     if (!W.isConnected) { toast('Connect wallet first 👛', 2000); return; }
     const cfg = await SAK.Api.getConfig();
@@ -5186,6 +5229,8 @@
     refreshAdminPlayers();
     const bb = $('#admin-beta-refresh');
     if (bb) bb.onclick = () => { A.click(); refreshAdminBetaCodes(); };
+    const eb = $('#admin-early-refresh');
+    if (eb) eb.onclick = () => { A.click(); refreshAdminEarlyAccess(); };
     const bg = $('#admin-beta-generate');
     if (bg) bg.onclick = () => { A.click(); generateAdminBetaCode(); };
     refreshAdminBetaCodes();
