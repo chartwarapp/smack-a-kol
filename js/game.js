@@ -3891,6 +3891,7 @@
       return `<button class="face-btn ${i === soloSelected ? 'selected' : ''}" data-si="${i}" aria-label="${esc(k.name)}">
         ${S.beaten[k.id] ? '<span class="beaten">✓</span>' : ''}
         ${SAK.avatarSVG(k.look)}
+        <span class="face-name">${esc(k.name)}</span>
       </button>`;
     }).join('') + (soloMode === 'free' ? `
       <button class="face-btn face-more" id="btn-solo-roster" aria-label="Full roster">

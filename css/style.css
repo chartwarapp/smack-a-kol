@@ -281,8 +281,14 @@ h2, h3, .prompt, .vs, .level, .fc-name, .banner, .float-text, .result-title {
 #solo-kol-detail .kd-chip { padding: 5px 8px; }
 #solo-kol-detail .kd-money { margin-top: 2px; }
 #solo-kol-detail .kd-money div { padding: 5px 8px; }
-#solo-face-rail { padding: 4px calc(50% - 24px) 6px; }
-.face-btn { width: 48px; height: 48px; }
+#solo-face-rail { padding: 10px calc(50% - 24px) 10px; }
+.face-btn { width: 48px; height: auto; display: flex; flex-direction: column; border-radius: 14px; }
+/* Wheel cards (LT 2026-10-28): rounded-square avatars with the fighter name
+   underneath, tappable as one card. The rail's vertical padding gives the
+   scaled center card room so its ring is never clipped by the rail box. */
+#solo-face-rail .face-btn .avatar-svg { width: 48px; height: 48px; flex: none; }
+#solo-face-rail .face-name { font-family: var(--font); font-size: 10px; line-height: 1.15; padding: 2px 2px 3px; text-align: center; }
+#solo-face-rail .face-btn.face-more { height: 48px; }
 #solo-wager-dock { padding: 8px 2px 8px; margin-top: 4px; }
 #solo-wager-dock #btn-solo-challenge { font-size: 20px; padding: 10px 12px; white-space: nowrap; line-height: 1.2; }
 /* Short viewports (wallet browsers ≈667px tall): squeeze further. The dock
@@ -290,8 +296,10 @@ h2, h3, .prompt, .vs, .level, .fc-name, .banner, .float-text, .result-title {
    scroll remains on the shortest screens. */
 @media (max-height: 720px) {
   #solo-stage-canvas { height: 155px; }
-  .face-btn { width: 44px; height: 44px; }
-  #solo-face-rail { padding: 4px calc(50% - 22px) 6px; }
+  .face-btn { width: 44px; height: auto; }
+  #solo-face-rail { padding: 10px calc(50% - 22px) 10px; }
+  #solo-face-rail .face-btn .avatar-svg { width: 44px; height: 44px; }
+  #solo-face-rail .face-btn.face-more { height: 44px; }
   #solo-kol-detail .kd-name { font-size: 22px; }
   .solo-streak-bar { font-size: 11px; padding: 5px 10px; }
   #solo-wager-dock #btn-solo-challenge { padding: 8px 12px; }
