@@ -12,7 +12,7 @@
   <!-- Chunky game font (optional – falls back to system fonts offline) -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Lilita+One&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/style.css?v=stage-2" />
+  <link rel="stylesheet" href="css/style.css?v=concepta-1" />
 </head>
 <body>
 <div id="app">
@@ -117,6 +117,17 @@
         <button type="button" class="mode-btn selected" data-sm="wager"><b>◎ WAGER SOL</b><small>Bet vs the house · win ×1.9</small></button>
       </div>
       <div id="solo-streak-bar" class="solo-streak-bar"></div>
+      <div id="solo-kol-detail" class="kol-detail">
+        <div class="kd-stage"><canvas id="solo-stage-canvas"></canvas></div>
+        <div id="solo-kol-text"></div>
+      </div>
+      <div id="solo-face-rail" class="face-rail"></div>
+      <div id="solo-bet-row" class="bet-row hidden">
+        <div class="bet-label">OPTIONAL BET (PTS) <span id="solo-bet-hint"></span></div>
+        <div id="solo-bet-chips" class="bet-chips"></div>
+      </div>
+      <p class="fine dark" style="text-align:center;margin-top:8px">Solo Challenge: pick a KOL and beat them. Wagered wins pay ×1.9 from the house. Higher tiers pay bonus PTS — Champions pay double.</p>
+      <div id="solo-wager-dock">
       <div id="solo-wager-bar">
         <div id="solo-currency" class="mode-row" style="margin:0 0 6px;">
           <button type="button" class="mode-btn selected" data-sc="SOL"><b>◎ SOL</b></button>
@@ -128,17 +139,8 @@
         <div id="solo-status" class="fine" style="min-height:14px;color:#ffd23f;font-weight:700"></div>
         <label id="solo-freefight-row" class="solo-ff-row hidden"><input type="checkbox" id="solo-use-freefight"> <span id="solo-ff-label"></span></label>
       </div>
-      <div id="solo-kol-detail" class="kol-detail">
-        <div class="kd-stage"><canvas id="solo-stage-canvas"></canvas></div>
-        <div id="solo-kol-text"></div>
-      </div>
-      <div id="solo-kol-list" class="kol-list"></div>
-      <div id="solo-bet-row" class="bet-row hidden">
-        <div class="bet-label">OPTIONAL BET (PTS) <span id="solo-bet-hint"></span></div>
-        <div id="solo-bet-chips" class="bet-chips"></div>
-      </div>
       <button id="btn-solo-challenge" class="btn btn-red btn-xl">🖐 SMACK</button>
-      <p class="fine dark" style="text-align:center;margin-top:8px">Solo Challenge: pick a KOL and beat them. Wagered wins pay ×1.9 from the house. Higher tiers pay bonus PTS — Champions pay double.</p>
+      </div>
     </div>
   </section>
 
@@ -629,6 +631,6 @@
 <script src="js/pvp-sync.js?v=stuck-1"></script>
 <script src="js/solana-house.js?v=7"></script>
 <script src="js/contracts.js?v=1"></script>
-<script src="js/game-v3.js?v=stage-1"></script>
+<script src="js/game-v3.js?v=concepta-1"></script>
 </body>
 </html>

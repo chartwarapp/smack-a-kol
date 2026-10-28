@@ -3881,34 +3881,28 @@
     const wb = $('#solo-wager-bar'); if (wb) wb.classList.toggle('hidden', soloMode !== 'wager');
     const br = $('#solo-bet-row'); if (br) br.classList.toggle('hidden', soloMode !== 'free');
     if (soloMode === 'wager') renderSoloBets();
-    renderSoloCards();
+    renderSoloFaceRail();
     renderStreakBar();
   }
-  function renderSoloCards() {
+  function renderSoloFaceRail() {
+    // Concept A: faces-only rail under the top stage (replaces B's cards).
     const list = soloKols();
-    $('#solo-kol-list').innerHTML = list.map((k, i) => {
-      const t = soloTier(k);
-      const win = Math.round(modePts(k, 'classic') * t.mult);
-      return `<button class="kol-card ${i === soloSelected ? 'selected' : ''}" data-si="${i}">
+    $('#solo-face-rail').innerHTML = list.map((k, i) => {
+      return `<button class="face-btn ${i === soloSelected ? 'selected' : ''}" data-si="${i}" aria-label="${esc(k.name)}">
         ${S.beaten[k.id] ? '<span class="beaten">✓</span>' : ''}
-        <span class="kc-tier tier-${t.key}">${t.name}${t.mult > 1 ? ' ×' + t.mult : ''}</span>
         ${SAK.avatarSVG(k.look)}
-        <div class="kc-name">${esc(k.name)}</div>
-        <div class="kc-stake">${ptsHTML()}+${fmt(win)}</div>
       </button>`;
     }).join('') + (soloMode === 'free' ? `
-      <button class="kol-card submit-card-btn" id="btn-solo-roster">
+      <button class="face-btn face-more" id="btn-solo-roster" aria-label="Full roster">
         <span class="plus">☰</span>
-        <div class="kc-name">FULL ROSTER</div>
-        <small>every fighter + fan KOLs</small>
       </button>` : '');
-    $$('#solo-kol-list .kol-card[data-si]').forEach(c => c.addEventListener('click', () => { A.click(); selectSoloKol(+c.dataset.si); }));
+    $$('#solo-face-rail .face-btn[data-si]').forEach(c => c.addEventListener('click', () => { A.click(); selectSoloKol(+c.dataset.si); }));
     const rb = $('#btn-solo-roster'); if (rb) rb.addEventListener('click', () => { A.click(); openPicker(); });
   }
-  function selectSoloKol(i, noTaunt) {
+  function selectSoloKol(i, noTaunt, fromSwipe) {
     const list = soloKols(); const k = list[i]; if (!k) return;
     soloSelected = i;
-    $$('#solo-kol-list .kol-card[data-si]').forEach(c => c.classList.toggle('selected', +c.dataset.si === i));
+    $$('#solo-face-rail .face-btn[data-si]').forEach(c => c.classList.toggle('selected', +c.dataset.si === i));
     const t = soloTier(k);
     const win = Math.round(modePts(k, 'classic') * t.mult);
     $('#solo-kol-text').innerHTML = `
@@ -3927,6 +3921,13 @@
             : `<div>SOL WIN PAYS <b style="color:#2ee66b">×1.9</b></div>`)
           : `<div>BET PAYS <b style="color:#2ee66b">x${k.payout.toFixed(1)}</b></div>`}
       </div>`;
+    // Concept A swipe: a flick also drags the preview's spin yaw, so the next
+    // fighter would arrive rotated. Recreate the preview on swipe so the new
+    // fighter faces forward; tap-select keeps the existing preview untouched.
+    if (fromSwipe && soloStagePreview) {
+      try { soloStagePreview.dispose(); } catch (err) {}
+      soloStagePreview = null;
+    }
     if (!soloStagePreview && Scene && Scene.createPreview) {
       try { soloStagePreview = Scene.createPreview($('#solo-stage-canvas')); } catch (err) { soloStagePreview = null; }
     }
@@ -3934,11 +3935,9 @@
     if (soloMode === 'free') { if (soloPtsBet && soloPtsBet < k.minBet) soloPtsBet = 0; renderSoloPtsBets(); }
     renderSoloChallengeBtn();
     if (Scene) { Scene.setOpponent(k.look); if (!noTaunt) Scene.taunt(); }
-    const card = $(`#solo-kol-list .kol-card[data-si="${i}"]`);
-    // Concept B: the taller stage box means the roster row sits below the fold on
-    // open — scrollIntoView would yank the whole screen vertically and hide the
-    // wager controls. Scroll the roster rail horizontally only; never move the screen.
-    if (card) { const rail = $('#solo-kol-list'); if (rail) rail.scrollLeft = card.offsetLeft - rail.clientWidth / 2 + card.clientWidth / 2; }
+    const face = $(`#solo-face-rail .face-btn[data-si="${i}"]`);
+    // Concept A: scroll the face rail horizontally only; never move the screen.
+    if (face) { const rail = $('#solo-face-rail'); if (rail) rail.scrollLeft = face.offsetLeft - rail.clientWidth / 2 + face.clientWidth / 2; }
   }
   function renderSoloPtsBets() {
     const k = soloKols()[soloSelected]; if (!k) return;
@@ -3995,6 +3994,22 @@
     if (soloMode === 'wager') refreshHouseMax();
   }));
   const soloChallengeBtn = $('#btn-solo-challenge');
+  // Concept A: swipe the hero stage to flip fighters. Only a quick flick
+  // (fast + >50px horizontal) changes fighters — a slow drag keeps spinning
+  // the preview turntable.
+  const kdStageEl = $('#solo-kol-detail .kd-stage');
+  if (kdStageEl) {
+    let swX = 0, swY = 0, swT = 0;
+    kdStageEl.addEventListener('pointerdown', e => { swX = e.clientX; swY = e.clientY; swT = performance.now(); });
+    kdStageEl.addEventListener('pointerup', e => {
+      const dx = e.clientX - swX, dy = e.clientY - swY, dt = performance.now() - swT;
+      if (dt < 600 && Math.abs(dx) > 50 && Math.abs(dy) < 40) {
+        const list = soloKols();
+        const next = soloSelected + (dx < 0 ? 1 : -1);
+        if (next >= 0 && next < list.length) { A.click(); selectSoloKol(next, false, true); }
+      }
+    });
+  }
   if (soloChallengeBtn) soloChallengeBtn.addEventListener('click', async () => {
     const k = soloKols()[soloSelected]; if (!k) return;
     A.click();
