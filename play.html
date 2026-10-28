@@ -12,7 +12,7 @@
   <!-- Chunky game font (optional – falls back to system fonts offline) -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Lilita+One&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/style.css?v=stuck-1" />
+  <link rel="stylesheet" href="css/style.css?v=stage-1" />
 </head>
 <body>
 <div id="app">
@@ -128,7 +128,10 @@
         <div id="solo-status" class="fine" style="min-height:14px;color:#ffd23f;font-weight:700"></div>
         <label id="solo-freefight-row" class="solo-ff-row hidden"><input type="checkbox" id="solo-use-freefight"> <span id="solo-ff-label"></span></label>
       </div>
-      <div id="solo-kol-detail" class="kol-detail"></div>
+      <div id="solo-kol-detail" class="kol-detail">
+        <div class="kd-stage"><canvas id="solo-stage-canvas"></canvas></div>
+        <div id="solo-kol-text"></div>
+      </div>
       <div id="solo-kol-list" class="kol-list"></div>
       <div id="solo-bet-row" class="bet-row hidden">
         <div class="bet-label">OPTIONAL BET (PTS) <span id="solo-bet-hint"></span></div>
@@ -626,6 +629,6 @@
 <script src="js/pvp-sync.js?v=stuck-1"></script>
 <script src="js/solana-house.js?v=7"></script>
 <script src="js/contracts.js?v=1"></script>
-<script src="js/game-v3.js?v=stuck-1"></script>
+<script src="js/game-v3.js?v=stage-1"></script>
 </body>
 </html>

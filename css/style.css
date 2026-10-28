@@ -228,6 +228,24 @@ h2, h3, .prompt, .vs, .level, .fc-name, .banner, .float-text, .result-title {
 .kd-money { grid-column: 1 / -1; display: flex; gap: 8px; margin-top: 4px; }
 .kd-money div { flex: 1; background: #ffffff14; border-radius: 10px; padding: 6px 8px; font-size: 13px; display: flex; align-items: center; gap: 6px; }
 .kd-money b { font-size: 18px; }
+/* Concept B stage box (preview build): fixed full-body 3D section on the solo screen */
+#solo-kol-detail { display: block; margin-bottom: 10px; }
+#solo-kol-detail .kd-stage {
+  border: 3px solid var(--yellow); border-radius: 18px; overflow: hidden;
+  background: radial-gradient(ellipse at 50% 20%, #3a1a63 0%, #1c0b33 70%);
+  padding: 8px; margin-bottom: 10px;
+}
+#solo-stage-canvas { width: 100%; height: 250px; display: block; }
+#solo-kol-detail .kd-namerow { display: flex; justify-content: space-between; gap: 10px; align-items: flex-start; }
+#solo-kol-detail .kd-chips { display: flex; gap: 8px; margin: 8px 0 4px; }
+#solo-kol-detail .kd-chip { background: #ffffff14; border-radius: 10px; padding: 6px 10px; font-size: 13px; display: flex; align-items: center; gap: 6px; }
+#solo-kol-detail .kd-chip b { font-size: 18px; }
+#solo-kol-detail .kd-chip i { font-style: normal; }
+/* Concept B: the taller stage box pushes sheet content past viewport height.
+   The sheet is bottom-anchored with no top, so overflow used to paint above the
+   screen and become unreachable. Pin it full-height and scroll it internally
+   (scoped to solo so the picker sheet is untouched). */
+#screen-solo .pick-sheet { top: 0; overflow-y: auto; }
 .kol-list { display: flex; gap: 10px; overflow-x: auto; padding: 4px 2px 12px; scroll-snap-type: x mandatory; scrollbar-width: thin; }
 .kol-card {
   flex: 0 0 92px; scroll-snap-align: start; background: #ffffff18; border: 3px solid transparent; border-radius: 16px; padding: 6px;

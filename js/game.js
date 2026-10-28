@@ -395,11 +395,13 @@
   /* ----------------------------------------------------------------- screens */
   let screen = 'menu';
   function show(name) {
+    const prev = screen;
     screen = name;
     $$('.screen').forEach(s => s.classList.toggle('active', s.id === 'screen-' + name));
     document.body.classList.toggle('on-menu', name === 'menu');
     if (Scene) Scene.setMode(name === 'result' ? 'fight' : name === 'solo' ? 'pick' : name);
     if (name === 'menu') renderMenu();
+    if (prev === 'solo' && name !== 'solo' && soloStagePreview) { try { soloStagePreview.dispose(); } catch (e) {} soloStagePreview = null; }
   }
 
   /* --------------------------------------------------------- daily / bonuses */
@@ -3781,6 +3783,7 @@
   }
   let soloMode = 'wager';   // 'free' | 'wager'
   let soloSelected = 0;
+  let soloStagePreview = null;   // Concept B stage box: one 3D preview, created on first solo select, disposed on leaving solo
   let soloPtsBet = 0;
 
   /* ---- SOLO STREAK REWARDS (LT 2026-10-25) ----
@@ -3908,14 +3911,13 @@
     $$('#solo-kol-list .kol-card[data-si]').forEach(c => c.classList.toggle('selected', +c.dataset.si === i));
     const t = soloTier(k);
     const win = Math.round(modePts(k, 'classic') * t.mult);
-    const maxHp = 260, maxPow = 28;
-    $('#solo-kol-detail').innerHTML = `
-      <div><div class="kd-name">${esc(k.name)}</div><div class="kd-handle">${esc(k.handle)} · LEVEL ${k.level} · <span class="kd-tier tier-${t.key}">${t.name}${t.mult > 1 ? ' · WIN PTS ×' + t.mult : ''}</span></div></div>
-      <div class="kd-stars">${'★'.repeat(Math.max(0, Math.min(5, k.difficulty)))}<span style="opacity:.3">${'★'.repeat(Math.max(0, 5 - k.difficulty))}</span></div>
+    $('#solo-kol-text').innerHTML = `
+      <div class="kd-namerow"><div><div class="kd-name">${esc(k.name)}</div><div class="kd-handle">${esc(k.handle)} · LEVEL ${k.level} · <span class="kd-tier tier-${t.key}">${t.name}${t.mult > 1 ? ' · WIN PTS ×' + t.mult : ''}</span></div></div>
+      <div class="kd-stars">${'★'.repeat(Math.max(0, Math.min(5, k.difficulty)))}<span style="opacity:.3">${'★'.repeat(Math.max(0, 5 - k.difficulty))}</span></div></div>
       <div class="kd-tag">“${esc(k.tagline)}”</div>
-      <div class="kd-stats">
-        <span>❤ HP</span><div class="stat-bar"><i style="width:${k.hp / maxHp * 100}%;background:#2ee66b"></i></div><span>${k.hp}</span>
-        <span>✊ POWER</span><div class="stat-bar"><i style="width:${k.power / maxPow * 100}%;background:#ff3b5c"></i></div><span>${k.power}</span>
+      <div class="kd-chips">
+        <span class="kd-chip"><i>❤</i> HP <b>${k.hp}</b></span>
+        <span class="kd-chip"><i>✊</i> POWER <b>${k.power}</b></span>
       </div>
       <div class="kd-money">
         <div>WIN ${ptsHTML()}<b>+${fmt(win)}</b></div>
@@ -3925,10 +3927,18 @@
             : `<div>SOL WIN PAYS <b style="color:#2ee66b">×1.9</b></div>`)
           : `<div>BET PAYS <b style="color:#2ee66b">x${k.payout.toFixed(1)}</b></div>`}
       </div>`;
+    if (!soloStagePreview && Scene && Scene.createPreview) {
+      try { soloStagePreview = Scene.createPreview($('#solo-stage-canvas')); } catch (err) { soloStagePreview = null; }
+    }
+    if (soloStagePreview) { try { soloStagePreview.apply(k.look); } catch (err) {} }
     if (soloMode === 'free') { if (soloPtsBet && soloPtsBet < k.minBet) soloPtsBet = 0; renderSoloPtsBets(); }
     renderSoloChallengeBtn();
     if (Scene) { Scene.setOpponent(k.look); if (!noTaunt) Scene.taunt(); }
-    const card = $(`#solo-kol-list .kol-card[data-si="${i}"]`); if (card) card.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+    const card = $(`#solo-kol-list .kol-card[data-si="${i}"]`);
+    // Concept B: the taller stage box means the roster row sits below the fold on
+    // open — scrollIntoView would yank the whole screen vertically and hide the
+    // wager controls. Scroll the roster rail horizontally only; never move the screen.
+    if (card) { const rail = $('#solo-kol-list'); if (rail) rail.scrollLeft = card.offsetLeft - rail.clientWidth / 2 + card.clientWidth / 2; }
   }
   function renderSoloPtsBets() {
     const k = soloKols()[soloSelected]; if (!k) return;
