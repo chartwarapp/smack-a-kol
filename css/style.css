@@ -245,8 +245,11 @@ h2, h3, .prompt, .vs, .level, .fc-name, .banner, .float-text, .result-title {
 /* Concept B: the taller stage box pushes sheet content past viewport height.
    The sheet is bottom-anchored with no top, so overflow used to paint above the
    screen and become unreachable. Pin it full-height and scroll it internally
-   (scoped to solo so the picker sheet is untouched). */
-#screen-solo .pick-sheet { top: 0; overflow-y: auto; }
+   (scoped to solo so the picker sheet is untouched). Top sits below the
+   persistent topbar (LT 2026-10-28: at top:0 the sheet's MENU/SHOP pills slid
+   under the topbar's settings/wallet pills, which ate their taps) — 62px is
+   the same clearance the floating pick-header already uses. */
+#screen-solo .pick-sheet { top: calc(62px + var(--safe-top)); overflow-y: auto; }
 /* Concept A: stage on top + face rail + bottom wager dock. The stage box and
    text block are unchanged from B — only their position moves (top of the
    sheet) and the roster cards become a faces-only rail. The wager bar +
@@ -293,6 +296,26 @@ h2, h3, .prompt, .vs, .level, .fc-name, .banner, .float-text, .result-title {
   .solo-streak-bar { font-size: 11px; padding: 5px 10px; }
   #solo-wager-dock #btn-solo-challenge { padding: 8px 12px; }
 }
+/* Side-by-side detail (LT 2026-10-28: fighter left, all info right, nothing
+   removed). The stage box takes just over half the width; the fighter is
+   fitted by height, so it stays full-size in the narrower box. The info
+   column tightens (smaller name/chips, payout box stacks under WIN) so the
+   whole detail row is about one info-block shorter than the old stacked
+   layout. CSS only: no DOM or JS change, wheel + flick untouched. */
+#solo-kol-detail { display: flex; gap: 10px; align-items: flex-start; }
+#solo-kol-detail .kd-stage { flex: 0 0 52%; margin-bottom: 0; }
+#solo-kol-detail #solo-kol-text { flex: 1; min-width: 0; }
+#solo-kol-detail .kd-namerow { flex-wrap: wrap; gap: 2px 10px; }
+#solo-kol-detail .kd-name { font-size: 22px; }
+#solo-kol-detail .kd-handle { font-size: 12px; }
+#solo-kol-detail .kd-stars { font-size: 16px; }
+#solo-kol-detail .kd-tag { font-size: 13px; }
+#solo-kol-detail .kd-chips { flex-wrap: wrap; gap: 6px; }
+#solo-kol-detail .kd-chip { padding: 4px 6px; font-size: 12px; }
+#solo-kol-detail .kd-chip b { font-size: 15px; }
+#solo-kol-detail .kd-money { flex-direction: column; gap: 6px; }
+#solo-kol-detail .kd-money div { font-size: 12px; }
+#solo-kol-detail .kd-money b { font-size: 16px; }
 /* The sheet's bottom padding (16px + safe area) would otherwise cap the
    sticky range 16px above the sheet's bottom edge — the dock must sit
    flush, so the solo sheet drops its bottom padding (the dock is the last
