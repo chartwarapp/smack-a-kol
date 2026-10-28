@@ -252,10 +252,10 @@ h2, h3, .prompt, .vs, .level, .fc-name, .banner, .float-text, .result-title {
    sheet) and the roster cards become a faces-only rail. The wager bar +
    SMACK button live in a sticky dock pinned to the sheet's bottom edge, so
    the bet is always one tap away while the rail scrolls above it. */
-#solo-face-rail { display: flex; gap: 8px; overflow-x: auto; padding: 6px 2px 12px; scrollbar-width: thin; }
-.face-btn { position: relative; flex: 0 0 auto; width: 58px; height: 58px; border-radius: 50%; overflow: hidden; border: 3px solid #ffffff33; background: #ffffff14; padding: 0; cursor: pointer; }
+#solo-face-rail { display: flex; gap: 8px; overflow-x: auto; padding: 6px 2px 12px; scrollbar-width: thin; scroll-snap-type: x mandatory; }
+.face-btn { position: relative; flex: 0 0 auto; width: 58px; height: 58px; border-radius: 50%; overflow: hidden; border: 3px solid #ffffff33; background: #ffffff14; padding: 0; cursor: pointer; scroll-snap-align: center; }
 .face-btn .avatar-svg { width: 100%; height: 100%; display: block; }
-.face-btn.selected { border-color: var(--yellow); box-shadow: 0 0 0 2px #ffd23f66; }
+.face-btn.selected { border-color: var(--yellow); box-shadow: 0 0 0 2px #ffd23f66; transform: scale(1.22); }
 .face-btn .beaten { position: absolute; top: 1px; right: 1px; background: var(--green); color: var(--ink); font-size: 9px; padding: 1px 4px; border-radius: 8px; z-index: 1; text-shadow: none; }
 .face-btn.face-more { display: grid; place-items: center; border-style: dashed; }
 .face-btn.face-more .plus { font-size: 26px; line-height: 1; color: var(--yellow); }
@@ -278,7 +278,7 @@ h2, h3, .prompt, .vs, .level, .fc-name, .banner, .float-text, .result-title {
 #solo-kol-detail .kd-chip { padding: 5px 8px; }
 #solo-kol-detail .kd-money { margin-top: 2px; }
 #solo-kol-detail .kd-money div { padding: 5px 8px; }
-#solo-face-rail { padding: 4px 2px 6px; }
+#solo-face-rail { padding: 4px calc(50% - 24px) 6px; }
 .face-btn { width: 48px; height: 48px; }
 #solo-wager-dock { padding: 8px 2px 8px; margin-top: 4px; }
 #solo-wager-dock #btn-solo-challenge { font-size: 20px; padding: 10px 12px; white-space: nowrap; line-height: 1.2; }
@@ -288,6 +288,7 @@ h2, h3, .prompt, .vs, .level, .fc-name, .banner, .float-text, .result-title {
 @media (max-height: 720px) {
   #solo-stage-canvas { height: 155px; }
   .face-btn { width: 44px; height: 44px; }
+  #solo-face-rail { padding: 4px calc(50% - 22px) 6px; }
   #solo-kol-detail .kd-name { font-size: 22px; }
   .solo-streak-bar { font-size: 11px; padding: 5px 10px; }
   #solo-wager-dock #btn-solo-challenge { padding: 8px 12px; }

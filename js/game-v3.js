@@ -3899,7 +3899,7 @@
     $$('#solo-face-rail .face-btn[data-si]').forEach(c => c.addEventListener('click', () => { A.click(); selectSoloKol(+c.dataset.si); }));
     const rb = $('#btn-solo-roster'); if (rb) rb.addEventListener('click', () => { A.click(); openPicker(); });
   }
-  function selectSoloKol(i, noTaunt, fromSwipe) {
+  function selectSoloKol(i, noTaunt, fromSwipe, fromWheel) {
     const list = soloKols(); const k = list[i]; if (!k) return;
     soloSelected = i;
     $$('#solo-face-rail .face-btn[data-si]').forEach(c => c.classList.toggle('selected', +c.dataset.si === i));
@@ -3937,7 +3937,17 @@
     if (Scene) { Scene.setOpponent(k.look); if (!noTaunt) Scene.taunt(); }
     const face = $(`#solo-face-rail .face-btn[data-si="${i}"]`);
     // Concept A: scroll the face rail horizontally only; never move the screen.
-    if (face) { const rail = $('#solo-face-rail'); if (rail) rail.scrollLeft = face.offsetLeft - rail.clientWidth / 2 + face.clientWidth / 2; }
+    // Wheel-driven selects skip this: the rail is already there, and setting
+    // scrollLeft mid-flick would fight the momentum + snap. Rect math (not
+    // offsetLeft) so the centering is exact: offsetLeft is relative to the
+    // sheet, not the rail, which used to overshoot by the sheet padding.
+    if (face && !fromWheel) {
+      const rail = $('#solo-face-rail');
+      if (rail) {
+        const rr = rail.getBoundingClientRect(), fr = face.getBoundingClientRect();
+        rail.scrollLeft += (fr.left + fr.width / 2) - (rr.left + rr.width / 2);
+      }
+    }
   }
   function renderSoloPtsBets() {
     const k = soloKols()[soloSelected]; if (!k) return;
@@ -4009,6 +4019,35 @@
         if (next >= 0 && next < list.length) { A.click(); selectSoloKol(next, false, true); }
       }
     });
+  }
+  // Concept A wheel (LT 2026-10-28): the face rail is a center-snapping
+  // wheel — the face in the rail's center IS the selection, so rolling the
+  // rail changes the stage + name to the centered fighter. No taunt while
+  // scrolling, so a fast roll doesn't spam taunts. Tap still works (tap
+  // selects + centers that face). Scales with roster size: works for any
+  // number of faces, no strip-hunting as KOLs are added. The FREE-mode
+  // roster button carries no data-si, so it never becomes the selection.
+  const faceRailEl = $('#solo-face-rail');
+  if (faceRailEl) {
+    let wheelTick = false;
+    faceRailEl.addEventListener('scroll', () => {
+      if (wheelTick) return;
+      wheelTick = true;
+      requestAnimationFrame(() => {
+        wheelTick = false;
+        const faces = $$('#solo-face-rail .face-btn[data-si]');
+        if (!faces.length) return;
+        const rr = faceRailEl.getBoundingClientRect();
+        const center = rr.left + rr.width / 2;
+        let best = -1, bestD = Infinity;
+        faces.forEach(f => {
+          const fr = f.getBoundingClientRect();
+          const d = Math.abs((fr.left + fr.width / 2) - center);
+          if (d < bestD) { bestD = d; best = +f.dataset.si; }
+        });
+        if (best >= 0 && best !== soloSelected) selectSoloKol(best, true, false, true);
+      });
+    }, { passive: true });
   }
   if (soloChallengeBtn) soloChallengeBtn.addEventListener('click', async () => {
     const k = soloKols()[soloSelected]; if (!k) return;
