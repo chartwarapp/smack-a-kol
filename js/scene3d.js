@@ -1461,6 +1461,7 @@ SAK.Scene3D = (function () {
       else if (P === 'tolly') this.buildTolly(add, tadd);
       else if (P === 'poorgoat') this.buildPoorgoat(add, tadd);
       else if (P === 'minhfantasy') this.buildMinh(add, tadd);
+      else if (P === 'choosepoornick') this.buildChoosepoor(add, tadd);
     }
 
     /** Poor Goat (LT 2026-10-28): black goat — plain red baseball cap
@@ -1566,6 +1567,41 @@ SAK.Scene3D = (function () {
       }
       tadd(new T.BoxGeometry(0.16, 0.04, 0.08), gold, 0.95 * 0.751, 0.55 + 0.95 * 0.660, -0.42, m => { m.rotation.z = -0.85; });
       tadd(new T.CylinderGeometry(0.03, 0.03, 0.18, 8), black, 1.10 * 0.751, 0.55 + 1.10 * 0.660, -0.42, m => { m.rotation.z = -0.85; });
+    }
+
+    /** ChoosePoor Nick (LT 2026-10-28): white dog — big black visor
+     * glasses with grey frame + shine stripes over eyes + brows,
+     * black blazer (base shirt) with white shirt V, black tie, and
+     * lapels. Species dog base draws the floppy ears, snout, and
+     * black nose. */
+    buildChoosepoor(add, tadd) {
+      const black = new T.MeshBasicMaterial({ color: '#111111' });
+      // Fluffy fur tufts on the head top (the reference's wavy white
+      // fur) — three flattened spheres sitting on the skull surface.
+      const fur = mat(this.look.skin || '#ffffff');
+      for (const [fx, fy] of [[-0.22, 0.90], [0, 0.96], [0.22, 0.90]]) {
+        const tuft = add(new T.SphereGeometry(0.13, 10, 8), fur, fx, fy, 0.03);
+        tuft.scale.set(1, 0.65, 1);
+      }
+      // Visor — frame box + dark lens box proud of it + shine stripes.
+      // Spans 0.41-0.71 to cover brows (top 0.70) and eyes (0.50);
+      // lens front 0.59 clears the eye highlights (0.573).
+      const frame = add(new T.BoxGeometry(0.88, 0.30, 0.06), mat('#8a919c'), 0, 0.56, 0.52);
+      frame.castShadow = false;
+      add(new T.BoxGeometry(0.80, 0.22, 0.06), new T.MeshBasicMaterial({ color: '#14142a' }), 0, 0.56, 0.56);
+      const shineMat = new T.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0.85 });
+      for (const sx of [-1, 1]) {
+        add(new T.BoxGeometry(0.03, 0.18, 0.01), shineMat, sx * 0.16, 0.56, 0.595, m => { m.rotation.z = 0.6; });
+      }
+      // Blazer — white shirt V + black tie + lapels on the chest.
+      const B = this.body || { w: 1, h: 1, d: 1, taper: 1 };
+      const chestZ = (0.5 * B.w * Math.min(1.25, B.taper) + 0.035) * 0.68 * B.d + 0.012;
+      tadd(new T.PlaneGeometry(0.20, 0.30), new T.MeshStandardMaterial({ color: '#f2f2f2' }), 0, 0.62, chestZ + 0.015);
+      for (const sx of [-1, 1]) {
+        tadd(new T.BoxGeometry(0.14, 0.42, 0.02), mat('#2a2a35'), sx * 0.15, 0.55, chestZ + 0.02, m => { m.rotation.z = sx * -0.25; });
+      }
+      tadd(new T.BoxGeometry(0.08, 0.08, 0.03), black, 0, 0.72, chestZ + 0.03);
+      tadd(new T.BoxGeometry(0.07, 0.30, 0.03), black, 0, 0.52, chestZ + 0.03);
     }
 
     /** UniBonker: yellow robot (LT 2026-10-26) — antenna, metallic

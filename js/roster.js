@@ -22,6 +22,13 @@ SAK.PARODY_DISCLAIMER = 'All KOLs are fictional parody cartoons. Not affiliated 
 
 SAK.KOLS = [
   {
+    id: 'choosepoornick', name: 'ChoosePoor Nick', handle: '@ChoosePoorSlaps', level: 1,
+    tagline: 'You sold? hahaha',
+    difficulty: 1, hp: 60, power: 8, accuracy: 0.38, winPts: 100, minBet: 50, payout: 1.5,
+    look: { skin: '#ffffff', shirt: '#1a1a22', hair: '#ffffff', pants: '#1a1a22', accessory: 'none', accent: '#c0c8d0', body: 'classic', hairStyle: 'bald', eyes: 'round', eyeColor: '#1a1a1a', species: 'dog', outfit: 'tee', parody: 'choosepoornick', cardBg: '#d8edfe' },
+    taunts: ['You sold? hahaha', 'Paper hands sell. I collect.', 'Should have held. Now hold this slap.']
+  },
+  {
     id: 'solflakey', name: 'SolFlakey', handle: '@SolFlakey', level: 1,
     tagline: 'Pink hair. Backwards cap. Flaky plans, heavy hands.',
     difficulty: 1, hp: 70, power: 9, accuracy: 0.40, winPts: 120, minBet: 50, payout: 1.6,

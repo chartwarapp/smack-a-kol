@@ -166,6 +166,14 @@ SAK.avatarSVG = function (look, opts) {
     ? `<g><rect x="24" y="36" width="52" height="10" fill="${s}"/><rect x="18" y="44" width="64" height="13" rx="4" fill="#111111"/><circle cx="82" cy="50" r="5" fill="#111111"/><path d="M84 47 Q92 42 96 44 M84 53 Q92 58 96 56" stroke="#111111" stroke-width="4" fill="none" stroke-linecap="round"/></g>`
     : '';
 
+  // ChoosePoor Nick (LT 2026-10-28): white dog — big black visor
+  // glasses with grey frame + shine stripes over the eyes, fluffy
+  // fur tufts on the head top, big black nose + toothpick. Species
+  // dog base draws the floppy ears + muzzle underneath.
+  const choosepoorFx = look.parody === 'choosepoornick'
+    ? `<g><circle cx="32" cy="16" r="9" fill="${s}" stroke="#0003" stroke-width="1.5"/><circle cx="50" cy="12" r="10" fill="${s}" stroke="#0003" stroke-width="1.5"/><circle cx="68" cy="16" r="9" fill="${s}" stroke="#0003" stroke-width="1.5"/><rect x="18" y="38" width="64" height="22" rx="7" fill="#8a919c"/><rect x="22" y="42" width="56" height="14" rx="4" fill="#14142a"/><path d="M34 56 L44 42 M52 56 L62 42" stroke="#ffffff" stroke-width="3" opacity="0.85" stroke-linecap="round"/><rect x="14" y="45" width="5" height="8" rx="2" fill="#14142a"/><rect x="81" y="45" width="5" height="8" rx="2" fill="#14142a"/><ellipse cx="50" cy="62" rx="7" ry="5" fill="#111111"/><line x1="40" y1="70" x2="31" y2="77" stroke="#d8c9a0" stroke-width="2" stroke-linecap="round"/></g>`
+    : '';
+
   // Animal species overlays (drawn right after the head circle, under hair/eyes).
   let speciesFx = '';
   const sp = look.species || 'human';
@@ -241,6 +249,7 @@ SAK.avatarSVG = function (look, opts) {
     ${poorgoatFx}
     ${mertzFx}
     ${minhFx}
+    ${choosepoorFx}
     ${opts.blush ? '<ellipse cx="68" cy="62" rx="9" ry="6" fill="#ff2d2d" opacity="0.55"/>' : ''}
     ${dmgFx}
     ${tieFx}
@@ -289,6 +298,11 @@ SAK.avatarBodySVG = function (look) {
   const minhSword = look.parody === 'minhfantasy'
     ? `<g><line x1="16" y1="138" x2="86" y2="60" stroke="#7a1f1f" stroke-width="6" stroke-linecap="round"/><line x1="16" y1="138" x2="86" y2="60" stroke="#a83232" stroke-width="2" stroke-linecap="round" opacity="0.5"/><g transform="rotate(-48 86 60)"><rect x="84" y="57" width="9" height="6" fill="#ffd23f"/><rect x="91" y="57" width="8" height="6" rx="2" fill="#1a1a22"/></g><rect x="21" y="126" width="6" height="6" fill="#ffd23f" transform="rotate(-48 24 129)"/></g>`
     : '';
+  // ChoosePoor Nick (LT 2026-10-28): black blazer lapels over a white
+  // collar shirt V, black tie down the center.
+  const choosepoorShirt = look.parody === 'choosepoornick'
+    ? `<g><polygon points="42,88 58,88 50,110" fill="#f2f2f2"/><polygon points="42,88 50,96 46,122 38,102" fill="#2a2a35"/><polygon points="58,88 50,96 54,122 62,102" fill="#2a2a35"/><polygon points="47,93 53,93 52,100 48,100" fill="#111111"/><polygon points="48,100 52,100 51,122 49,122" fill="#111111"/></g>`
+    : '';
   return `<svg viewBox="0 0 100 170" xmlns="http://www.w3.org/2000/svg" class="avatar-body-svg">
     <g transform="rotate(8 30 92)"><rect x="24" y="90" width="11" height="26" rx="5" fill="${shirt}"/><rect x="24.5" y="112" width="10" height="18" rx="5" fill="${s}"/><circle cx="29.5" cy="134" r="6" fill="${s}"/></g>
     <g transform="rotate(-8 70 92)"><rect x="65" y="90" width="11" height="26" rx="5" fill="${shirt}"/><rect x="65.5" y="112" width="10" height="18" rx="5" fill="${s}"/><circle cx="70.5" cy="134" r="6" fill="${s}"/></g>
@@ -304,6 +318,7 @@ SAK.avatarBodySVG = function (look) {
     ${aloneShirt}
     ${poorgoatShirt}
     ${minhShirt}
+    ${choosepoorShirt}
     <g>${head}</g>
   </svg>`;
 };
