@@ -1460,6 +1460,7 @@ SAK.Scene3D = (function () {
       else if (P === 'chairboy') this.buildChairboy(add, tadd);
       else if (P === 'tolly') this.buildTolly(add, tadd);
       else if (P === 'poorgoat') this.buildPoorgoat(add, tadd);
+      else if (P === 'minhfantasy') this.buildMinh(add, tadd);
     }
 
     /** Poor Goat (LT 2026-10-28): black goat — plain red baseball cap
@@ -1517,6 +1518,54 @@ SAK.Scene3D = (function () {
       const chestZ = (0.5 * B.w * Math.min(1.25, B.taper) + 0.035) * 0.68 * B.d + 0.012;
       const plate = tadd(new T.PlaneGeometry(0.55, 0.55), new T.MeshBasicMaterial({ map: tex, transparent: true }), 0, 0.50, chestZ + 0.03);
       plate.castShadow = false;
+    }
+
+    /** Minh Fantasy (LT 2026-10-28): blind swordsman — silver spiky
+     * hair (base), black bandanna over eyes + brows, side knot +
+     * streaming tails, brown blazer lapels + dark open front on the
+     * chest, katana scabbard diagonal across the back with gold
+     * fittings + hilt above the shoulder. Bandanna is a FLAT box,
+     * not a skull-hugging cylinder: the skull cross-section shrinks
+     * faster than any taper, so a cylinder buries itself and leaves
+     * eyes + brows exposed (caught by the preview harness). Box
+     * front at z 0.60 clears the eye highlights (z 0.573) and brows
+     * (z 0.50); its sides reach the skull silhouette. */
+    buildMinh(add, tadd) {
+      const black = new T.MeshBasicMaterial({ color: '#111111' });
+      const darkBrown = mat('#2e1d12');
+      // Bandanna — flat box across the face front, kept to the face
+      // width (0.88) so it reads as a fitted blindfold, not a censor
+      // bar — the first 0.98-wide version stuck out past the face.
+      // Height 0.38 so it covers the full sclera (bottom 0.379), not
+      // just the iris: the 0.28 version left white slivers peeking
+      // underneath.
+      const band = add(new T.BoxGeometry(0.88, 0.38, 0.08), new T.MeshStandardMaterial({ color: '#111111', roughness: 0.9 }), 0, 0.56, 0.56);
+      band.castShadow = false;
+      // Knot on the band's right edge + tails streaming back.
+      add(new T.SphereGeometry(0.07, 10, 8), black, 0.47, 0.56, 0.40);
+      add(new T.BoxGeometry(0.30, 0.07, 0.02), black, 0.54, 0.54, 0.10, m => { m.rotation.y = 1.1; m.rotation.z = -0.15; });
+      add(new T.BoxGeometry(0.26, 0.07, 0.02), black, 0.52, 0.46, 0.00, m => { m.rotation.y = 1.3; m.rotation.z = -0.3; });
+      // Blazer lapels + dark open front.
+      const B = this.body || { w: 1, h: 1, d: 1, taper: 1 };
+      const chestZ = (0.5 * B.w * Math.min(1.25, B.taper) + 0.035) * 0.68 * B.d + 0.012;
+      tadd(new T.PlaneGeometry(0.20, 0.30), new T.MeshStandardMaterial({ color: '#1a1a22' }), 0, 0.62, chestZ + 0.015);
+      for (const sx of [-1, 1]) {
+        tadd(new T.BoxGeometry(0.14, 0.42, 0.02), darkBrown, sx * 0.15, 0.55, chestZ + 0.02, m => { m.rotation.z = sx * -0.25; });
+      }
+      // Katana across the back — scabbard diagonal (top end right,
+      // like the reference), gold fittings, hilt above the shoulder.
+      // Steep angle + long scabbard so the hilt clears the head
+      // silhouette AND the bandanna from the front camera (a shallow
+      // angle hides it behind the head and band).
+      const red = mat('#7a1f1f');
+      const gold = mat('#ffd23f');
+      const scab = tadd(new T.BoxGeometry(0.09, 1.9, 0.05), red, 0, 0.55, -0.42, m => { m.rotation.z = -0.85; });
+      outline(scab, 1.05);
+      for (const t of [-0.45, 0, 0.45]) {
+        tadd(new T.BoxGeometry(0.11, 0.04, 0.06), gold, t * 0.751, 0.55 + t * 0.660, -0.42, m => { m.rotation.z = -0.85; });
+      }
+      tadd(new T.BoxGeometry(0.16, 0.04, 0.08), gold, 0.95 * 0.751, 0.55 + 0.95 * 0.660, -0.42, m => { m.rotation.z = -0.85; });
+      tadd(new T.CylinderGeometry(0.03, 0.03, 0.18, 8), black, 1.10 * 0.751, 0.55 + 1.10 * 0.660, -0.42, m => { m.rotation.z = -0.85; });
     }
 
     /** UniBonker: yellow robot (LT 2026-10-26) — antenna, metallic

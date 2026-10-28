@@ -29,6 +29,13 @@ SAK.KOLS = [
     taunts: ['I said I\'d show up. I showed up to slap.', 'Flaky by name, heavy by hand.', 'My plans change. My slaps don\'t.']
   },
   {
+    id: 'minhfantasy', name: 'Minh Fantasy', handle: '@MinhFantasySlaps', level: 2,
+    tagline: 'Blindfold on. Blade always out.',
+    difficulty: 2, hp: 88, power: 11, accuracy: 0.46, winPts: 180, minBet: 100, payout: 1.8,
+    look: { skin: '#f0c8a8', shirt: '#4a3226', hair: '#e8e8f0', pants: '#1a1a2a', accessory: 'none', accent: '#c0c0c8', body: 'classic', hairStyle: 'spiky', eyes: 'angry', eyeColor: '#1a1a1a', outfit: 'tee', parody: 'minhfantasy', cardBg: '#eff3f2' },
+    taunts: ['I don\'t need eyes to see a rug pull coming.', 'The blindfold stays on. The sword doesn\'t.', 'You just got cut by a fantasy.']
+  },
+  {
     id: 'cupsalty', name: 'CupSalty', handle: '@CupSalty', level: 3,
     tagline: 'Salutes first. Rugs second. Smiles always.',
     difficulty: 3, hp: 105, power: 13, accuracy: 0.53, winPts: 240, minBet: 150, payout: 2.0,

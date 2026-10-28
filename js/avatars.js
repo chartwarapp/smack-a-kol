@@ -158,6 +158,14 @@ SAK.avatarSVG = function (look, opts) {
     ? `<g><path d="M30 58 Q30 82 50 84 Q70 82 70 58 L64 58 Q64 74 50 76 Q36 74 36 58 Z" fill="#1a1a1a" fill-rule="evenodd"/><ellipse cx="40" cy="62" rx="10" ry="3.5" fill="#1a1a1a"/><ellipse cx="60" cy="62" rx="10" ry="3.5" fill="#1a1a1a"/></g>`
     : '';
 
+  // Minh Fantasy (LT 2026-10-28): blind swordsman — silver spiky hair
+  // (base), black bandanna over the eyes with a side knot + flowing
+  // tails. Skin cover hides the brows first (Chairboy pattern): a
+  // blindfold with brows above it would read as a headband.
+  const minhFx = look.parody === 'minhfantasy'
+    ? `<g><rect x="24" y="36" width="52" height="10" fill="${s}"/><rect x="18" y="44" width="64" height="13" rx="4" fill="#111111"/><circle cx="82" cy="50" r="5" fill="#111111"/><path d="M84 47 Q92 42 96 44 M84 53 Q92 58 96 56" stroke="#111111" stroke-width="4" fill="none" stroke-linecap="round"/></g>`
+    : '';
+
   // Animal species overlays (drawn right after the head circle, under hair/eyes).
   let speciesFx = '';
   const sp = look.species || 'human';
@@ -232,6 +240,7 @@ SAK.avatarSVG = function (look, opts) {
     ${tollyFx}
     ${poorgoatFx}
     ${mertzFx}
+    ${minhFx}
     ${opts.blush ? '<ellipse cx="68" cy="62" rx="9" ry="6" fill="#ff2d2d" opacity="0.55"/>' : ''}
     ${dmgFx}
     ${tieFx}
@@ -270,6 +279,16 @@ SAK.avatarBodySVG = function (look) {
   const poorgoatShirt = look.parody === 'poorgoat'
     ? `<g><path d="M62 96 A13 13 0 1 0 62 118" fill="none" stroke="#ffd23f" stroke-width="6" stroke-linecap="round" opacity="0.35"/><path d="M62 96 A13 13 0 1 0 62 118" fill="none" stroke="#ffd23f" stroke-width="4" stroke-linecap="round"/><line x1="44" y1="88" x2="44" y2="99" stroke="#111111" stroke-width="2.5" stroke-linecap="round"/><line x1="56" y1="88" x2="56" y2="99" stroke="#111111" stroke-width="2.5" stroke-linecap="round"/><circle cx="44" cy="100" r="2" fill="#111111"/><circle cx="56" cy="100" r="2" fill="#111111"/><rect x="38" y="118" width="24" height="9" rx="3" fill="#1a1a1e" stroke="#0003" stroke-width="1.5"/></g>`
     : '';
+  // Minh Fantasy (LT 2026-10-28): brown blazer lapels + dark open
+  // front + gold chain, and the katana diagonal across the back —
+  // drawn BEFORE the torso so the torso and head cover its middle
+  // and only the hip tip + shoulder hilt peek out, like the reference.
+  const minhShirt = look.parody === 'minhfantasy'
+    ? `<g><polygon points="44,88 56,88 50,110" fill="#1a1a22"/><polygon points="42,88 50,96 46,122 38,102" fill="#2e1d12"/><polygon points="58,88 50,96 54,122 62,102" fill="#2e1d12"/><path d="M44 90 Q50 98 56 90" stroke="#ffd23f" stroke-width="1.5" fill="none"/></g>`
+    : '';
+  const minhSword = look.parody === 'minhfantasy'
+    ? `<g><line x1="16" y1="138" x2="86" y2="60" stroke="#7a1f1f" stroke-width="6" stroke-linecap="round"/><line x1="16" y1="138" x2="86" y2="60" stroke="#a83232" stroke-width="2" stroke-linecap="round" opacity="0.5"/><g transform="rotate(-48 86 60)"><rect x="84" y="57" width="9" height="6" fill="#ffd23f"/><rect x="91" y="57" width="8" height="6" rx="2" fill="#1a1a22"/></g><rect x="21" y="126" width="6" height="6" fill="#ffd23f" transform="rotate(-48 24 129)"/></g>`
+    : '';
   return `<svg viewBox="0 0 100 170" xmlns="http://www.w3.org/2000/svg" class="avatar-body-svg">
     <g transform="rotate(8 30 92)"><rect x="24" y="90" width="11" height="26" rx="5" fill="${shirt}"/><rect x="24.5" y="112" width="10" height="18" rx="5" fill="${s}"/><circle cx="29.5" cy="134" r="6" fill="${s}"/></g>
     <g transform="rotate(-8 70 92)"><rect x="65" y="90" width="11" height="26" rx="5" fill="${shirt}"/><rect x="65.5" y="112" width="10" height="18" rx="5" fill="${s}"/><circle cx="70.5" cy="134" r="6" fill="${s}"/></g>
@@ -278,11 +297,13 @@ SAK.avatarBodySVG = function (look) {
     <ellipse cx="42" cy="162" rx="9" ry="5" fill="${shoe}"/>
     <ellipse cx="58" cy="162" rx="9" ry="5" fill="${shoe}"/>
     <rect x="44" y="76" width="12" height="12" fill="${s}"/>
+    ${minhSword}
     <rect x="${tx0}" y="86" width="${tw}" height="44" rx="10" fill="${shirt}" stroke="#0003" stroke-width="2"/>
     <rect x="${tx0}" y="128" width="${tw}" height="7" fill="#1a1a22"/>
     ${printImg}
     ${aloneShirt}
     ${poorgoatShirt}
+    ${minhShirt}
     <g>${head}</g>
   </svg>`;
 };
