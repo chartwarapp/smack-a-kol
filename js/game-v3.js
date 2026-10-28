@@ -1902,7 +1902,7 @@
     }
     const doImpact = () => {
       if (slapLands) {
-        A.slap(grade.mult * (fire ? 1.4 : 1), slapGrade); // 'weak' → red-zone troll line, else main bank
+        A.slap(grade.mult * (fire ? 1.4 : 1), slapGrade, slapWho === 'player'); // 'weak' + player attacking → red-zone troll line, else main bank
         hapticSlap(slapGrade, fire, atk.dist);
         if (fire) flash('#ffb000'); else if (grade.id === 'perfect') flash('#39ff88');
         else flash('#ffe23d');

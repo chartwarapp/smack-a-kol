@@ -709,11 +709,13 @@ SAK.Audio = (function () {
     },
     startMusic,
     stopMusic,
-    slap(strength, grade) {          // strength 0..1+, grade 'weak'/'good'/'perfect' (optional)
+    slap(strength, grade, byPlayer) {          // strength 0..1+, grade 'weak'/'good'/'perfect' (optional), byPlayer true when the player attacks
       if (!ready()) return;
       crowdSlap(strength * soundCfg.crowd);  // crowd gasps/cheers on every slap
       if (soundCfg.reactOn) playSlapReact();      // funny cartoon reaction, layered over the slap
-      if (grade === 'weak') playRedCommentary();  // soft slap in the red — Smack King trolls it
+      // LT rule 2026-10-28: the red troll line ONLY plays when the PLAYER slaps soft.
+      // A weak slap from the KOL falls back to the main bank like any other slap.
+      if (grade === 'weak' && byPlayer) playRedCommentary();  // player soft slap in the red — Smack King trolls it
       else playCommentary();                      // Smack King line, layered over the slap, never overlapping another line
       if (playSlapBuf(strength)) return;   // real recorded slap
       // synth fallback (bank not loaded yet / fetch failed) — noise only, no tones
