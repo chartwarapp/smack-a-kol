@@ -213,6 +213,24 @@ SAK.PvpSync = (function () {
     }
   }
 
+  /**
+   * Admin stuck-fight list (2026-10-28): EVERY accepted/fighting challenge,
+   * not just the admin's own, newest first. Deliberately NO 24h filter — a
+   * stuck fight is stuck regardless of age. The DB rows are candidates only:
+   * the on-chain state gates the cancel (cancelStuckFight re-reads the
+   * challenge and requires Accepted), so a stale row fails safely.
+   */
+  async function getStuckChallenges() {
+    try {
+      const rows = await api()._req('GET',
+        '/pvp_challenges?status=in.(accepted,fighting)&select=*&order=created_at.desc&limit=100');
+      return rows || [];
+    } catch (e) {
+      console.warn('[PvpSync] stuck list failed', e.message);
+      return null;
+    }
+  }
+
   /* --- Round sync ------------------------------------------------------- */
   // Table: pvp_rounds (challenge_addr TEXT, round_num INT, attacker_wallet TEXT,
   //                    defender_wallet TEXT, atk_dist FLOAT, atk_zone TEXT,
@@ -896,6 +914,7 @@ CREATE INDEX IF NOT EXISTS idx_heartbeats_seen ON pvp_heartbeats (last_seen);
     startStatusPolling,
     stopStatusPolling,
     getMyChallenges,
+    getStuckChallenges,
     trackChallenge,
     updateChallengeStatus,
     submitLock,

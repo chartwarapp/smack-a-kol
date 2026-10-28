@@ -27,6 +27,7 @@
     cancel_challenge: [231, 253, 0, 151, 179, 94, 5, 152],
     resolve_challenge: [81, 191, 124, 119, 131, 248, 157, 109],
     refund_expired: [118, 153, 164, 244, 40, 128, 242, 250],
+    cancel_stuck_fight: [88, 249, 115, 79, 57, 232, 116, 36],
   };
 
   const te = new TextEncoder();
@@ -366,6 +367,52 @@
     return { signature };
   }
 
+  /**
+   * Cancel a stuck ACCEPTED fight: both stakes refunded in full, no fee.
+   * Resolver-only (same config.resolver gate as resolveChallenge), anytime
+   * on devnet v1. Requires the upgraded escrow program — on the old program
+   * the tx fails and the caller reports it as "not deployed yet" instead of
+   * surfacing a raw program error. Returns the refunded wager for the toast.
+   */
+  async function cancelStuckFight(challengeAddr) {
+    const w = web3();
+    const ch = await getChallenge(challengeAddr);
+    if (!ch) throw new Error('Challenge not found');
+    if (ch.stateName !== 'Accepted') {
+      throw Object.assign(
+        new Error('Challenge must be accepted before it can be cancelled as stuck (state: ' + ch.stateName + ')'),
+        { stateName: ch.stateName });
+    }
+    const { address } = getSigner();
+    const conn = connection();
+    const [configPda] = await w.PublicKey.findProgramAddress([te.encode('config')], programId());
+    const cfgInfo = await conn.getAccountInfo(configPda);
+    if (!cfgInfo) throw new Error('Escrow config not found');
+    const resolver = new w.PublicKey(cfgInfo.data.slice(8 + 32 + 32, 8 + 32 + 32 + 32)).toBase58();
+    if (address !== resolver) {
+      throw Object.assign(new Error('Only the resolver can cancel stuck fights. Connected wallet is not the resolver.'),
+        { code: 'NOT_RESOLVER', resolver });
+    }
+
+    const challenge = new w.PublicKey(ch.address);
+    const vault = new w.PublicKey(ch.vault);
+    const resolverPk = new w.PublicKey(address);
+    const challenger = new w.PublicKey(ch.challenger);
+    const opponent = new w.PublicKey(ch.opponent);
+    const ix = txIx(DISC.cancel_stuck_fight, [
+      { pubkey: challenge, isSigner: false, isWritable: true },
+      { pubkey: configPda, isSigner: false, isWritable: false },
+      { pubkey: vault, isSigner: false, isWritable: true },
+      { pubkey: resolverPk, isSigner: true, isWritable: false },
+      { pubkey: challenger, isSigner: false, isWritable: true },
+      { pubkey: opponent, isSigner: false, isWritable: true },
+      { pubkey: new w.PublicKey(TOKEN_PROGRAM), isSigner: false, isWritable: false },
+      { pubkey: w.SystemProgram.programId, isSigner: false, isWritable: false },
+    ], new Uint8Array(DISC.cancel_stuck_fight));
+    const signature = await buildAndSend([ix], address);
+    return { signature, wagerSol: ch.wagerSol, challenger: ch.challenger, opponent: ch.opponent };
+  }
+
   /** Shareable challenge link for the game site. */
   function challengeUrl(challengeAddr) {
     return 'https://smackakol.com/challenge.html?sol_challenge=' + challengeAddr;
@@ -389,6 +436,7 @@
   window.SAK.SolanaEscrow = {
     PROGRAM_ID, RPC_URL,
     createChallenge, acceptChallenge, cancelChallenge, resolveChallenge, refundExpired,
+    cancelStuckFight,
     getChallenge, derivePDAs, challengeUrl, parseChallenge, getSolBalance,
   };
 })();

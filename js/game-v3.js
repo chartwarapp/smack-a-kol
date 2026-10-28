@@ -4720,6 +4720,7 @@
   }
 
   let openBetsCache = [];
+  let stuckFightsCache = [];
   function betAge(ms) {
     const s = Math.max(0, Math.floor((Date.now() - ms) / 1000));
     if (s < 3600) return Math.max(1, Math.floor(s / 60)) + 'm ago';
@@ -4826,6 +4827,93 @@
     }
     refreshAdminOpenBets();
     refreshAdminVault();
+  }
+
+  // ---- STUCK FIGHTS (admin, 2026-10-28) ----
+  // Lists every PvP challenge stuck in Accepted/Fighting, with a two-tap
+  // CANCEL + REFUND per row: both stakes back in full, no fee, fight dead.
+  // The on-chain tx is the authority (resolver-signed); the DB row flips to
+  // 'cancelled' only after the tx lands, which drops both players' FIGHT
+  // READY cards at the next lobby poll.
+  async function refreshAdminStuckFights() {
+    const el = $('#admin-stuck');
+    if (!el) return;
+    const btn = $('#admin-stuck-refresh');
+    if (btn) { btn.disabled = true; btn.textContent = 'LOADING…'; }
+    el.textContent = 'Reading stuck fights…';
+    try {
+      const rows = await SAK.PvpSync.getStuckChallenges();
+      if (rows === null) throw new Error('read failed');
+      stuckFightsCache = rows;
+      if (!rows.length) {
+        el.innerHTML = `<div class="vt-row"><span>No stuck fights</span><b>All clear 🎉</b></div>`;
+      } else {
+        const total = rows.reduce((sum, r) => sum + (Number(r.wager_sol) || 0), 0);
+        let html = `<div class="vt-row"><span>${rows.length} stuck · locked in challenge vaults</span><b>◎ ${total.toFixed(3)} SOL</b></div>`;
+        rows.forEach((c, i) => {
+          const who = (a) => a ? `${a.slice(0, 4)}…${a.slice(-4)}` : '—';
+          const when = c.created_at ? new Date(c.created_at).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '—';
+          const wager = c.wager_sol != null ? `◎ ${Number(c.wager_sol).toFixed(3)} SOL each` : 'wager unknown';
+          html += `<div class="sf-row"><div class="sf-head">` +
+            `<span class="vt-move-label">${who(c.challenger)} vs ${who(c.opponent)} — ${wager}</span>` +
+            `<span class="vt-move-time">${c.status} · ${when}</span></div>` +
+            `<div class="sf-actions">` +
+            `<button class="sf-btn" data-sf="${i}">CANCEL + REFUND BOTH</button>` +
+            `</div></div>`;
+        });
+        el.innerHTML = html;
+        el.querySelectorAll('.sf-btn').forEach(btnEl => { btnEl.onclick = () => cancelStuckFightRow(btnEl); });
+      }
+    } catch (e) {
+      el.textContent = '⚠️ Could not read stuck fights. Check your connection and tap REFRESH STUCK FIGHTS.';
+    }
+    if (btn) { btn.disabled = false; btn.textContent = '🔄 REFRESH STUCK FIGHTS'; }
+  }
+
+  // Two-tap confirm: first tap arms ("SURE?"), second sends the resolver tx.
+  async function cancelStuckFightRow(btnEl) {
+    const c = stuckFightsCache[Number(btnEl.dataset.sf)];
+    if (!c) return;
+    if (!btnEl.classList.contains('armed')) {
+      document.querySelectorAll('.sf-btn.armed').forEach(x => { x.classList.remove('armed'); x.textContent = 'CANCEL + REFUND BOTH'; });
+      btnEl.classList.add('armed');
+      btnEl.textContent = 'SURE? REFUND BOTH';
+      setTimeout(() => { if (btnEl.isConnected && btnEl.classList.contains('armed')) { btnEl.classList.remove('armed'); btnEl.textContent = 'CANCEL + REFUND BOTH'; } }, 3500);
+      return;
+    }
+    const row = btnEl.closest('.sf-row');
+    if (row) row.querySelectorAll('.sf-btn').forEach(x => { x.disabled = true; });
+    btnEl.textContent = 'CANCELLING…';
+    try {
+      const r = await SAK.SolanaEscrow.cancelStuckFight(c.challenge_addr);
+      if (SAK.PvpSync && SAK.PvpSync.updateChallengeStatus) {
+        await SAK.PvpSync.updateChallengeStatus(c.challenge_addr, 'cancelled');
+      }
+      toast(`✅ Stuck fight cancelled — ◎ ${r.wagerSol.toFixed(3)} SOL refunded to each fighter`, 3800);
+      refreshAdminStuckFights();
+    } catch (e) {
+      const msg = (e && e.message) || '';
+      if (e && e.code === 'NOT_RESOLVER') {
+        toast('Only the resolver wallet can cancel stuck fights — connect the resolver wallet', 3600);
+      } else if (/reject|declined|cancel/i.test(msg) && !/cancelled as stuck|must be accepted/i.test(msg)) {
+        toast('Cancel declined in wallet — the stakes are still locked', 3200);
+      } else if (e && e.stateName) {
+        // Chain already moved on (resolved/cancelled/refunded): sync the DB
+        // row so the stale card disappears, instead of erroring forever.
+        const map = { Resolved: 'completed', Cancelled: 'cancelled', Refunded: 'refunded' };
+        if (map[e.stateName] && SAK.PvpSync && SAK.PvpSync.updateChallengeStatus) {
+          await SAK.PvpSync.updateChallengeStatus(c.challenge_addr, map[e.stateName]);
+        }
+        toast(`That fight is no longer stuck (on-chain: ${e.stateName}) — list refreshed`, 3400);
+        refreshAdminStuckFights();
+      } else if (/not found/i.test(msg)) {
+        toast('Challenge not found on-chain — it may predate this escrow program', 3400);
+        refreshAdminStuckFights();
+      } else {
+        toast('⚠️ Cancel failed — the stakes are still locked. If the upgraded escrow program has not been deployed yet, deploy it first, then retry', 4200);
+      }
+      if (btnEl.isConnected) { btnEl.disabled = false; btnEl.classList.remove('armed'); btnEl.textContent = 'CANCEL + REFUND BOTH'; }
+    }
   }
 
   // ---- PLAYER SIGNUPS (admin) ----
@@ -5333,6 +5421,9 @@
     const obBtn = $('#admin-openbets-refresh');
     if (obBtn) obBtn.onclick = () => { A.click(); refreshAdminOpenBets(); };
     refreshAdminOpenBets();
+    const sfBtn = $('#admin-stuck-refresh');
+    if (sfBtn) sfBtn.onclick = () => { A.click(); refreshAdminStuckFights(); };
+    refreshAdminStuckFights();
     const thBtn = $('#admin-tokenhouse-refresh');
     if (thBtn) thBtn.onclick = () => { A.click(); refreshAdminTokenHouse(); };
     refreshAdminTokenHouse();
