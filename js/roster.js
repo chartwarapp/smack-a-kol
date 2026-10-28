@@ -43,11 +43,11 @@ SAK.KOLS = [
     taunts: ['Visor down. Paws up. Let\'s slap.', 'Meow means moon where I come from.', 'I bought the dip. I stayed for the slap.']
   },
   {
-    id: 'arthurhaze', name: 'Arthur Haze', handle: '@EssaysAndSlaps', level: 5,
-    tagline: 'Drops a 10,000-word macro essay between slaps.',
+    id: 'mertz', name: 'Mertz', handle: '@MertzSlaps', level: 5,
+    tagline: 'Privacy isn\'t optional.',
     difficulty: 3, hp: 155, power: 18, accuracy: 0.7, winPts: 420, minBet: 250, payout: 2.4,
-    look: { skin: '#f0c8a8', shirt: '#9b5cff', hair: '#1a1a1a', pants: '#2b1b4f', accessory: 'tophat', accent: '#ffd23f', body: 'classic', hairStyle: 'short', eyes: 'round' },
-    taunts: ['Long volatility. Short your HP.', 'Chapter 37: The Slap Printer.', 'Money printer goes slap.']
+    look: { skin: '#f0c8a8', shirt: '#1a1a1a', hair: '#1a1a1a', pants: '#e8e8e8', accessory: 'none', accent: '#f5a623', body: 'classic', hairStyle: 'bald', facialHair: 'beard', eyes: 'angry', eyeColor: '#1a1a1a', print: 'zec', parody: 'mertz', cardBg: '#f5a623' },
+    taunts: ['Your chain is public. Mine isn\'t.', 'Shielded transactions, unshielded slaps.', 'ZEC to the moon, privacy to the max.']
   },
   {
     id: 'tolly', name: 'Tolly', handle: '@400msSlaps', level: 6,
@@ -62,6 +62,13 @@ SAK.KOLS = [
     difficulty: 4, hp: 200, power: 22, accuracy: 0.82, winPts: 680, minBet: 500, payout: 2.8,
     look: { skin: '#5f3a20', shirt: '#1a1a1a', hair: '#1a1a1a', pants: '#1a1a2a', accessory: 'shades', accent: '#111111', body: 'gymbro', hairStyle: 'buzz', eyes: 'angry', facialHair: 'goatee', outfit: 'tactical', parody: 'slingy', cardBg: '#ffd23f', cardShirt: '#ffd23f' },
     taunts: ['There is no second-best slap.', 'I just bought more slaps.', 'Laser-focused on your cheek. 👁👁']
+  },
+  {
+    id: 'poorgoat', name: 'Poor Goaty', handle: '@PoorGoatSlaps', level: 8,
+    tagline: 'The goat stays bullish.',
+    difficulty: 4, hp: 210, power: 23, accuracy: 0.83, winPts: 730, minBet: 600, payout: 2.8,
+    look: { skin: '#1c1c1e', shirt: '#232326', hair: '#1c1c1e', pants: '#1a1a2a', accessory: 'none', accent: '#ffd23f', body: 'classic', hairStyle: 'bald', eyes: 'angry', eyeColor: '#1a1a1a', species: 'bull', outfit: 'tee', parody: 'poorgoat', cardBg: '#242008' },
+    taunts: ['Baaaa. That means bullish.', 'The goat eats dips for breakfast.', 'You just got goated. 🐐']
   },
   {
     id: 'chairboy', name: 'Chairboy', handle: '@ChairboySlaps', level: 8,

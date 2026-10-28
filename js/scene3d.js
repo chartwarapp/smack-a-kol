@@ -1459,6 +1459,64 @@ SAK.Scene3D = (function () {
       else if (P === 'alone') this.buildAlone(add, tadd);
       else if (P === 'chairboy') this.buildChairboy(add, tadd);
       else if (P === 'tolly') this.buildTolly(add, tadd);
+      else if (P === 'poorgoat') this.buildPoorgoat(add, tadd);
+    }
+
+    /** Poor Goat (LT 2026-10-28): black goat — plain red baseball cap
+     * (no text), big black handlebar mustache, floppy goat ears,
+     * charcoal hoodie (hood + pocket, Chairboy pattern) and a glowing
+     * yellow C chest plate (canvas texture, Alone pattern). The
+     * species bull horns sweep out beside the cap on their own, like
+     * the reference. Mustache/ears use a slightly lifted black so
+     * they read against the black fur under scene lighting. NOTE:
+     * this method is a separate uncommitted feature from the table
+     * guard in this file — ship them separately or together by LT's
+     * call, never silently bundled. */
+    buildPoorgoat(add, tadd) {
+      const fur = mat('#1c1c1e');
+      const furLight = mat('#2e2e33');
+      const red = mat('#e03131');
+      const hoodMat = mat('#232326');
+      // Red cap — dome swallowing the skull top + forward brim.
+      const cap = add(new T.SphereGeometry(0.56, 20, 12, 0, Math.PI * 2, 0, Math.PI * 0.42), red, 0, 0.44, 0);
+      outline(cap, 1.03);
+      add(new T.BoxGeometry(0.62, 0.05, 0.40), red, 0, 0.70, 0.45, m => { m.rotation.x = 0.15; });
+      // Horn bridge comes from the generic speciesBull tuft now (same
+      // geometry, same black) — no second tuft here or the spikes
+      // z-fight.
+      // Handlebar mustache — Frankie capsules, black, bigger, tips curl up.
+      for (const sx of [-1, 1]) {
+        add(new T.CapsuleGeometry(0.05, 0.17, 4, 8), furLight, sx * 0.10, 0.26, 0.50, m => {
+          m.rotation.z = Math.PI / 2 + sx * 0.45;
+          m.rotation.y = sx * 0.2;
+        });
+      }
+      // Floppy goat ears — flattened spheres angled down-out past the skull.
+      for (const sx of [-1, 1]) {
+        const ear = add(new T.SphereGeometry(0.11, 10, 8), fur, sx * 0.55, 0.38, 0, m => {
+          m.rotation.z = sx * -0.9;
+        });
+        ear.scale.set(1.0, 1.5, 0.5);
+      }
+      // Hoodie — hood resting on the back + kangaroo pocket.
+      const hood = tadd(new T.SphereGeometry(0.24, 10, 8, 0, Math.PI * 2, 0, Math.PI * 0.6), hoodMat, 0, 0.78, -0.3);
+      hood.rotation.x = 0.5;
+      const pocket = tadd(new T.BoxGeometry(0.30, 0.18, 0.06), hoodMat, 0, 0.25, 0.32);
+      outline(pocket, 1.1);
+      // Glowing yellow C chest plate — canvas arc with shadow glow,
+      // unlit so it reads as glow (never a new dynamic light).
+      const [c, x] = cnv('rgba(0,0,0,0)');
+      x.strokeStyle = '#ffd23f'; x.lineCap = 'round';
+      x.shadowColor = '#ffd23f'; x.shadowBlur = 24;
+      x.lineWidth = 34;
+      x.beginPath(); x.arc(128, 128, 78, Math.PI * 0.35, Math.PI * 1.65); x.stroke();
+      x.shadowBlur = 0; x.lineWidth = 30;
+      x.beginPath(); x.arc(128, 128, 78, Math.PI * 0.35, Math.PI * 1.65); x.stroke();
+      const tex = mkTex(c);
+      const B = this.body || { w: 1, h: 1, d: 1, taper: 1 };
+      const chestZ = (0.5 * B.w * Math.min(1.25, B.taper) + 0.035) * 0.68 * B.d + 0.012;
+      const plate = tadd(new T.PlaneGeometry(0.55, 0.55), new T.MeshBasicMaterial({ map: tex, transparent: true }), 0, 0.50, chestZ + 0.03);
+      plate.castShadow = false;
     }
 
     /** UniBonker: yellow robot (LT 2026-10-26) — antenna, metallic
@@ -1969,6 +2027,19 @@ SAK.Scene3D = (function () {
         for (const sx of [-1, 1]) {
           const horn = add(hornGeo(sx), hornMat, sx * 0.4, 0.95, -0.05);
           outline(horn, 1.12);
+        }
+        // Horn bridge (LT 2026-10-28, Goaty rule applied to every horned
+        // fighter): the swept horns start beside the skull's narrowing top
+        // pole, so with no other trait overlapping that space their bases
+        // read as floating in air. A wide, low hair tuft across the top
+        // center meets both horn bases, with short spikes on top so it
+        // reads as hair. Hair-colored, so it merges with spiky/afro hair
+        // where a fighter already has it instead of cluttering.
+        const hairMat = new T.MeshStandardMaterial({ color: this.look.hair || '#1a1a1a', roughness: 0.7, metalness: 0 });
+        const tuft = add(new T.SphereGeometry(0.22, 12, 10), hairMat, 0, 0.98, 0, m => { m.scale.set(2.1, 0.8, 1.0); });
+        for (const [sx, tilt, h] of [[-0.28, -0.5, 0.16], [-0.14, -0.25, 0.20], [0, 0, 0.22], [0.14, 0.25, 0.20], [0.28, 0.5, 0.16]]) {
+          const spike = add(new T.ConeGeometry(0.05, h, 8), hairMat, sx, 1.12, 0, m => { m.rotation.z = tilt; });
+          outline(spike, 1.08);
         }
       }
       // Wide nose with big nostrils — V4: rounded
@@ -4804,6 +4875,7 @@ SAK.Scene3D = (function () {
    *  EVERY KO ends with the money shot: the loser's head turns to camera so the
    *  battered face (bruises, black eye, scratches + X eyes) and dizzy stars
    *  always read — never face-down — before the winner celebrates. */
+
   async function knockout(who, tier, sweep) {
     const F = who === 'player' ? player : kol;
     const finTier = tier || lastSlapTier || 'perfect'; // game.js passes only `loser`

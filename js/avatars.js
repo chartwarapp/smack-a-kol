@@ -142,6 +142,21 @@ SAK.avatarSVG = function (look, opts) {
   const tollyFx = look.parody === 'tolly'
     ? `<g><rect x="26" y="36" width="48" height="9" fill="${s}"/><rect x="25" y="42" width="22" height="12" rx="4" fill="#111"/><rect x="53" y="42" width="22" height="12" rx="4" fill="#111"/><rect x="45" y="45" width="10" height="3" fill="#111"/><path d="M30 58 Q30 82 50 84 Q70 82 70 58 L64 58 Q64 74 50 76 Q36 74 36 58 Z" fill="#1a1a1a" fill-rule="evenodd"/></g>`
     : '';
+  // Poor Goat (LT 2026-10-28): black goat — plain red baseball cap
+  // (no text) over the species bull horns, floppy goat ears, big black
+  // handlebar mustache with curled tips. The cap dome covers the horn
+  // bases; the horn tips poke out above it, like the reference.
+  const poorgoatFx = look.parody === 'poorgoat'
+    ? `<g><ellipse cx="14" cy="44" rx="9" ry="15" fill="${s}" stroke="#0003" stroke-width="2" transform="rotate(24 14 44)"/><ellipse cx="86" cy="44" rx="9" ry="15" fill="${s}" stroke="#0003" stroke-width="2" transform="rotate(-24 86 44)"/><path d="M22 36 Q50 2 78 36 Z" fill="#e03131" stroke="#0003" stroke-width="2"/><ellipse cx="50" cy="35" rx="30" ry="6" fill="#b81e28"/><ellipse cx="50" cy="33" rx="30" ry="2.5" fill="#ff6b6b" opacity="0.6"/><ellipse cx="40" cy="64" rx="12" ry="5" fill="#0a0a0a" stroke="#44444a" stroke-width="1" transform="rotate(-14 40 64)"/><ellipse cx="60" cy="64" rx="12" ry="5" fill="#0a0a0a" stroke="#44444a" stroke-width="1" transform="rotate(14 60 64)"/><path d="M28 62 Q26 56 30 55 M72 62 Q74 56 70 55" stroke="#0a0a0a" stroke-width="2.5" fill="none" stroke-linecap="round"/></g>`
+    : '';
+
+  // Mertz (LT 2026-10-28): bald Zcash maxi — full dark beard + connected
+  // mustache. The 2D base draws no beard (only mustache), so the beard
+  // lives here; the 3D base beard covers the stage fighter, and the
+  // Zcash chest badge comes from look.print 'zec' on the body card.
+  const mertzFx = look.parody === 'mertz'
+    ? `<g><path d="M30 58 Q30 82 50 84 Q70 82 70 58 L64 58 Q64 74 50 76 Q36 74 36 58 Z" fill="#1a1a1a" fill-rule="evenodd"/><ellipse cx="40" cy="62" rx="10" ry="3.5" fill="#1a1a1a"/><ellipse cx="60" cy="62" rx="10" ry="3.5" fill="#1a1a1a"/></g>`
+    : '';
 
   // Animal species overlays (drawn right after the head circle, under hair/eyes).
   let speciesFx = '';
@@ -215,6 +230,8 @@ SAK.avatarSVG = function (look, opts) {
     ${aloneFx}
     ${chairboyFx}
     ${tollyFx}
+    ${poorgoatFx}
+    ${mertzFx}
     ${opts.blush ? '<ellipse cx="68" cy="62" rx="9" ry="6" fill="#ff2d2d" opacity="0.55"/>' : ''}
     ${dmgFx}
     ${tieFx}
@@ -248,6 +265,11 @@ SAK.avatarBodySVG = function (look) {
   const aloneShirt = look.parody === 'alone'
     ? `<text x="50" y="102" text-anchor="middle" font-size="10" font-weight="bold" fill="#111" font-family="Arial, sans-serif">STOP</text><text x="50" y="113" text-anchor="middle" font-size="10" font-weight="bold" fill="#111" font-family="Arial, sans-serif">BEING</text><text x="50" y="124" text-anchor="middle" font-size="10" font-weight="bold" fill="#111" font-family="Arial, sans-serif">POOR</text>`
     : '';
+  // Poor Goat (LT 2026-10-28): hoodie drawstrings + kangaroo pocket +
+  // glowing yellow C chest logo on the charcoal hoodie.
+  const poorgoatShirt = look.parody === 'poorgoat'
+    ? `<g><path d="M62 96 A13 13 0 1 0 62 118" fill="none" stroke="#ffd23f" stroke-width="6" stroke-linecap="round" opacity="0.35"/><path d="M62 96 A13 13 0 1 0 62 118" fill="none" stroke="#ffd23f" stroke-width="4" stroke-linecap="round"/><line x1="44" y1="88" x2="44" y2="99" stroke="#111111" stroke-width="2.5" stroke-linecap="round"/><line x1="56" y1="88" x2="56" y2="99" stroke="#111111" stroke-width="2.5" stroke-linecap="round"/><circle cx="44" cy="100" r="2" fill="#111111"/><circle cx="56" cy="100" r="2" fill="#111111"/><rect x="38" y="118" width="24" height="9" rx="3" fill="#1a1a1e" stroke="#0003" stroke-width="1.5"/></g>`
+    : '';
   return `<svg viewBox="0 0 100 170" xmlns="http://www.w3.org/2000/svg" class="avatar-body-svg">
     <g transform="rotate(8 30 92)"><rect x="24" y="90" width="11" height="26" rx="5" fill="${shirt}"/><rect x="24.5" y="112" width="10" height="18" rx="5" fill="${s}"/><circle cx="29.5" cy="134" r="6" fill="${s}"/></g>
     <g transform="rotate(-8 70 92)"><rect x="65" y="90" width="11" height="26" rx="5" fill="${shirt}"/><rect x="65.5" y="112" width="10" height="18" rx="5" fill="${s}"/><circle cx="70.5" cy="134" r="6" fill="${s}"/></g>
@@ -260,6 +282,7 @@ SAK.avatarBodySVG = function (look) {
     <rect x="${tx0}" y="128" width="${tw}" height="7" fill="#1a1a22"/>
     ${printImg}
     ${aloneShirt}
+    ${poorgoatShirt}
     <g>${head}</g>
   </svg>`;
 };

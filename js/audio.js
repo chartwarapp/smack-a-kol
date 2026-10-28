@@ -675,6 +675,7 @@ SAK.Audio = (function () {
     perfect() { if (!ready()) return; [880, 1108, 1318].forEach((f, i) => tone(f, 0.3, 'triangle', 0.18, i * 0.05)); },
     coin() { if (!ready()) return; tone(988, 0.08, 'square', 0.12); tone(1318, 0.25, 'square', 0.12, 0.08); },
     click() { if (!ready()) return; tone(660, 0.05, 'square', 0.08); },
+    tick() { if (!ready()) return; tone(1500, 0.03, 'square', 0.06); },
     fire() { if (!ready()) return; noise(0.5, 900, 0.6, 0.4, 'lowpass'); tone(220, 0.5, 'sawtooth', 0.15, 0, 880); },
     ko() {
       if (!ready()) return;

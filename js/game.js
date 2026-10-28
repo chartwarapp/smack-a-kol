@@ -3773,7 +3773,7 @@
    * their difficulty/accuracy data). FREE mode: no SOL, PTS only.
    * WAGER mode: SOL bet vs the house at a flat 1.9x. The classic
    * picker (same 8 + fan KOLs) stays reachable from FREE mode. */
-  const SOLO_KOL_IDS = ['solflakey', 'cupsalty', 'fabiony', 'arthurhaze', 'tolly', 'mikesailor', 'chairboy', 'unibonker', 'pattyspice', 'frankienogood', 'ansombull', 'alone'];
+  const SOLO_KOL_IDS = ['solflakey', 'cupsalty', 'fabiony', 'mertz', 'tolly', 'mikesailor', 'poorgoat', 'chairboy', 'unibonker', 'pattyspice', 'frankienogood', 'ansombull', 'alone'];
   const soloKols = () => SOLO_KOL_IDS.map(id => SAK.KOLS.find(k => k.id === id)).filter(Boolean);
   function soloTier(k) {
     const lvl = (k && k.level) || 1;
@@ -3889,7 +3889,6 @@
     const list = soloKols();
     $('#solo-face-rail').innerHTML = list.map((k, i) => {
       return `<button class="face-btn ${i === soloSelected ? 'selected' : ''}" data-si="${i}" aria-label="${esc(k.name)}">
-        ${S.beaten[k.id] ? '<span class="beaten">✓</span>' : ''}
         ${SAK.avatarSVG(k.look)}
         <span class="face-name">${esc(k.name)}</span>
       </button>`;
@@ -4046,7 +4045,7 @@
           const d = Math.abs((fr.left + fr.width / 2) - center);
           if (d < bestD) { bestD = d; best = +f.dataset.si; }
         });
-        if (best >= 0 && best !== soloSelected) selectSoloKol(best, true, false, true);
+        if (best >= 0 && best !== soloSelected) { A.tick(); selectSoloKol(best, true, false, true); }
       });
     }, { passive: true });
   }
