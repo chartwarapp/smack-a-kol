@@ -135,6 +135,7 @@ SAK.Audio = (function () {
     slapLoading = true;
     loadCrowdBank();
     loadCommentaryBank();
+    loadRedBank();
     loadOpeningBank();
     // A custom slap replaces the entire random bank with the one upload
     loadCustomInto('slap', {}).then(ok => {
@@ -472,6 +473,69 @@ SAK.Audio = (function () {
     src.start(ctx.currentTime + 0.08);
   }
 
+  /* ---- Smack King red-zone commentary (LT 2026-10-28) ----
+     SEPARATE bank from COMMENTARY_BANK — trolls for WEAK (red-zone, soft)
+     slaps only, layered over the real slap SFX like the main bank. 6 lines:
+     red-02 cancelled by LT (RUG mispronounced, heard as ROG). Same
+     conventions: the shared commentarySrc guard means a red line never
+     overlaps a main line (and vice versa), random pick never the same line
+     twice in a row, gain 0.8 * soundCfg.commentary, +0.08s delay so the
+     crack hits first, silent on load failure, no synth fallback. ---- */
+  const RED_COMMENTARY_BANK = [
+    { id: 'smackking-red-01', file: 'assets/sfx/smackking-red-01.mp3' }, // That SLAP was nothing but AiR
+    { id: 'smackking-red-03', file: 'assets/sfx/smackking-red-03.mp3' }, // That slap couldn't knock over a PAPER HAND!
+    { id: 'smackking-red-04', file: 'assets/sfx/smackking-red-04.mp3' }, // My grandma slaps harder, and she's been RUGGED twice!
+    { id: 'smackking-red-05', file: 'assets/sfx/smackking-red-05.mp3' }, // Was that a slap or a LOVE TAP? The crowd wants a REFUND!
+    { id: 'smackking-red-06', file: 'assets/sfx/smackking-red-06.mp3' }, // That slap had less power than a DEAD COIN!
+    { id: 'smackking-red-07', file: 'assets/sfx/smackking-red-07.mp3' }, // Couldn't hear a SMACK
+  ];
+  const redBufs = {};
+  let redLoading = false, lastRedIdx = -1;
+  function loadRedBank() {
+    if (!ctx) return;
+    RED_COMMENTARY_BANK.forEach(b => {
+      fetch(b.file).then(r => { if (!r.ok) throw 0; return r.arrayBuffer(); })
+        .then(ab => ctx.decodeAudioData(ab))
+        .then(buf => { redBufs[b.id] = buf; })
+        .catch(() => { /* silent — a missing line just never plays */ });
+    });
+  }
+  // One red line per weak slap, random (never the same line twice in a row),
+  // never overlapping another Smack King line (shared commentarySrc guard).
+  function playRedCommentary() {
+    if (!ready() || commentarySrc || redLoading) return;
+    let idx = Math.floor(Math.random() * RED_COMMENTARY_BANK.length);
+    if (RED_COMMENTARY_BANK.length > 1 && idx === lastRedIdx) idx = (idx + 1) % RED_COMMENTARY_BANK.length;
+    const entry = RED_COMMENTARY_BANK[idx];
+    const buf = redBufs[entry.id];
+    if (!buf) {
+      // Not preloaded yet — fetch on demand, play only if nothing started since.
+      redLoading = true;
+      fetch(entry.file).then(r => { if (!r.ok) throw 0; return r.arrayBuffer(); })
+        .then(ab => ctx.decodeAudioData(ab))
+        .then(b => {
+          redBufs[entry.id] = b;
+          redLoading = false;
+          if (!commentarySrc) playRedCommentaryBuf(entry.id);
+        })
+        .catch(() => { redLoading = false; });
+      return;
+    }
+    playRedCommentaryBuf(entry.id);
+  }
+  function playRedCommentaryBuf(id) {
+    const buf = redBufs[id];
+    if (!buf || !ctx || commentarySrc) return;
+    const idx = RED_COMMENTARY_BANK.findIndex(b => b.id === id);
+    if (idx >= 0) lastRedIdx = idx;
+    const src = ctx.createBufferSource(); src.buffer = buf;
+    const g = ctx.createGain(); g.gain.value = 0.8 * soundCfg.commentary;
+    src.connect(g); g.connect(master);
+    commentarySrc = src;
+    src.onended = () => { if (commentarySrc === src) commentarySrc = null; };
+    src.start(ctx.currentTime + 0.08);
+  }
+
   /* ---- Smack King fight-opening lines (LT 2026-10-27) ----
      SEPARATE bank from the slap COMMENTARY_BANK — one line per fight,
      played at the very start of a fight before the ROUND 1 card, never
@@ -645,11 +709,12 @@ SAK.Audio = (function () {
     },
     startMusic,
     stopMusic,
-    slap(strength) {          // strength 0..1+
+    slap(strength, grade) {          // strength 0..1+, grade 'weak'/'good'/'perfect' (optional)
       if (!ready()) return;
       crowdSlap(strength * soundCfg.crowd);  // crowd gasps/cheers on every slap
       if (soundCfg.reactOn) playSlapReact();      // funny cartoon reaction, layered over the slap
-      playCommentary();                            // Smack King line, layered over the slap, never overlapping another line
+      if (grade === 'weak') playRedCommentary();  // soft slap in the red — Smack King trolls it
+      else playCommentary();                      // Smack King line, layered over the slap, never overlapping another line
       if (playSlapBuf(strength)) return;   // real recorded slap
       // synth fallback (bank not loaded yet / fetch failed) — noise only, no tones
       const s = Math.min(1.5, strength);

@@ -1902,7 +1902,7 @@
     }
     const doImpact = () => {
       if (slapLands) {
-        A.slap(grade.mult * (fire ? 1.4 : 1));
+        A.slap(grade.mult * (fire ? 1.4 : 1), slapGrade); // 'weak' → red-zone troll line, else main bank
         hapticSlap(slapGrade, fire, atk.dist);
         if (fire) flash('#ffb000'); else if (grade.id === 'perfect') flash('#39ff88');
         else flash('#ffe23d');
@@ -1948,7 +1948,7 @@
       if (!attackerWins) {
         const finisher = playerWonRound ? 'player' : 'kol';
         const doFin = () => {
-          A.slap(1.1);
+          A.slap(1.1, 'good'); // finishing slap is a good slap — main bank, never the red troll bank
           hapticSlap('good', false, 12);
           flash('#ffe23d');
           const target = finisher === 'player' ? 'k' : 'p';
