@@ -4893,6 +4893,22 @@
     refreshAdminVault();
   }
 
+  // Admin section minimize tabs (LT 2026-10-28): the STUCK FIGHTS list and
+  // the SMACK open-bets list run long, so each gets a ▾/▸ tab that hides
+  // its rows (header + summary stay visible). Choice persists in
+  // localStorage across panel opens.
+  function adminFoldGet() { try { return JSON.parse(localStorage.getItem('sak_admin_fold') || '{}'); } catch (e) { return {}; } }
+  function adminFoldSet(k, v) { try { const o = adminFoldGet(); o[k] = v; localStorage.setItem('sak_admin_fold', JSON.stringify(o)); } catch (e) {} }
+  function adminFoldApply() {
+    const o = adminFoldGet();
+    const sBtn = $('#admin-stuck-fold'), sList = $('#admin-stuck-list');
+    if (sBtn) sBtn.textContent = o.stuck ? '▸' : '▾';
+    if (sList) sList.hidden = !!o.stuck;
+    const tBtn = $('#admin-th-obfold'), tList = $('#admin-th-oblist');
+    if (tBtn) tBtn.textContent = o.smackOb ? '▸' : '▾';
+    if (tList) tList.hidden = !!o.smackOb;
+  }
+
   // ---- STUCK FIGHTS (admin, 2026-10-28) ----
   // Lists every PvP challenge stuck in Accepted/Fighting, with a two-tap
   // CANCEL + REFUND per row: both stakes back in full, no fee, fight dead.
@@ -4913,7 +4929,7 @@
         el.innerHTML = `<div class="vt-row"><span>No stuck fights</span><b>All clear 🎉</b></div>`;
       } else {
         const total = rows.reduce((sum, r) => sum + (Number(r.wager_sol) || 0), 0);
-        let html = `<div class="vt-row"><span>${rows.length} stuck · locked in challenge vaults</span><b>◎ ${total.toFixed(3)} SOL</b></div>`;
+        let html = `<div class="vt-row"><span>${rows.length} stuck · locked in challenge vaults</span><b>◎ ${total.toFixed(3)} SOL</b></div><div id="admin-stuck-list">`;
         rows.forEach((c, i) => {
           const who = (a) => a ? `${a.slice(0, 4)}…${a.slice(-4)}` : '—';
           const when = c.created_at ? new Date(c.created_at).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '—';
@@ -4925,8 +4941,10 @@
             `<button class="sf-btn" data-sf="${i}">CANCEL + REFUND BOTH</button>` +
             `</div></div>`;
         });
+        html += `</div>`;
         el.innerHTML = html;
         el.querySelectorAll('.sf-btn').forEach(btnEl => { btnEl.onclick = () => cancelStuckFightRow(btnEl); });
+        adminFoldApply();
       }
     } catch (e) {
       el.textContent = '⚠️ Could not read stuck fights. Check your connection and tap REFRESH STUCK FIGHTS.';
@@ -4958,7 +4976,8 @@
     } catch (e) {
       const msg = (e && e.message) || '';
       if (e && e.code === 'NOT_RESOLVER') {
-        toast('Only the resolver wallet can cancel stuck fights — connect the resolver wallet', 3600);
+        const rShort = (e.resolver || '').slice(0, 4) + '…' + (e.resolver || '').slice(-4);
+        toast(`Only the resolver wallet can cancel stuck fights — connect ${rShort} (the escrow resolver)`, 4200);
       } else if (/reject|declined|cancel/i.test(msg) && !/cancelled as stuck|must be accepted/i.test(msg)) {
         toast('Cancel declined in wallet — the stakes are still locked', 3200);
       } else if (e && e.stateName) {
@@ -5101,7 +5120,7 @@
         html += row('Open bets', 'None 🎉');
       } else {
         const total = open.reduce((s, b) => s + b.wagerBase, 0);
-        html += row('Open bets', `${open.length} · ${fmtTok(total)} SMACK locked`);
+        html += `<div class="vt-row"><span>Open bets</span><b>${open.length} · ${fmtTok(total)} SMACK locked</b><button type="button" class="admin-fold-btn" id="admin-th-obfold">▾</button></div><div id="admin-th-oblist">`;
         if (svcOnT) {
           html += `<div class="fine" style="margin:2px 0 4px;">Settlement is automatic now — an open bet clears when its fight result comes in, so the manual settle buttons have retired.</div>`;
         } else if (open.length >= 2) {
@@ -5121,6 +5140,7 @@
               `</div>`) +
             `</div>`;
         });
+        html += `</div>`;
       }
       html += row('Vault address', `<code>${short(st.vaultAddress)}</code>`) +
         `<div class="vt-foot">Last checked ${new Date().toLocaleTimeString()} · devnet</div>`;
@@ -5140,6 +5160,9 @@
       el.querySelectorAll('.th-btn').forEach(btnEl => { btnEl.onclick = () => settleTokenOpenBet(btnEl); });
       const allBtn = $('#th-settle-all');
       if (allBtn) allBtn.onclick = () => settleAllTokenOpenBets(allBtn);
+      const obFold = $('#admin-th-obfold');
+      if (obFold) obFold.onclick = () => { A.click(); const o = adminFoldGet(); adminFoldSet('smackOb', !o.smackOb); adminFoldApply(); };
+      adminFoldApply();
     } catch (e) {
       el.textContent = '⚠️ Could not reach devnet from this device. Check your connection and tap REFRESH SMACK HOUSE.';
     }
@@ -5487,6 +5510,8 @@
     refreshAdminOpenBets();
     const sfBtn = $('#admin-stuck-refresh');
     if (sfBtn) sfBtn.onclick = () => { A.click(); refreshAdminStuckFights(); };
+    const sfFold = $('#admin-stuck-fold');
+    if (sfFold) sfFold.onclick = () => { A.click(); const o = adminFoldGet(); adminFoldSet('stuck', !o.stuck); adminFoldApply(); };
     refreshAdminStuckFights();
     const thBtn = $('#admin-tokenhouse-refresh');
     if (thBtn) thBtn.onclick = () => { A.click(); refreshAdminTokenHouse(); };

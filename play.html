@@ -12,7 +12,7 @@
   <!-- Chunky game font (optional – falls back to system fonts offline) -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Lilita+One&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/style.css?v=goat-mertz-1" />
+  <link rel="stylesheet" href="css/style.css?v=admin-fold-1" />
 </head>
 <body>
 <div id="app">
@@ -559,7 +559,7 @@
           <p class="fine dark">How to choose: a bet only lands here when its fight never reported a result — the tab closed, the player backed out, or the fight never started. Settle those as LOSS and the wager returns to the house vault. SETTLE WIN is only for a fight that DID finish where the winner never got paid — it pays the player their full 1.9×. Tap a settle button twice to confirm, then sign in your wallet.</p>
         </div>
         <div class="admin-sec">
-          <h4>⛓️ STUCK FIGHTS</h4>
+          <h4>⛓️ STUCK FIGHTS <button type="button" class="admin-fold-btn" id="admin-stuck-fold" aria-label="Minimize stuck fights">▾</button></h4>
           <div id="admin-stuck">Stuck fights load when this panel opens.</div>
           <button class="btn btn-yellow" id="admin-stuck-refresh">🔄 REFRESH STUCK FIGHTS</button>
           <p class="fine dark">PvP challenges stuck in Accepted or Fighting — the ones behind the FIGHT READY cards. CANCEL + REFUND returns BOTH stakes in full, no fee, and the fight can never resolve afterwards. Tap twice to confirm, then sign in your wallet (resolver only). After a cancel, both players' FIGHT READY cards disappear at the next lobby refresh. If the upgraded escrow program hasn't been deployed yet, the cancel reports that plainly instead of failing with a program error.</p>
@@ -631,6 +631,6 @@
 <script src="js/pvp-sync.js?v=stuck-1"></script>
 <script src="js/solana-house.js?v=7"></script>
 <script src="js/contracts.js?v=1"></script>
-<script src="js/game-v3.js?v=goat-mertz-1"></script>
+<script src="js/game-v3.js?v=admin-fold-1"></script>
 </body>
 </html>
