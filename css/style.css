@@ -260,6 +260,38 @@ h2, h3, .prompt, .vs, .level, .fc-name, .banner, .float-text, .result-title {
 .face-btn.face-more { display: grid; place-items: center; border-style: dashed; }
 .face-btn.face-more .plus { font-size: 26px; line-height: 1; color: var(--yellow); }
 #solo-wager-dock { position: sticky; bottom: 0; z-index: 5; background: #12042e; border-top: 2px solid #ffffff22; padding: 10px 2px 12px; margin-top: 10px; }
+/* Concept A compact pass (LT 2026-10-28: fit the solo screen neatly, no
+   feature loss). Measured baseline at 390px wide: sheet content 1056px —
+   216px over an 844px viewport, 393px over a 667px wallet-browser viewport.
+   This pass saves ~210px: single-line SMACK button (was 110px, wrapped to
+   two lines on long SMACK amounts), stage 250→180, faces 58→48, tighter
+   paddings/margins throughout. Nothing is removed. */
+#screen-solo .pick-sheet { padding-top: 10px; }
+#screen-solo .sheet-toprow { margin-bottom: 4px; }
+#solo-toggle.mode-row { margin-bottom: 4px; }
+.solo-streak-bar { margin-bottom: 4px; padding: 6px 10px; }
+#solo-kol-detail { margin-bottom: 6px; }
+#solo-kol-detail .kd-stage { padding: 4px; margin-bottom: 6px; }
+#solo-stage-canvas { height: 165px; }
+#solo-kol-detail .kd-name { font-size: 26px; }
+#solo-kol-detail .kd-chips { margin: 4px 0; }
+#solo-kol-detail .kd-chip { padding: 5px 8px; }
+#solo-kol-detail .kd-money { margin-top: 2px; }
+#solo-kol-detail .kd-money div { padding: 5px 8px; }
+#solo-face-rail { padding: 4px 2px 6px; }
+.face-btn { width: 48px; height: 48px; }
+#solo-wager-dock { padding: 8px 2px 8px; margin-top: 4px; }
+#solo-wager-dock #btn-solo-challenge { font-size: 20px; padding: 10px 12px; white-space: nowrap; line-height: 1.2; }
+/* Short viewports (wallet browsers ≈667px tall): squeeze further. The dock
+   stays pinned, so the bet is always one tap away even when a little
+   scroll remains on the shortest screens. */
+@media (max-height: 720px) {
+  #solo-stage-canvas { height: 155px; }
+  .face-btn { width: 44px; height: 44px; }
+  #solo-kol-detail .kd-name { font-size: 22px; }
+  .solo-streak-bar { font-size: 11px; padding: 5px 10px; }
+  #solo-wager-dock #btn-solo-challenge { padding: 8px 12px; }
+}
 /* The sheet's bottom padding (16px + safe area) would otherwise cap the
    sticky range 16px above the sheet's bottom edge — the dock must sit
    flush, so the solo sheet drops its bottom padding (the dock is the last
