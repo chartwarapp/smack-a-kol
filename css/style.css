@@ -745,6 +745,28 @@ h2, h3, .prompt, .vs, .level, .fc-name, .banner, .float-text, .result-title {
 .result-card { border-color: #39ff88; box-shadow: 0 10px 0 #0006, 0 0 30px #39ff8866; }
 .result-card.lose { border-color: #ff3b5c; box-shadow: 0 10px 0 #0006, 0 0 30px #ff3b5c66; }
 .result-card.win .result-title { color: #39ff88; }
+
+/* Result-card fit (LT 2026-10-28): the whole card must fit without
+   scrolling on a wallet-browser viewport (~667px tall) as well as full
+   Safari (844px). Measured 850px tall before (65px over at 844,
+   231px over at 667). This block trims ~230px with nothing removed:
+   title drops to one line, faces shrink, rows + buttons tighten.
+   Scroll stays as a safety net for taller variants (PvP settle, streak
+   grants), but the common solo card now fits outright. */
+.result-card { padding: 10px; }
+.result-title { font-size: 34px; margin-bottom: 0; }
+.result-card .avatar-svg { width: 68px; height: 68px; border-radius: 14px; border-width: 3px; }
+.result-vs { margin: 2px 0 2px; }
+.rv-tag { padding: 2px 10px; }
+.result-sub { margin-bottom: 4px; }
+.breakdown { padding: 5px 12px; margin-bottom: 6px; font-size: 13px; }
+.breakdown div { padding: 2px 0; }
+.breakdown .total { font-size: 18px; }
+.breakdown .bd-head { padding-top: 4px; }
+.result-card .fine { margin: -4px 0 4px; }
+.result-btns { gap: 6px; }
+.result-btns .row .btn { font-size: 14px; padding: 8px 4px; }
+#r-solo-again { font-size: 16px; padding: 10px 8px; }
 .pick-sheet { background: linear-gradient(180deg, #1e0a4af2, #0d0326f8); border-top-color: #39ff8888; }
 /* toasts never block taps */
 .toast { pointer-events: none; bottom: auto; top: 46%; max-width: 92%; white-space: normal; text-align: center; box-shadow: 0 0 20px #39ff8866; }

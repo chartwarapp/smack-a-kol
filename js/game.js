@@ -1902,7 +1902,7 @@
     }
     const doImpact = () => {
       if (slapLands) {
-        A.slap(grade.mult * (fire ? 1.4 : 1));
+        A.slap(grade.mult * (fire ? 1.4 : 1), slapGrade, slapWho === 'player'); // 'weak' + player attacking → red-zone troll line, else main bank
         hapticSlap(slapGrade, fire, atk.dist);
         if (fire) flash('#ffb000'); else if (grade.id === 'perfect') flash('#39ff88');
         else flash('#ffe23d');
@@ -1948,7 +1948,7 @@
       if (!attackerWins) {
         const finisher = playerWonRound ? 'player' : 'kol';
         const doFin = () => {
-          A.slap(1.1);
+          A.slap(1.1, 'good'); // finishing slap is a good slap — main bank, never the red troll bank
           hapticSlap('good', false, 12);
           flash('#ffe23d');
           const target = finisher === 'player' ? 'k' : 'p';
@@ -2337,10 +2337,10 @@
     const isSoloHouse = !!(F.opts && F.opts.soloHouse);
     html += `<div class="result-btns">
         ${isSoloHouse ? `<div style="display:flex;gap:8px;align-items:stretch;">
-          <div style="flex:1 1 58%;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;background:#1a0b3a;border:3px solid var(--ink);border-radius:14px;padding:6px 8px;box-sizing:border-box;">
+          <div style="flex:1 1 58%;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;background:#1a0b3a;border:3px solid var(--ink);border-radius:14px;padding:4px 8px;box-sizing:border-box;">
             ${F.opts.soloHouse.currency === 'SMACK'
-              ? `<input id="r-solo-amount" type="text" inputmode="numeric" value="${(F.opts.soloHouse.wagerTokens || 1000).toLocaleString('en-US')}" style="width:100%;min-width:0;background:transparent;border:none;outline:none;color:#fff;font:inherit;font-size:20px;font-weight:800;text-align:center;" />`
-              : `<input id="r-solo-amount" type="number" inputmode="decimal" step="0.01" min="0.01" value="${parseFloat(F.opts.soloHouse.wagerSol || 0.05)}" style="width:100%;min-width:0;background:transparent;border:none;outline:none;color:#fff;font:inherit;font-size:20px;font-weight:800;text-align:center;" />`}
+              ? `<input id="r-solo-amount" type="text" inputmode="numeric" value="${(F.opts.soloHouse.wagerTokens || 1000).toLocaleString('en-US')}" style="width:100%;min-width:0;background:transparent;border:none;outline:none;color:#fff;font:inherit;font-size:18px;font-weight:800;text-align:center;" />`
+              : `<input id="r-solo-amount" type="number" inputmode="decimal" step="0.01" min="0.01" value="${parseFloat(F.opts.soloHouse.wagerSol || 0.05)}" style="width:100%;min-width:0;background:transparent;border:none;outline:none;color:#fff;font:inherit;font-size:18px;font-weight:800;text-align:center;" />`}
             <span style="font-weight:800;font-size:11px;letter-spacing:2px;color:#f5c542;white-space:nowrap;">${F.opts.soloHouse.currency === 'SMACK' ? 'SMACK' : 'SOL'}</span>
           </div>
           <button class="btn btn-yellow" id="r-solo-again" style="flex:1 1 42%;min-width:0;">🖐 SMACK AGAIN</button>
