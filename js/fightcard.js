@@ -104,19 +104,31 @@ SAK.FightCard = (() => {
         `<rect x="${x}" y="${fy}" width="${FACE}" height="${FACE}" rx="49" fill="none" stroke="#ffffff" stroke-width="6"/>`;
     };
     const wrecked = { ko: true, wrecked: true, blush: true };
+    // Fighter names under each face (LT 2026-10-29, mirrors the result
+    // screen). Names arrive from cardData (playerName / kolName); older
+    // callers without names get no name line and no extra height.
+    const hasNames = !!(o.playerName || o.kolName);
+    const nameH = hasNames ? 58 : 0;
+    const nameText = (cx, s, fy) => {
+      if (!s) return '';
+      const fs = fitFs(s, 40, 340);
+      return `<text x="${cx}" y="${fy + FACE + 44}" text-anchor="middle" font-size="${fs}" font-weight="400" fill="#ffffff">${esc(s)}</text>`;
+    };
     if (draw) {
-      out += face(o.kolLook, {}, (W - FACE) / 2, y + PILL_H + 14);
-      y += PILL_H + 14 + FACE;
+      const fy = y + PILL_H + 14;
+      out += face(o.kolLook, {}, (W - FACE) / 2, fy);
+      out += nameText(540, o.kolName, fy);
+      y += PILL_H + 14 + FACE + nameH;
     } else {
       const gap = 96, totalW = FACE * 2 + gap;
       const x1 = (W - totalW) / 2, x2 = x1 + FACE + gap;
       const fy = y + PILL_H + 14;
-      if (win) { out += pill(x1 + FACE / 2, 'WINNER', true); out += face(o.playerLook, {}, x1, fy); }
-      else { out += pill(x1 + FACE / 2, 'LOSER', false); out += face(o.playerLook, wrecked, x1, fy); }
+      if (win) { out += pill(x1 + FACE / 2, 'WINNER', true); out += face(o.playerLook, {}, x1, fy); out += nameText(x1 + FACE / 2, o.playerName, fy); }
+      else { out += pill(x1 + FACE / 2, 'LOSER', false); out += face(o.playerLook, wrecked, x1, fy); out += nameText(x1 + FACE / 2, o.playerName, fy); }
       out += `<text x="540" y="${fy + FACE / 2 + 22}" text-anchor="middle" font-size="60" font-weight="400" font-style="italic" fill="#ffffff" opacity="0.9">VS</text>`;
-      if (win) { out += pill(x2 + FACE / 2, 'LOSER', false); out += face(o.kolLook, wrecked, x2, fy); }
-      else { out += pill(x2 + FACE / 2, 'WINNER', true); out += face(o.kolLook, {}, x2, fy); }
-      y += PILL_H + 14 + FACE;
+      if (win) { out += pill(x2 + FACE / 2, 'LOSER', false); out += face(o.kolLook, wrecked, x2, fy); out += nameText(x2 + FACE / 2, o.kolName, fy); }
+      else { out += pill(x2 + FACE / 2, 'WINNER', true); out += face(o.kolLook, {}, x2, fy); out += nameText(x2 + FACE / 2, o.kolName, fy); }
+      y += PILL_H + 14 + FACE + nameH;
     }
     y += 34;
     // Sub line
