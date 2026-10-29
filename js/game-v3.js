@@ -4057,8 +4057,8 @@
       }
       btn.className = 'btn btn-xl btn-red';
       btn.innerHTML = soloCurrency === 'SMACK'
-        ? `🖐 SMACK · BET ${smackWager.toLocaleString('en-US')} SMACK`
-        : `🖐 SMACK · BET ${Math.round(soloWager * 1000) / 1000} SOL`;
+        ? `👋🏻 Commit ${smackWager.toLocaleString('en-US')} SMACK`
+        : `👋🏻 Commit ${Math.round(soloWager * 1000) / 1000} SOL`;
     } else {
       const win = Math.round(modePts(k, 'classic') * soloTier(k).mult);
       btn.className = 'btn btn-xl ' + (soloPtsBet ? 'btn-red' : 'btn-yellow');
