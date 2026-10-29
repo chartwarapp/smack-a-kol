@@ -1589,3 +1589,20 @@ body.on-menu #ticker { display: none; }
 .kol-card.locked { opacity: .55; filter: grayscale(.6); }
 .kol-card .kc-lock { position: absolute; top: 2px; right: 2px; font-size: 14px; line-height: 1; }
 #solo-kol-detail .kd-tier.tier-max { color: #ff2a1a; }
+
+/* Main menu compact pass (LT 2026-10-29): tighter spacing only — no
+   layout changes, no removed elements. Measured at 390x844: menu
+   content 1172px -> 1029px (143px saved). */
+.menu-inner { margin-top: 8px; }
+.menu-b1 { padding-bottom: 12px; }
+.m1-header-bar { padding: 6px 12px; margin-bottom: 8px; }
+.m1-topbar { padding: 6px 12px; margin-bottom: 8px; }
+.m1-stats { margin-bottom: 8px; }
+.m1-tile { padding: 8px 12px; }
+.m1-hero { margin: 4px 0 6px; min-height: 0; display: block; flex: none; }
+.m1-hero .m1-logo { display: block; aspect-ratio: 2 / 1; }
+.menu-buttons { gap: 8px; }
+.m1-buttons .btn { margin-bottom: 0; }
+.m1-enter { padding: 16px !important; }
+.m1-tagline { padding: 8px; margin: 8px 0; }
+.menu-inner .fine { margin-top: 6px; }
