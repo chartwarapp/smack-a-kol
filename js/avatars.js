@@ -202,6 +202,18 @@ SAK.avatarSVG = function (look, opts) {
     ? `<g><path d="M50 2 L98 30 Q50 22 2 30 Z" fill="#e8c547" stroke="#0003" stroke-width="1.5"/><line x1="50" y1="2" x2="20" y2="28" stroke="#c99327" stroke-width="1.5" opacity="0.6"/><line x1="50" y1="2" x2="80" y2="28" stroke="#c99327" stroke-width="1.5" opacity="0.6"/><line x1="32" y1="8" x2="24" y2="24" stroke="#ffffff" stroke-width="2" opacity="0.55" stroke-linecap="round"/><circle cx="50" cy="4" r="3" fill="#f5d76e"/><ellipse cx="38" cy="48" rx="9" ry="12" fill="#1a1a1a"/><ellipse cx="62" cy="48" rx="9" ry="12" fill="#1a1a1a"/><ellipse cx="38" cy="48" rx="4.5" ry="2.5" fill="#ffffff"/><ellipse cx="62" cy="48" rx="4.5" ry="2.5" fill="#ffffff"/><ellipse cx="50" cy="59" rx="5" ry="4" fill="#1a1a1a"/><line x1="56" y1="70" x2="70" y2="67" stroke="#d4af37" stroke-width="3" stroke-linecap="round"/><rect x="67" y="58" width="7" height="10" rx="2" fill="#d4af37" stroke="#0003" stroke-width="1"/></g>`
     : '';
 
+  // Super Trump (LT 2026-10-28): MAX KOL 1 — red aura rings around
+  // the head, boxy side-comb hair, stern flat mouth (base smile covered).
+  const supertrumpFx = look.parody === 'supertrump'
+    ? `<g><circle cx="50" cy="50" r="33" fill="none" stroke="#ff2a1a" stroke-width="3" opacity="0.45"/><circle cx="50" cy="50" r="37" fill="none" stroke="#ff2a1a" stroke-width="3" opacity="0.22"/><path d="M18 42 L18 16 L82 16 L82 42 Q74 30 50 32 Q26 30 18 42 Z" fill="#f2d06b" stroke="#0003" stroke-width="1.5"/><path d="M28 22 L74 27" fill="none" stroke="#d9b45c" stroke-width="2" stroke-linecap="round"/><path d="M30 29 L70 33" fill="none" stroke="#d9b45c" stroke-width="2" stroke-linecap="round"/><rect x="38" y="64" width="24" height="12" fill="${s}"/><line x1="43" y1="70" x2="57" y2="70" stroke="#1a1a1a" stroke-width="2.5" stroke-linecap="round"/></g>`
+    : '';
+
+  // Elon Mars (LT 2026-10-28): MAX KOL 2 — neat brown hair under a
+  // clear bubble helmet (light tint wash + shine arc over the face).
+  const elonmarsFx = look.parody === 'elonmars'
+    ? `<g><path d="M20 44 Q18 14 50 12 Q82 14 80 44 Q74 30 50 32 Q26 30 20 44 Z" fill="#6b4a2f" stroke="#0003" stroke-width="1.5"/><circle cx="50" cy="50" r="36" fill="#cfe8ff" fill-opacity="0.18" stroke="#e8f4ff" stroke-opacity="0.8" stroke-width="2.5"/><path d="M30 28 Q50 12 70 28" fill="none" stroke="#ffffff" stroke-width="3" opacity="0.6" stroke-linecap="round"/></g>`
+    : '';
+
   // Animal species overlays (drawn right after the head circle, under hair/eyes).
   let speciesFx = '';
   const sp = look.species || 'human';
@@ -281,6 +293,8 @@ SAK.avatarSVG = function (look, opts) {
     ${growlingFx}
     ${kookedFx}
     ${senseiFx}
+    ${supertrumpFx}
+    ${elonmarsFx}
     ${opts.blush ? '<ellipse cx="68" cy="62" rx="9" ry="6" fill="#ff2d2d" opacity="0.55"/>' : ''}
     ${dmgFx}
     ${tieFx}
@@ -350,6 +364,22 @@ SAK.avatarBodySVG = function (look) {
   const senseiShirt = look.parody === 'senseisol'
     ? `<g><polygon points="36,88 50,98 44,130 32,130" fill="#2a2a30"/><polygon points="64,88 50,98 56,130 68,130" fill="#2a2a30"/><polygon points="44,88 56,88 50,108" fill="#2a2a30"/><rect x="30" y="118" width="40" height="5" fill="#7d838c"/><polygon points="34,124 66,124 68,148 32,148" fill="#9aa0a8" stroke="#0003" stroke-width="1.5"/><polygon points="46,124 54,124 58,148 42,148" fill="#2a2a30"/><g fill="#d4af37"><path d="M0 0 L6 0 L4 2 L-2 2 Z M0 3 L6 3 L4 5 L-2 5 Z M0 6 L6 6 L4 8 L-2 8 Z" transform="translate(36,102) skewX(-20)"/><path d="M0 0 L6 0 L4 2 L-2 2 Z M0 3 L6 3 L4 5 L-2 5 Z M0 6 L6 6 L4 8 L-2 8 Z" transform="translate(60,96) skewX(-20)"/><path d="M0 0 L6 0 L4 2 L-2 2 Z M0 3 L6 3 L4 5 L-2 5 Z M0 6 L6 6 L4 8 L-2 8 Z" transform="translate(44,112) skewX(-20)"/><path d="M0 0 L6 0 L4 2 L-2 2 Z M0 3 L6 3 L4 5 L-2 5 Z M0 6 L6 6 L4 8 L-2 8 Z" transform="translate(38,132) skewX(-20)"/><path d="M0 0 L6 0 L4 2 L-2 2 Z M0 3 L6 3 L4 5 L-2 5 Z M0 6 L6 6 L4 8 L-2 8 Z" transform="translate(60,136) skewX(-20)"/><path d="M0 0 L6 0 L4 2 L-2 2 Z M0 3 L6 3 L4 5 L-2 5 Z M0 6 L6 6 L4 8 L-2 8 Z" transform="translate(38,141) skewX(-20)"/><path d="M0 0 L6 0 L4 2 L-2 2 Z M0 3 L6 3 L4 5 L-2 5 Z M0 6 L6 6 L4 8 L-2 8 Z" transform="translate(60,143) skewX(-20)"/></g></g>`
     : '';
+
+  // Super Trump (LT 2026-10-28): blue suit — red cape panels at the
+  // sides, red shield + gold S swoosh on the chest, gold belt, red
+  // trunks over blue legs, red aura rings, flame glow on the
+  // slapping hand (viewer's right, same rotated group as the arm).
+  const supertrumpShirt = look.parody === 'supertrump'
+    ? `<g><ellipse cx="50" cy="95" rx="46" ry="78" fill="none" stroke="#ff2a1a" stroke-width="2.5" opacity="0.12"/><ellipse cx="50" cy="95" rx="41" ry="72" fill="none" stroke="#ff2a1a" stroke-width="2.5" opacity="0.22"/><polygon points="25,88 31,88 29,152 15,150" fill="#e03131" stroke="#0003" stroke-width="1.5"/><polygon points="69,88 75,88 85,150 71,152" fill="#e03131" stroke="#0003" stroke-width="1.5"/><path d="M36 90 L64 90 L64 106 Q64 120 50 128 Q36 120 36 106 Z" fill="#e11d2e" stroke="#0003" stroke-width="1.5"/><path d="M58 97 C48 97 44 101 46 106 C48 111 58 109 57 115 C56 120 46 119 43 116" fill="none" stroke="#ffd23f" stroke-width="3.5" stroke-linecap="round"/><rect x="36" y="122" width="28" height="5" fill="#e8c547" stroke="#0003" stroke-width="1"/><rect x="47" y="121" width="6" height="7" rx="1.5" fill="#ffe27a" stroke="#0003" stroke-width="1"/><rect x="36" y="132" width="28" height="10" fill="#e03131" stroke="#0003" stroke-width="1"/><g transform="rotate(-8 70 92)"><circle cx="70.5" cy="134" r="11" fill="#ff2a1a" opacity="0.35"/><circle cx="70.5" cy="134" r="6.5" fill="#ff3b1f"/><path d="M66 128 Q68 120 70.5 126 Q72 119 74 127 Q76 122 75 130" fill="none" stroke="#ff6a1a" stroke-width="2" stroke-linecap="round"/></g></g>`
+    : '';
+
+  // Elon Mars (LT 2026-10-28): white space suit — backpack edges
+  // peeking at the sides, jetpack tank tops + nozzle tips, white suit
+  // collar, chest panel with the rocket emblem, dark shoulder straps,
+  // white-black glove with blue glow on the slapping hand.
+  const elonmarsShirt = look.parody === 'elonmars'
+    ? `<g><rect x="20" y="92" width="6" height="30" rx="2" fill="#d8d8e0" stroke="#0003" stroke-width="1.5"/><rect x="74" y="92" width="6" height="30" rx="2" fill="#d8d8e0" stroke="#0003" stroke-width="1.5"/><rect x="36" y="78" width="28" height="8" rx="3" fill="#e8e8f0" stroke="#0003" stroke-width="1.5"/><line x1="36" y1="88" x2="38" y2="128" stroke="#3a3a44" stroke-width="3" stroke-linecap="round"/><line x1="64" y1="88" x2="62" y2="128" stroke="#3a3a44" stroke-width="3" stroke-linecap="round"/><rect x="38" y="94" width="24" height="18" rx="3" fill="#d8d8e0" stroke="#0003" stroke-width="1.5"/><g><rect x="47" y="97" width="6" height="12" rx="3" fill="#ffffff" stroke="#0003" stroke-width="1"/><path d="M47 97 L53 97 L50 91 Z" fill="#e03131"/><circle cx="50" cy="102" r="1.8" fill="#22d3ee"/><path d="M44 107 L47 105 L47 110 Z" fill="#e03131"/><path d="M56 107 L53 105 L53 110 Z" fill="#e03131"/><path d="M47 109 L53 109 L50 114 Z" fill="#ff6a1a"/></g><rect x="24" y="80" width="10" height="12" rx="3" fill="#d8d8e0" stroke="#0003" stroke-width="1.5"/><rect x="66" y="80" width="10" height="12" rx="3" fill="#d8d8e0" stroke="#0003" stroke-width="1.5"/><rect x="22" y="122" width="4" height="8" fill="#3a3a44"/><rect x="76" y="122" width="4" height="8" fill="#3a3a44"/><g transform="rotate(-8 70 92)"><circle cx="70.5" cy="134" r="11" fill="#2a7bff" opacity="0.35"/><circle cx="70.5" cy="134" r="6.5" fill="#f2f2f2"/><path d="M65 131 Q70.5 127 76 131" fill="none" stroke="#1a1a22" stroke-width="2.5" stroke-linecap="round"/><rect x="65.5" y="125" width="10" height="6" fill="#1a1a22"/></g></g>`
+    : '';
   return `<svg viewBox="0 0 100 170" xmlns="http://www.w3.org/2000/svg" class="avatar-body-svg">
     <g transform="rotate(8 30 92)"><rect x="24" y="90" width="11" height="26" rx="5" fill="${shirt}"/><rect x="24.5" y="112" width="10" height="18" rx="5" fill="${s}"/><circle cx="29.5" cy="134" r="6" fill="${s}"/></g>
     <g transform="rotate(-8 70 92)"><rect x="65" y="90" width="11" height="26" rx="5" fill="${shirt}"/><rect x="65.5" y="112" width="10" height="18" rx="5" fill="${s}"/><circle cx="70.5" cy="134" r="6" fill="${s}"/></g>
@@ -369,6 +399,8 @@ SAK.avatarBodySVG = function (look) {
     ${growlingShirt}
     ${kookedShirt}
     ${senseiShirt}
+    ${supertrumpShirt}
+    ${elonmarsShirt}
     <g>${head}</g>
   </svg>`;
 };

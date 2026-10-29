@@ -68,7 +68,10 @@
       taunts: [c.phrase, 'Fan-made and fully unhinged.', 'Community-submitted slap incoming!']
     }, SAK.customKolStats(Math.max(1, Math.min(5, c.difficulty || 2))));
   }
-  const roster = () => SAK.KOLS.concat(S.customKols.map(hydrateCustom));
+  // MAX KOL (LT 2026-10-28): hidden from the picker until the tier + lock land — find them via SAK.KOLS.
+  const roster = () => SAK.KOLS.filter(k => !k.maxKol).concat(S.customKols.map(hydrateCustom));
+  const MAX_RESERVED_NAMES = ['super trump', 'elon mars'];   // MAX KOL names are reserved, never usable for custom fighters
+  const nameIsReserved = n => MAX_RESERVED_NAMES.includes((n || '').toLowerCase());
   const ugcSlotsUnlocked = () => SAK.UGC.slotMilestones.filter(m => S.stats.lifetimePts >= m).length;
   const ugcNextMilestone = () => SAK.UGC.slotMilestones.find(m => S.stats.lifetimePts < m);
 
@@ -755,7 +758,7 @@
     if (v.err) { $('#cr-name-err').textContent = 'Name: ' + v.err; return; }
     // Unique fighter names: no duplicates with KOL roster or other custom KOLs
     const nameLower = v.ok.toLowerCase();
-    if (roster().some(k => k.name.toLowerCase() === nameLower)) {
+    if (roster().some(k => k.name.toLowerCase() === nameLower) || nameIsReserved(nameLower)) {
       $('#cr-name-err').textContent = 'That name is taken'; return;
     }
     A.click();
@@ -857,7 +860,7 @@
     if (v.err) { $('#cr-look-err').textContent = 'Name: ' + v.err; return false; }
     const nameLower = v.ok.toLowerCase();
     const isOwnName = S.profile && S.profile.name.toLowerCase() === nameLower;
-    if (!isOwnName && roster().some(k => k.name.toLowerCase() === nameLower)) {
+    if (!isOwnName && (roster().some(k => k.name.toLowerCase() === nameLower) || nameIsReserved(nameLower))) {
       $('#cr-look-err').textContent = 'That name is taken'; return false;
     }
     const rawPh = phrase !== undefined ? phrase : $('#fit-phrase').value.trim();
@@ -999,8 +1002,10 @@
   const modePts = (k, mode) => boosted(k.winPts * SAK.MODES[mode].ptsMult);
 
   function openPicker(forceIdx) {
-    const list = roster();
-    const idx = list.findIndex(k => !S.beaten[k.id]);   // default: first unbeaten
+    checkMaxKolUnlock();
+    const list = pickerList();
+    const unlocked = maxKolUnlocked();
+    const idx = list.findIndex(k => !S.beaten[k.id] && !(k.maxKol && !unlocked));   // default: first unbeaten, skipping locked MAX
     selected = forceIdx !== undefined ? forceIdx : idx >= 0 ? idx : 0;
     selected = Math.min(selected, list.length - 1);
     renderPicker();
@@ -1009,17 +1014,22 @@
   }
 
   function renderPicker() {
-    const list = roster();
+    const list = pickerList();
+    const unlocked = maxKolUnlocked();
     const used = S.customKols.length, slots = ugcSlotsUnlocked(), next = ugcNextMilestone();
     const canSubmit = used < slots;
-    $('#kol-list').innerHTML = list.map((k, i) => `
-      <button class="kol-card ${i === selected ? 'selected' : ''}" data-i="${i}">
+    $('#kol-list').innerHTML = list.map((k, i) => {
+      const locked = k.maxKol && !unlocked;
+      const p = locked ? maxKolProgress() : null;
+      return `<button class="kol-card ${i === selected ? 'selected' : ''} ${locked ? 'locked' : ''}" data-i="${i}">
         ${S.beaten[k.id] ? '<span class="beaten">✓</span>' : ''}
         ${k.custom ? '<span class="fan">FAN</span>' : ''}
+        ${locked ? '<span class="kc-lock">🔒</span>' : ''}
         ${SAK.avatarSVG(k.look)}
         <div class="kc-name">${esc(k.name)}</div>
-        <div class="kc-stake">${ptsHTML()}+${fmt(modePts(k, selectedMode))}</div>
-      </button>`).join('') + `
+        <div class="kc-stake">${locked ? `🔒 ${p.beaten}/${p.total} KOLs beaten` : `${ptsHTML()}+${fmt(modePts(k, selectedMode))}`}</div>
+      </button>`;
+    }).join('') + `
       <button class="kol-card submit-card-btn ${canSubmit ? '' : 'locked'}" id="btn-submit-kol">
         <span class="plus">${canSubmit ? '+' : '🔒'}</span>
         <div class="kc-name">SUBMIT KOL</div>
@@ -1030,18 +1040,39 @@
   }
 
   function selectKol(i, noTaunt) {
-    const list = roster();
+    const list = pickerList();
     selected = i;
     const k = list[i];
-    $$('.kol-card[data-i]').forEach(c => c.classList.toggle('selected', +c.dataset.i === i));
     const maxHp = 260, maxPow = 28;
-    $('#kol-detail').innerHTML = `
-      <div><div class="kd-name">${esc(k.name)}</div><div class="kd-handle">${esc(k.handle)} · ${k.custom ? 'FAN-MADE' : 'LEVEL ' + k.level}</div></div>
+    $$('.kol-card[data-i]').forEach(c => c.classList.toggle('selected', +c.dataset.i === i));
+    // MAX KOL lock: show the lock panel, never arm the bet row or the
+    // SEND IT button for a locked boss.
+    if (k.maxKol && !maxKolUnlocked()) {
+      const p = maxKolProgress();
+      $('#kol-detail').innerHTML = `
+      <div><div class="kd-name">🔒 ${esc(k.name)}</div><div class="kd-handle">${esc(k.handle)} · MAX KOL · LEVEL ${k.level}</div></div>
       <div class="kd-stars">${'★'.repeat(Math.max(0, Math.min(5, k.difficulty)))}<span style="opacity:.3">${'★'.repeat(Math.max(0, 5 - k.difficulty))}</span></div>
       <div class="kd-tag">“${esc(k.tagline)}”</div>
       <div class="kd-stats">
-        <span>❤ HP</span><div class="stat-bar"><i style="width:${k.hp / maxHp * 100}%;background:#2ee66b"></i></div><span>${k.hp}</span>
-        <span>✊ POWER</span><div class="stat-bar"><i style="width:${k.power / maxPow * 100}%;background:#ff3b5c"></i></div><span>${k.power}</span>
+        <span>❤ HP</span><div class="stat-bar"><i style="width:${Math.min(100, k.hp / maxHp * 100)}%;background:#2ee66b"></i></div><span>${k.hp}</span>
+        <span>✊ POWER</span><div class="stat-bar"><i style="width:${Math.min(100, k.power / maxPow * 100)}%;background:#ff3b5c"></i></div><span>${k.power}</span>
+      </div>
+      <div class="kd-money">
+        <div>🔒 Beat all ${p.total} KOLs to unlock · <b>${p.beaten}/${p.total}</b></div>
+      </div>`;
+      const btn = $('#btn-challenge');
+      if (btn) { btn.disabled = true; btn.className = 'btn btn-xl'; btn.innerHTML = `🔒 BEAT ALL ${p.total} KOLS TO UNLOCK`; }
+      if (Scene) { Scene.setOpponent(k.look); if (!noTaunt) Scene.taunt(); }
+      const card = $(`.kol-card[data-i="${i}"]`); if (card) card.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+      return;
+    }
+    $('#kol-detail').innerHTML = `
+      <div><div class="kd-name">${esc(k.name)}</div><div class="kd-handle">${esc(k.handle)} · ${k.custom ? 'FAN-MADE' : k.maxKol ? 'MAX KOL' : 'LEVEL ' + k.level}</div></div>
+      <div class="kd-stars">${'★'.repeat(Math.max(0, Math.min(5, k.difficulty)))}<span style="opacity:.3">${'★'.repeat(Math.max(0, 5 - k.difficulty))}</span></div>
+      <div class="kd-tag">“${esc(k.tagline)}”</div>
+      <div class="kd-stats">
+        <span>❤ HP</span><div class="stat-bar"><i style="width:${Math.min(100, k.hp / maxHp * 100)}%;background:#2ee66b"></i></div><span>${k.hp}</span>
+        <span>✊ POWER</span><div class="stat-bar"><i style="width:${Math.min(100, k.power / maxPow * 100)}%;background:#ff3b5c"></i></div><span>${k.power}</span>
       </div>
       <div class="kd-money">
         <div>WIN ${ptsHTML()}<b>+${fmt(modePts(k, selectedMode))}</b></div>
@@ -1057,7 +1088,7 @@
   }
 
   function renderBets() {
-    const k = roster()[selected];
+    const k = pickerList()[selected];
     if (selectedBet && !P.canAfford(selectedBet)) selectedBet = 0;
     $('#bet-chips').innerHTML = SAK.BETS.map(b => {
       const free = b === 0, locked = !free && (b < k.minBet || !P.canAfford(b));
@@ -1074,11 +1105,17 @@
       selectedBet = b; renderBets();
     }));
     const btn = $('#btn-challenge');
+    btn.disabled = false;
     btn.className = 'btn btn-xl ' + (selectedBet ? 'btn-red' : 'btn-yellow');
     btn.innerHTML = selectedBet ? `🖐 SEND IT · BET ${fmt(selectedBet)} PTS` : `🖐 SEND IT · FREE · +${fmt(modePts(k, selectedMode))} PTS`;
   }
 
-  $('#btn-challenge').addEventListener('click', () => startFight(roster()[selected], selectedBet, { mode: selectedMode }));
+  $('#btn-challenge').addEventListener('click', () => {
+    const k = pickerList()[selected];
+    if (!k) return;
+    if (k.maxKol && !maxKolUnlocked()) { const p = maxKolProgress(); return toast(`🔒 ${k.name} is locked — beat all ${p.total} KOLs first (${p.beaten}/${p.total})`, 2600); }
+    startFight(k, selectedBet, { mode: selectedMode });
+  });
 
   /* ======================================================= SUBMIT A KOL (UGC) */
   let draft = null;
@@ -1168,7 +1205,7 @@
     const ph = validateText($('#sub-phrase').value, SAK.UGC.maxCatchphrase);
     if (n.err) return toast('Name: ' + n.err);
     if (ph.err) return toast('Catchphrase: ' + ph.err);
-    if (roster().some(k => k.name.toLowerCase() === n.ok.toLowerCase())) return toast('That name is taken');
+    if (roster().some(k => k.name.toLowerCase() === n.ok.toLowerCase()) || nameIsReserved(n.ok)) return toast('That name is taken');
     if (S.customKols.length >= ugcSlotsUnlocked()) return toast('No free slots');
     const base = lookFromName(n.ok, draft.shirt);
     // Merge trait roll if they rerolled (gloves/outfit/accessory carry over)
@@ -2137,7 +2174,7 @@
 
     // An armed Golden Fist that never landed isn't wasted: return the charge
     if (F.fireArmed) { F.fireArmed = false; S.powerups.fist = Math.min(SAK.POWERUPS.fist.max, (S.powerups.fist || 0) + 1); if (Scene) Scene.setFireArmed(false); }
-    if (win) { st.wins++; st.streak++; st.bestStreak = Math.max(st.bestStreak, st.streak); S.beaten[k.id] = true; A.win(); }
+    if (win) { st.wins++; st.streak++; st.bestStreak = Math.max(st.bestStreak, st.streak); S.beaten[k.id] = true; checkMaxKolUnlock(); A.win(); }
     else if (!draw) { st.losses++; st.streak = 0; A.lose(); }
     // ---- Solo streak rewards (LT 2026-10-25): wagered Solo only ----
     let streakGrant = null;
@@ -3774,12 +3811,36 @@
    * WAGER mode: SOL bet vs the house at a flat 1.9x. The classic
    * picker (same 8 + fan KOLs) stays reachable from FREE mode. */
   const SOLO_KOL_IDS = ['choosepoornick', 'solflakey', 'minhfantasy', 'growlingkitty', 'cupsalty', 'kooked', 'fabiony', 'mertz', 'tolly', 'mikesailor', 'poorgoat', 'chairboy', 'unibonker', 'pattyspice', 'senseisol', 'frankienogood', 'ansombull', 'alone'];
-  const soloKols = () => SOLO_KOL_IDS.map(id => SAK.KOLS.find(k => k.id === id)).filter(Boolean);
+  const MAX_KOL_IDS = ['supertrump', 'elonmars'];
+  const soloKols = () => SOLO_KOL_IDS.concat(MAX_KOL_IDS).map(id => SAK.KOLS.find(k => k.id === id)).filter(Boolean);
   function soloTier(k) {
+    if (k && k.maxKol) return { key: 'max', name: 'MAX', mult: 2.5 };
     const lvl = (k && k.level) || 1;
     if (lvl >= 9) return { key: 'champion', name: 'CHAMPION', mult: 2 };
     if (lvl >= 6) return { key: 'pro', name: 'PRO', mult: 1.5 };
     return { key: 'contender', name: 'CONTENDER', mult: 1 };
+  }
+  /* ---- MAX KOL tier (LT 2026-10-28): unlockable endgame tier placed
+   * after the PROS. Locked until the player beats every other (non-MAX)
+   * KOL at least once; the unlock is a persistent save flag, so later
+   * roster additions never re-lock it. PTS reward: MAX tier pays
+   * winPts x2.5. SOL/SMACK bet payout stays 1.9x until the contract
+   * work lands (deferred per LT) — the PTS bet payout already follows
+   * k.payout (2.5x) with no contract change. */
+  const maxKols = () => SAK.KOLS.filter(k => k.maxKol);
+  const pickerList = () => roster().concat(maxKols());
+  function maxKolProgress() {
+    const list = roster();
+    return { beaten: list.filter(k => S.beaten[k.id]).length, total: list.length };
+  }
+  function maxKolUnlocked() {
+    if (S.maxKolUnlocked) return true;
+    const p = maxKolProgress();
+    if (p.total > 0 && p.beaten >= p.total) { S.maxKolUnlocked = true; try { SAK.Storage.save(); } catch (e) {} return true; }
+    return false;
+  }
+  function checkMaxKolUnlock() {
+    if (!S.maxKolUnlocked && maxKolUnlocked()) toast('🔓 MAX KOL UNLOCKED — Super Trump and Elon Mars are ready to slap!', 3200);
   }
   let soloMode = 'wager';   // 'free' | 'wager'
   let soloSelected = 0;
@@ -3886,11 +3947,16 @@
   }
   function renderSoloFaceRail() {
     // Concept A: faces-only rail under the top stage (replaces B's cards).
+    // MAX KOL faces ride at the end, dimmed + locked until unlocked.
+    checkMaxKolUnlock();
+    const unlocked = maxKolUnlocked();
     const list = soloKols();
     $('#solo-face-rail').innerHTML = list.map((k, i) => {
-      return `<button class="face-btn ${i === soloSelected ? 'selected' : ''}" data-si="${i}" aria-label="${esc(k.name)}">
+      const locked = k.maxKol && !unlocked;
+      return `<button class="face-btn ${i === soloSelected ? 'selected' : ''} ${locked ? 'locked' : ''}" data-si="${i}" aria-label="${esc(k.name)}">
         ${SAK.avatarSVG(k.look)}
         <span class="face-name">${esc(k.name)}</span>
+        ${locked ? '<span class="face-lock">🔒</span>' : ''}
       </button>`;
     }).join('') + (soloMode === 'free' ? `
       <button class="face-btn face-more" id="btn-solo-roster" aria-label="Full roster">
@@ -3901,6 +3967,19 @@
   }
   function selectSoloKol(i, noTaunt, fromSwipe, fromWheel) {
     const list = soloKols(); const k = list[i]; if (!k) return;
+    // MAX KOL lock: a locked face never becomes the selection — show the
+    // lock panel instead, so the stage + challenge button keep the last
+    // playable fighter and a locked boss can never start a fight.
+    if (k.maxKol && !maxKolUnlocked()) {
+      const p = maxKolProgress();
+      $('#solo-kol-text').innerHTML = `
+      <div class="kd-namerow"><div><div class="kd-name">🔒 ${esc(k.name)}</div><div class="kd-handle">${esc(k.handle)} · LEVEL ${k.level} · <span class="kd-tier tier-max">MAX</span></div></div></div>
+      <div class="kd-tag">“${esc(k.tagline)}”</div>
+      <div class="kd-chips"><span class="kd-chip">Beat all ${p.total} KOLs to unlock · <b>${p.beaten}/${p.total}</b></span></div>
+      <div class="kd-tag">Scroll to another face to play.</div>`;
+      toast(`🔒 ${k.name} is locked — beat all ${p.total} KOLs first (${p.beaten}/${p.total})`, 2600);
+      return;
+    }
     soloSelected = i;
     $$('#solo-face-rail .face-btn[data-si]').forEach(c => c.classList.toggle('selected', +c.dataset.si === i));
     const t = soloTier(k);

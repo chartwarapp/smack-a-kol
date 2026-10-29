@@ -23,6 +23,7 @@ SAK.Storage = (function () {
       referredBy: null,                // referral code/wallet that referred this player
       referralRewardClaimed: false,    // referee reward given on first win
       beaten: {},                      // kolId -> true
+      maxKolUnlocked: false,           // MAX KOL tier (LT 2026-10-28): persistent unlock — once earned, later roster additions never re-lock
       customKols: [],
       profile: null,                   // player fighter { name, colour, phrase } (null = not created yet)                  // user-submitted parody KOLs (see SAK.UGC)
       settings: { sound: true, haptics: true, battleMusic: true },

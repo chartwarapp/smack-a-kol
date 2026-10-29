@@ -843,6 +843,8 @@ SAK.Scene3D = (function () {
         this.arms[side] = { shoulder, elbow, hand, handMat, side };
       }
       this.buildGloves();
+      this.buildFlameHand(); // Super Trump: permanent flame hand (post-arms — buildParody runs before arms exist)
+      this.buildElonGlove(); // Elon Mars: white-black glove + blue glow (same reason)
       this.root.traverse(o => { o.userData.fighter = this; });
       // V6: establish the fierce default expression (grin + teeth) right away
       try { this.setExpression('neutral', 0.01); } catch (e) {}
@@ -1465,6 +1467,8 @@ SAK.Scene3D = (function () {
       else if (P === 'growlingkitty') this.buildGrowling(add, tadd);
       else if (P === 'kooked') this.buildKooked(add, tadd);
       else if (P === 'senseisol') this.buildSensei(add, tadd);
+      else if (P === 'supertrump') this.buildSupertrump(add, tadd);
+      else if (P === 'elonmars') this.buildElonmars(add, tadd);
     }
 
     /** Poor Goat (LT 2026-10-28): black goat — plain red baseball cap
@@ -1780,6 +1784,115 @@ SAK.Scene3D = (function () {
      * that also hugs the skull, so the band just sits on the forehead
      * (radius 0.45 matches the skull's cross-section at y 0.68) and the
      * brow meshes are switched off by their exact cylinder dims. */
+    /** Super Trump (LT 2026-10-28): MAX KOL 1 — blue suit, red cape,
+     * gold belt, red trunks, shield emblem, boxy side-comb hair. The red
+     * aura + flame hand live in buildFlameHand (post-arms) and the
+     * setFire flameHand branch, since buildParody runs before arms
+     * exist. Base brows stay: angry brows + flat mouth read stern. */
+    buildSupertrump(add, tadd) {
+      const B = this.body || { w: 1, h: 1, d: 1, taper: 1 };
+      const chestZ = (0.5 * B.w * Math.min(1.25, B.taper) + 0.035) * 0.68 * B.d + 0.012;
+      const gold = mat('#e8c547', {}); const red = mat('#e03131', {});
+      // Blonde side-comb: a BOXY block on top (not a round dome) +
+      // swept fringe across the forehead.
+      add(new T.BoxGeometry(0.80, 0.20, 0.70), mat('#f2d06b', {}), 0, 0.88, 0, m => { m.rotation.z = 0.06; });
+      add(new T.BoxGeometry(0.52, 0.10, 0.06), mat('#f2d06b', {}), 0.05, 0.72, 0.44, m => { m.rotation.z = 0.18; });
+      // Cape: back panel, shoulders to mid-thigh, flush with the back.
+      tadd(new T.BoxGeometry(0.95, 1.30, 0.04), red, 0, 0.05, -(chestZ - 0.012) - 0.02, m => { m.rotation.x = -0.08; });
+      // Shield emblem: red shield + gold S swoosh on canvas, chest plate.
+      const [c, x] = cnv('rgba(0,0,0,0)');
+      x.fillStyle = '#e11d2e'; x.beginPath();
+      x.moveTo(48, 20); x.lineTo(208, 20); x.lineTo(208, 128); x.quadraticCurveTo(208, 200, 128, 236); x.quadraticCurveTo(48, 200, 48, 128); x.closePath(); x.fill();
+      x.strokeStyle = '#ffd23f'; x.lineWidth = 14; x.lineCap = 'round'; x.beginPath();
+      x.moveTo(168, 60); x.bezierCurveTo(100, 60, 84, 100, 104, 128); x.bezierCurveTo(124, 156, 168, 148, 156, 188); x.bezierCurveTo(148, 210, 100, 208, 88, 196); x.stroke();
+      const tex = mkTex(c);
+      const plate = tadd(new T.PlaneGeometry(0.42, 0.42), new T.MeshBasicMaterial({ map: tex, transparent: true }), 0, 0.50, chestZ + 0.03);
+      plate.castShadow = false;
+      // Gold belt band + buckle, red trunk box over the hips.
+      const belt = tadd(new T.CylinderGeometry(0.48, 0.49, 0.09, 20), gold, 0, 0.06, 0); belt.scale.z = 0.68 * B.d;
+      tadd(new T.BoxGeometry(0.12, 0.10, 0.03), mat('#ffe27a', {}), 0, 0.06, 0.35);
+      tadd(new T.BoxGeometry(0.78, 0.18, 0.38), red, 0, -0.08, 0);
+      // Red aura: additive glow sprite centered on the fighter — the
+      // body depth-rejects its middle, leaving a halo (no new lights).
+      const aura = new T.Sprite(new T.SpriteMaterial({ map: getGlowTex(), color: '#ff1a00', transparent: true, blending: T.AdditiveBlending, depthWrite: false, opacity: 0.8 }));
+      aura.position.set(0, 1.05, 0); aura.scale.setScalar(3.4); this.root.add(aura);
+    }
+
+    /** Elon Mars (LT 2026-10-28): MAX KOL 2 — white space suit,
+     * bubble helmet, backpack + jetpack rocket booster, rocket
+     * emblem on the chest. The glove + blue glow live in
+     * buildElonGlove (post-arms). */
+    buildElonmars(add, tadd) {
+      const B = this.body || { w: 1, h: 1, d: 1, taper: 1 };
+      const chestZ = (0.5 * B.w * Math.min(1.25, B.taper) + 0.035) * 0.68 * B.d + 0.012;
+      const suit = mat('#e8e8f0', {});
+      // Hair: neat brown dome (rim above the brows).
+      add(new T.SphereGeometry(0.55, 20, 12, 0, Math.PI * 2, 0, Math.PI * 0.33), mat('#6b4a2f', {}), 0, 0.42, 0);
+      // Bubble helmet: clear sphere around the skull + white neck ring.
+      const bubble = add(new T.SphereGeometry(0.68, 24, 18), new T.MeshStandardMaterial({ color: '#cfe8ff', transparent: true, opacity: 0.20, roughness: 0.1, metalness: 0.1, depthWrite: false }), 0, 0.42, 0);
+      bubble.renderOrder = 5;
+      add(new T.TorusGeometry(0.42, 0.06, 10, 24), suit, 0, 0.02, 0, m => { m.rotation.x = Math.PI / 2; });
+      // Backpack (flush with the back) + dark shoulder straps.
+      tadd(new T.BoxGeometry(0.55, 0.75, 0.22), suit, 0, 0.45, -(chestZ - 0.012) - 0.11);
+      // Jetpack rocket booster: twin tanks on the pack + booster nozzles.
+      const backZ = -(chestZ - 0.012) - 0.22; // pack's back face
+      for (const sx of [-1, 1]) {
+        tadd(new T.CylinderGeometry(0.09, 0.09, 0.55, 14), suit, sx * 0.16, 0.45, backZ - 0.09);
+        tadd(new T.SphereGeometry(0.09, 14, 10), suit, sx * 0.16, 0.725, backZ - 0.09);
+        tadd(new T.CylinderGeometry(0.05, 0.08, 0.12, 12), mat('#3a3a44', {}), sx * 0.16, 0.02, backZ - 0.09);
+      }
+      for (const sx of [-1, 1]) tadd(new T.BoxGeometry(0.09, 0.45, 0.02), mat('#3a3a44', {}), sx * 0.20, 0.45, chestZ + 0.02);
+      // Rocket emblem: white rocket, red nose + fins, blue window,
+      // orange flame — canvas plate on the chest.
+      const [c, x] = cnv('rgba(0,0,0,0)');
+      x.strokeStyle = '#1a1a22'; x.lineWidth = 4;
+      x.strokeRect(108, 88, 40, 90); x.fillStyle = '#ffffff'; x.fillRect(108, 88, 40, 90);
+      x.fillStyle = '#e03131'; x.beginPath(); x.moveTo(108, 88); x.lineTo(148, 88); x.lineTo(128, 52); x.closePath(); x.fill();
+      x.fillStyle = '#22d3ee'; x.beginPath(); x.arc(128, 118, 10, 0, Math.PI * 2); x.fill(); x.stroke();
+      x.fillStyle = '#e03131'; x.beginPath(); x.moveTo(108, 150); x.lineTo(84, 178); x.lineTo(108, 178); x.closePath(); x.fill();
+      x.beginPath(); x.moveTo(148, 150); x.lineTo(172, 178); x.lineTo(148, 178); x.closePath(); x.fill();
+      x.fillStyle = '#ff6a1a'; x.beginPath(); x.moveTo(112, 178); x.quadraticCurveTo(128, 220, 144, 178); x.closePath(); x.fill();
+      x.fillStyle = '#ffd23f'; x.beginPath(); x.moveTo(118, 178); x.quadraticCurveTo(128, 200, 138, 178); x.closePath(); x.fill();
+      const tex = mkTex(c);
+      const plate = tadd(new T.PlaneGeometry(0.40, 0.40), new T.MeshBasicMaterial({ map: tex, transparent: true }), 0, 0.50, chestZ + 0.03);
+      plate.castShadow = false;
+    }
+
+    /** Super Trump flame hand (post-arms — buildParody runs before
+     * arms exist, so this runs from build() right after buildGloves):
+     * red emissive slapping-hand material + two additive glow sprites
+     * parented to the slapping hand group, following it everywhere. */
+    buildFlameHand() {
+      if (!this.look.flameHand || !this.arms || !this.arms[this.armSide]) return;
+      const arm = this.arms[this.armSide];
+      arm.handMat.color.set('#ff3b1f'); arm.handMat.emissive.set('#ff1a00'); arm.handMat.emissiveIntensity = 1.1;
+      const mk = (color, scale, op) => {
+        const sp = new T.Sprite(new T.SpriteMaterial({ map: getGlowTex(), color, transparent: true, blending: T.AdditiveBlending, depthWrite: false, opacity: op }));
+        sp.scale.setScalar(scale); sp.position.set(0, -0.08, 0.12); arm.hand.add(sp); return sp;
+      };
+      mk('#ff1a00', 0.55, 0.85); mk('#ff6a1a', 0.30, 0.95);
+    }
+
+    /** Elon Mars glove (post-arms — same reason as buildFlameHand):
+     * white mitt + black knuckle pad + black cuff on the slapping
+     * hand (fingers hidden inside, boxing-glove pattern), wrapped
+     * in a blue glow (two additive sprites). */
+    buildElonGlove() {
+      if (!this.look.elonGlove || !this.arms || !this.arms[this.armSide]) return;
+      const hand = this.arms[this.armSide].hand;
+      const mitt = mesh(new T.SphereGeometry(0.19, 12, 10), mat('#f2f2f2', {}), 0, -0.08, 0);
+      mitt.scale.set(1, 1.25, 0.9); mitt.userData.glove = true; hand.add(mitt);
+      const padGeo = new T.CapsuleGeometry(0.05, 0.16, 6, 16); padGeo.rotateZ(Math.PI / 2);
+      const pad = mesh(padGeo, mat('#1a1a22', {}), 0, -0.04, 0.15); pad.userData.glove = true; hand.add(pad);
+      const cuff = mesh(new T.CylinderGeometry(0.08, 0.09, 0.14, 8), mat('#1a1a22', {}), 0, 0.08, 0); cuff.userData.glove = true; hand.add(cuff);
+      hand.children.forEach(ch => { if (!ch.userData.glove && ch.type === 'Group') ch.visible = false; });
+      const mk = (color, scale, op) => {
+        const sp = new T.Sprite(new T.SpriteMaterial({ map: getGlowTex(), color, transparent: true, blending: T.AdditiveBlending, depthWrite: false, opacity: op }));
+        sp.scale.setScalar(scale); sp.position.set(0, -0.08, 0.12); hand.add(sp); return sp;
+      };
+      mk('#1a5cff', 0.55, 0.85); mk('#4dc3ff', 0.30, 0.95);
+    }
+
     buildUnibonker(add, tadd) {
       const silver = new T.MeshStandardMaterial({ color: '#c0c8d0', metalness: 0.7, roughness: 0.35 });
       const bandMat = new T.MeshStandardMaterial({ color: '#9fb8d8', metalness: 0.6, roughness: 0.35, side: T.DoubleSide });
@@ -2756,6 +2869,7 @@ SAK.Scene3D = (function () {
       this.fire = on;
       const m = this.arms[this.armSide].handMat;
       if (on) { m.color.set('#ffc21a'); m.emissive.set('#ff6a00'); m.emissiveIntensity = 0.9; }
+      else if (this.look.flameHand) { m.color.set('#ff3b1f'); m.emissive.set('#ff1a00'); m.emissiveIntensity = 1.1; }
       else { m.color.set(this.look.skin); m.emissive.set('#000000'); }
       const HS = 1.99; // base hand scale — both hands match (−15%, 2026-10-23)
       this.slapHand.scale.set(on ? HS * 1.1 : HS, on ? HS * 1.5 : HS, on ? HS * 1.6 : HS);

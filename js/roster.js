@@ -130,6 +130,20 @@ SAK.KOLS = [
     look: { skin: '#a8adb3', shirt: '#9aa0a8', hair: '#8a8f96', pants: '#2a2a30', accessory: 'none', accent: '#e8c547', body: 'chonk', hairStyle: 'bald', eyes: 'angry', eyeColor: '#1a1a1a', species: 'bear', outfit: 'tee', parody: 'senseisol', cardBg: '#1a1a22' },
     taunts: ['Go SOL, or go home.', 'Class is in session. Hands up.', 'You just got schooled.']
   },
+  { // MAX KOL 1 (LT 2026-10-28): hidden from the picker + rail until the MAX KOL tier + lock land — find via SAK.KOLS.
+    id: 'supertrump', name: 'SUPER TRUMP', handle: '@SuperTrumpSlaps', level: 11, maxKol: true,
+    tagline: 'Huge slaps. The best slaps.',
+    difficulty: 5, hp: 320, power: 32, accuracy: 0.90, winPts: 1500, minBet: 1500, payout: 2.5,
+    look: { skin: '#f0c8a8', shirt: '#2456c8', hair: '#f2d06b', pants: '#2456c8', accessory: 'none', accent: '#e03131', body: 'gymbro', hairStyle: 'bald', eyes: 'angry', eyeColor: '#1a1a1a', species: 'human', outfit: 'tee', parody: 'supertrump', cardBg: '#55514e', flameHand: true },
+    taunts: ['Nobody slaps like me.', 'That slap was HUGE.', 'You just got trumped.']
+  },
+  { // MAX KOL 2 (LT 2026-10-28): same hold as Super Trump.
+    id: 'elonmars', name: 'ELON MARS', handle: '@ElonMarsSlaps', level: 11, maxKol: true,
+    tagline: 'To Mars. One slap at a time.',
+    difficulty: 5, hp: 300, power: 30, accuracy: 0.92, winPts: 1500, minBet: 1500, payout: 2.5,
+    look: { skin: '#f0c8a8', shirt: '#e8e8f0', hair: '#6b4a2f', pants: '#d8d8e0', accessory: 'none', accent: '#ff6a00', body: 'classic', hairStyle: 'bald', eyes: 'round', eyeColor: '#1a1a1a', species: 'human', outfit: 'tee', parody: 'elonmars', cardBg: '#0c1532', elonGlove: true },
+    taunts: ['To Mars!', 'One small slap for man.', 'You just got launched.']
+  },
   {
     id: 'frankienogood', name: 'Frankie NoGood', handle: '@FrankieNoGood', level: 9,
     tagline: 'Blonde buzz. Beaded chains. Zero mercy.',
