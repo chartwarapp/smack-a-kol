@@ -85,6 +85,16 @@ SAK.FightCard = (() => {
 
     let out = '';
     let y = 0;
+    // Brand header — same wordmark + white-hand badge treatment as the
+    // fighter card (LT 2026-10-29). The footer already carried PLAY AT;
+    // the saved card now opens with the brand too.
+    out += `<text x="540" y="104" text-anchor="middle" font-size="72" font-weight="400" fill="#ffd23f" letter-spacing="6" paint-order="stroke" stroke="#12031f" stroke-width="8" stroke-linejoin="round">SMACK-A-KOL</text>`;
+    if (assets.hand) {
+      out += `<defs><clipPath id="handClip"><circle cx="108" cy="78" r="40"/></clipPath></defs>
+  <circle cx="108" cy="78" r="42" fill="#1a0b2e" stroke="#ffd23f" stroke-width="4"/>
+  <image href="${assets.hand}" x="74" y="54" width="68" height="48" clip-path="url(#handClip)" preserveAspectRatio="xMidYMid meet"/>`;
+    }
+    y = 152;
     // Title
     const titleFs = fitFs(title, 112, CW);
     y += titleFs + 24;
