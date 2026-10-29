@@ -1606,3 +1606,7 @@ body.on-menu #ticker { display: none; }
 .m1-enter { padding: 16px !important; }
 .m1-tagline { padding: 8px; margin: 8px 0; }
 .menu-inner .fine { margin-top: 6px; }
+
+/* Main menu disclaimer (LT 2026-10-29): wagering risk + parody note at
+   the very bottom of the menu, below the existing fine print. */
+.m1-disclaimer { font-family: var(--font); font-size: 11px; opacity: .65; margin: 10px 0 0; text-align: center; line-height: 1.5; text-shadow: none; }
