@@ -174,6 +174,22 @@ SAK.avatarSVG = function (look, opts) {
     ? `<g><circle cx="32" cy="16" r="9" fill="${s}" stroke="#0003" stroke-width="1.5"/><circle cx="50" cy="12" r="10" fill="${s}" stroke="#0003" stroke-width="1.5"/><circle cx="68" cy="16" r="9" fill="${s}" stroke="#0003" stroke-width="1.5"/><rect x="18" y="38" width="64" height="22" rx="7" fill="#8a919c"/><rect x="22" y="42" width="56" height="14" rx="4" fill="#14142a"/><path d="M34 56 L44 42 M52 56 L62 42" stroke="#ffffff" stroke-width="3" opacity="0.85" stroke-linecap="round"/><rect x="14" y="45" width="5" height="8" rx="2" fill="#14142a"/><rect x="81" y="45" width="5" height="8" rx="2" fill="#14142a"/><ellipse cx="50" cy="62" rx="7" ry="5" fill="#111111"/><line x1="40" y1="70" x2="31" y2="77" stroke="#d8c9a0" stroke-width="2" stroke-linecap="round"/></g>`
     : '';
 
+  // Growling Kitty (LT 2026-10-28): blonde slick-back hair swept over
+  // the top, wide black sunglasses over eyes + brows, flat little
+  // mouth like the reference. Base hair is bald so the fx hair is
+  // the whole style; shades draw after brows so nothing peeks out.
+  const growlingFx = look.parody === 'growlingkitty'
+    ? `<g><path d="M20 46 Q18 14 50 10 Q82 14 80 46 Q74 32 58 28 Q50 26 40 30 Q26 32 20 46 Z" fill="${h}" stroke="#0003" stroke-width="1.5"/><path d="M30 24 Q50 16 70 22 M34 30 Q52 22 68 28" stroke="#e0a92e" stroke-width="2" fill="none" stroke-linecap="round"/><rect x="16" y="38" width="68" height="22" rx="6" fill="#111111"/><rect x="14" y="45" width="5" height="8" rx="2" fill="#111111"/><rect x="81" y="45" width="5" height="8" rx="2" fill="#111111"/><path d="M30 56 L40 42 M56 56 L66 42" stroke="#ffffff" stroke-width="2.5" opacity="0.7" stroke-linecap="round"/><rect x="38" y="64" width="24" height="12" fill="${s}"/><line x1="45" y1="69" x2="55" y2="69" stroke="#1a1a1a" stroke-width="2.5" stroke-linecap="round"/></g>`
+    : '';
+
+  // Kooked (LT 2026-10-28): red balaclava — veil over the whole head
+  // down past the chin, skin eye window, big black shiny angry eyes.
+  // The veil draws after the base face so it covers ears, brows, nose
+  // and mouth; only the window + eyes show through.
+  const kookedFx = look.parody === 'kooked'
+    ? `<g><path d="M18 100 L18 45 Q18 8 50 8 Q82 8 82 45 L82 100 Z" fill="#e03131" stroke="#0003" stroke-width="1.5"/><path d="M26 40 Q26 20 50 16 M74 40 Q74 20 50 16" stroke="#b81e28" stroke-width="2.5" fill="none" stroke-linecap="round" opacity="0.7"/><path d="M28 44 Q50 36 72 44 Q70 58 50 60 Q30 58 28 44 Z" fill="${s}"/><ellipse cx="41" cy="51" rx="8" ry="7" fill="#0a0a0a"/><ellipse cx="59" cy="51" rx="8" ry="7" fill="#0a0a0a"/><circle cx="39" cy="48" r="3" fill="#ffffff"/><circle cx="61" cy="48" r="3" fill="#ffffff"/><line x1="32" y1="42" x2="48" y2="46" stroke="#0a0a0a" stroke-width="3.5" stroke-linecap="round"/><line x1="68" y1="42" x2="52" y2="46" stroke="#0a0a0a" stroke-width="3.5" stroke-linecap="round"/></g>`
+    : '';
+
   // Animal species overlays (drawn right after the head circle, under hair/eyes).
   let speciesFx = '';
   const sp = look.species || 'human';
@@ -250,6 +266,8 @@ SAK.avatarSVG = function (look, opts) {
     ${mertzFx}
     ${minhFx}
     ${choosepoorFx}
+    ${growlingFx}
+    ${kookedFx}
     ${opts.blush ? '<ellipse cx="68" cy="62" rx="9" ry="6" fill="#ff2d2d" opacity="0.55"/>' : ''}
     ${dmgFx}
     ${tieFx}
@@ -303,6 +321,16 @@ SAK.avatarBodySVG = function (look) {
   const choosepoorShirt = look.parody === 'choosepoornick'
     ? `<g><polygon points="42,88 58,88 50,110" fill="#f2f2f2"/><polygon points="42,88 50,96 46,122 38,102" fill="#2a2a35"/><polygon points="58,88 50,96 54,122 62,102" fill="#2a2a35"/><polygon points="47,93 53,93 52,100 48,100" fill="#111111"/><polygon points="48,100 52,100 51,122 49,122" fill="#111111"/></g>`
     : '';
+  // Growling Kitty (LT 2026-10-28): black suit lapels over a white
+  // collar shirt V, red tie down the center.
+  const growlingShirt = look.parody === 'growlingkitty'
+    ? `<g><polygon points="42,88 58,88 50,110" fill="#f2f2f2"/><polygon points="42,88 50,96 46,122 38,102" fill="#2a2a35"/><polygon points="58,88 50,96 54,122 62,102" fill="#2a2a35"/><polygon points="47,93 53,93 52,100 48,100" fill="#e11d2e"/><polygon points="48,100 52,100 51,122 49,122" fill="#e11d2e"/></g>`
+    : '';
+  // Kooked (LT 2026-10-28): red hoodie — white flame silhouette on
+  // the chest + drawstrings + kangaroo pocket.
+  const kookedShirt = look.parody === 'kooked'
+    ? `<g><path d="M50 96 Q56 106 54 114 Q60 110 58 120 Q54 128 50 126 Q46 128 42 120 Q40 110 46 114 Q44 106 50 96 Z" fill="#ffffff"/><line x1="42" y1="88" x2="41" y2="104" stroke="#f2f2f2" stroke-width="2" stroke-linecap="round"/><line x1="58" y1="88" x2="59" y2="104" stroke="#f2f2f2" stroke-width="2" stroke-linecap="round"/><rect x="38" y="118" width="24" height="10" rx="3" fill="none" stroke="#b81e28" stroke-width="2"/></g>`
+    : '';
   return `<svg viewBox="0 0 100 170" xmlns="http://www.w3.org/2000/svg" class="avatar-body-svg">
     <g transform="rotate(8 30 92)"><rect x="24" y="90" width="11" height="26" rx="5" fill="${shirt}"/><rect x="24.5" y="112" width="10" height="18" rx="5" fill="${s}"/><circle cx="29.5" cy="134" r="6" fill="${s}"/></g>
     <g transform="rotate(-8 70 92)"><rect x="65" y="90" width="11" height="26" rx="5" fill="${shirt}"/><rect x="65.5" y="112" width="10" height="18" rx="5" fill="${s}"/><circle cx="70.5" cy="134" r="6" fill="${s}"/></g>
@@ -319,6 +347,8 @@ SAK.avatarBodySVG = function (look) {
     ${poorgoatShirt}
     ${minhShirt}
     ${choosepoorShirt}
+    ${growlingShirt}
+    ${kookedShirt}
     <g>${head}</g>
   </svg>`;
 };

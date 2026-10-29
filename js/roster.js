@@ -43,11 +43,25 @@ SAK.KOLS = [
     taunts: ['I don\'t need eyes to see a rug pull coming.', 'The blindfold stays on. The sword doesn\'t.', 'You just got cut by a fantasy.']
   },
   {
+    id: 'growlingkitty', name: 'Growling Kitty', handle: '@GrowlingKittySlaps', level: 2,
+    tagline: 'Diamond paws only.',
+    difficulty: 2, hp: 96, power: 12, accuracy: 0.50, winPts: 210, minBet: 125, payout: 1.9,
+    look: { skin: '#f0c8a8', shirt: '#1a1a22', hair: '#ffd23f', pants: '#1a1a22', accessory: 'none', accent: '#e11d2e', body: 'classic', hairStyle: 'bald', eyes: 'angry', eyeColor: '#1a1a1a', outfit: 'tee', parody: 'growlingkitty', cardBg: '#f5a623' },
+    taunts: ['I like the stock. I like the slap.', 'Diamond paws, paper hands.', 'You just got squeezed.']
+  },
+  {
     id: 'cupsalty', name: 'CupSalty', handle: '@CupSalty', level: 3,
     tagline: 'Salutes first. Rugs second. Smiles always.',
     difficulty: 3, hp: 105, power: 13, accuracy: 0.53, winPts: 240, minBet: 150, payout: 2.0,
     look: { skin: '#ffe14d', shirt: '#ffffff', hair: '#1a1a1a', pants: '#6b4423', accessory: 'none', accent: '#111111', body: 'classic', hairStyle: 'bald', eyes: 'big', eyeColor: '#3a6fd8', outfit: 'tie', tie: '#ff3b5c', tieKnot: '#c1121f', parody: 'cupsalty' },
     taunts: ['The only thing I hold is your bags.', 'Salute first, rug second.', 'I pulled the rug. You pulled a muscle.']
+  },
+  {
+    id: 'kooked', name: 'Kooked', handle: '@KookedSlaps', level: 3,
+    tagline: 'Stay kooked.',
+    difficulty: 3, hp: 118, power: 14, accuracy: 0.58, winPts: 280, minBet: 200, payout: 2.1,
+    look: { skin: '#f0c8a8', shirt: '#e03131', hair: '#1a1a1a', pants: '#c1121f', accessory: 'none', accent: '#ffffff', body: 'classic', hairStyle: 'bald', eyes: 'angry', eyeColor: '#1a1a1a', outfit: 'tee', parody: 'kooked', cardBg: '#d8edfe' },
+    taunts: ['Stay kooked.', 'The flame never sells.', 'You just got kooked.']
   },
   {
     id: 'fabiony', name: 'Fabiony', handle: '@FabionySolana', level: 4,

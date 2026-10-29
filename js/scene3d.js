@@ -1462,6 +1462,8 @@ SAK.Scene3D = (function () {
       else if (P === 'poorgoat') this.buildPoorgoat(add, tadd);
       else if (P === 'minhfantasy') this.buildMinh(add, tadd);
       else if (P === 'choosepoornick') this.buildChoosepoor(add, tadd);
+      else if (P === 'growlingkitty') this.buildGrowling(add, tadd);
+      else if (P === 'kooked') this.buildKooked(add, tadd);
     }
 
     /** Poor Goat (LT 2026-10-28): black goat — plain red baseball cap
@@ -1602,6 +1604,79 @@ SAK.Scene3D = (function () {
       }
       tadd(new T.BoxGeometry(0.08, 0.08, 0.03), black, 0, 0.72, chestZ + 0.03);
       tadd(new T.BoxGeometry(0.07, 0.30, 0.03), black, 0, 0.52, chestZ + 0.03);
+    }
+
+    /** Growling Kitty: blonde slick-back cap + swept fringe ridge, wide
+     * black sunglasses over eyes + brows, black suit + red tie. The
+     * shades span 0.41-0.71 like the visor pattern (brows top 0.70,
+     * eye highlights 0.573); lens front 0.59 clears the highlights. */
+    buildGrowling(add, tadd) {
+      const hair = mat(this.look.hair || '#ffd23f');
+      // Slick-back cap — flattened sphere over the skull top, plus a
+      // forward ridge tilted back for the combed fringe.
+      const cap = add(new T.SphereGeometry(0.52, 20, 14), hair, 0, 0.86, -0.03);
+      cap.scale.set(1.02, 0.62, 1.0);
+      const ridge = add(new T.SphereGeometry(0.50, 20, 14), hair, 0, 0.92, 0.06, m => { m.rotation.x = -0.25; });
+      ridge.scale.set(1.0, 0.35, 1.0);
+      // Sunglasses — black frame + darker lens + shine stripes.
+      // Frame spans 0.38-0.72: covers the sclera bottom (0.395) as well
+      // as the brows (top 0.70); lens front 0.59 clears highlights.
+      add(new T.BoxGeometry(0.88, 0.34, 0.06), mat('#111111'), 0, 0.55, 0.52);
+      add(new T.BoxGeometry(0.80, 0.26, 0.06), new T.MeshBasicMaterial({ color: '#050508' }), 0, 0.55, 0.56);
+      const shineMat = new T.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0.7 });
+      for (const sx of [-1, 1]) {
+        add(new T.BoxGeometry(0.03, 0.18, 0.01), shineMat, sx * 0.16, 0.55, 0.595, m => { m.rotation.z = 0.6; });
+      }
+      // Suit — white shirt V + lapels + red tie on the chest.
+      const B = this.body || { w: 1, h: 1, d: 1, taper: 1 };
+      const chestZ = (0.5 * B.w * Math.min(1.25, B.taper) + 0.035) * 0.68 * B.d + 0.012;
+      tadd(new T.PlaneGeometry(0.20, 0.30), new T.MeshStandardMaterial({ color: '#f2f2f2' }), 0, 0.62, chestZ + 0.015);
+      for (const sx of [-1, 1]) {
+        tadd(new T.BoxGeometry(0.14, 0.42, 0.02), mat('#2a2a35'), sx * 0.15, 0.55, chestZ + 0.02, m => { m.rotation.z = sx * -0.25; });
+      }
+      const tie = mat('#e11d2e');
+      tadd(new T.BoxGeometry(0.08, 0.08, 0.03), tie, 0, 0.72, chestZ + 0.03);
+      tadd(new T.BoxGeometry(0.07, 0.30, 0.03), tie, 0, 0.52, chestZ + 0.03);
+    }
+
+    /** Kooked: red balaclava — a puffy hood sphere swallowing the whole
+     * skull (the base nose front 0.615 sets the size: the hood's z
+     * extent at nose height is 0.627, just clearing it), skin eye
+     * window + black shiny eyes + angry brows on the surface, white
+     * flame plate on the chest. */
+    buildKooked(add, tadd) {
+      // Hide the base angry-brow bars first (UniBonker pattern): their
+      // long tilted tips poke through the hood at the outer ends.
+      for (const m of this.head.children) {
+        const g = m.geometry;
+        if (g && g.type === 'CylinderGeometry' && g.parameters && Math.abs(g.parameters.height - 0.32) < 0.01) m.visible = false;
+      }
+      const hood = add(new T.SphereGeometry(0.63, 20, 14), mat('#e03131'), 0, 0.42, 0);
+      hood.scale.set(1.03, 1.08, 1.0);
+      // Eye window — skin patch proud of the hood surface (hood z
+      // extent at eye height ~0.62; window front 0.66 clears it).
+      add(new T.BoxGeometry(0.62, 0.22, 0.12), mat(this.look.skin || '#f0c8a8'), 0, 0.52, 0.60);
+      const black = new T.MeshBasicMaterial({ color: '#0a0a0a' });
+      for (const sx of [-1, 1]) {
+        add(new T.BoxGeometry(0.20, 0.16, 0.02), black, sx * 0.15, 0.52, 0.66);
+        add(new T.BoxGeometry(0.04, 0.04, 0.01), new T.MeshBasicMaterial({ color: '#ffffff' }), sx * 0.12, 0.55, 0.675);
+        add(new T.BoxGeometry(0.22, 0.04, 0.02), black, sx * 0.15, 0.66, 0.655, m => { m.rotation.z = sx * 0.25; });
+      }
+      // White flame silhouette on the chest — canvas flame, unlit.
+      const [c, x] = cnv('rgba(0,0,0,0)');
+      x.fillStyle = '#ffffff';
+      x.beginPath();
+      x.moveTo(128, 16);
+      x.bezierCurveTo(150, 70, 182, 108, 172, 158);
+      x.bezierCurveTo(164, 200, 146, 232, 128, 238);
+      x.bezierCurveTo(110, 232, 92, 200, 84, 158);
+      x.bezierCurveTo(74, 108, 106, 70, 128, 16);
+      x.fill();
+      const tex = mkTex(c);
+      const B = this.body || { w: 1, h: 1, d: 1, taper: 1 };
+      const chestZ = (0.5 * B.w * Math.min(1.25, B.taper) + 0.035) * 0.68 * B.d + 0.012;
+      const plate = tadd(new T.PlaneGeometry(0.45, 0.45), new T.MeshBasicMaterial({ map: tex, transparent: true }), 0, 0.50, chestZ + 0.03);
+      plate.castShadow = false;
     }
 
     /** UniBonker: yellow robot (LT 2026-10-26) — antenna, metallic
