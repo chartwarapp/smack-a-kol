@@ -2254,16 +2254,16 @@
       : win
       ? `<div class="result-title">${resTitle}</div>
          <div class="result-vs">
-           <div class="rv-side"><span class="rv-tag rv-winner">WINNER</span>${SAK.avatarSVG(playerLook())}</div>
+           <div class="rv-side"><span class="rv-tag rv-winner">WINNER</span>${SAK.avatarSVG(playerLook())}<span class="rv-name">${esc(profile().name)}</span></div>
            <span class="rv-vs">VS</span>
-           <div class="rv-side"><span class="rv-tag rv-loser">LOSER</span>${SAK.avatarSVG(k.look, { ko: true, wrecked: true, blush: true })}</div>
+           <div class="rv-side"><span class="rv-tag rv-loser">LOSER</span>${SAK.avatarSVG(k.look, { ko: true, wrecked: true, blush: true })}<span class="rv-name">${esc(k.name)}</span></div>
          </div>
          <div class="result-sub">${resSub}</div>`
       : `<div class="result-title">${resTitle}</div>
          <div class="result-vs">
-           <div class="rv-side"><span class="rv-tag rv-loser">LOSER</span>${SAK.avatarSVG(playerLook(), { ko: true, wrecked: true, blush: true })}</div>
+           <div class="rv-side"><span class="rv-tag rv-loser">LOSER</span>${SAK.avatarSVG(playerLook(), { ko: true, wrecked: true, blush: true })}<span class="rv-name">${esc(profile().name)}</span></div>
            <span class="rv-vs">VS</span>
-           <div class="rv-side"><span class="rv-tag rv-winner">WINNER</span>${SAK.avatarSVG(k.look)}</div>
+           <div class="rv-side"><span class="rv-tag rv-winner">WINNER</span>${SAK.avatarSVG(k.look)}<span class="rv-name">${esc(k.name)}</span></div>
          </div>
          <div class="result-sub">${resSub}<br><small>${resLoseTip}</small></div>`;
     html += `<div class="breakdown">

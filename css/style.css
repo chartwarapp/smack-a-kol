@@ -556,6 +556,8 @@ h2, h3, .prompt, .vs, .level, .fc-name, .banner, .float-text, .result-title {
 .rv-winner { background: #f5c542; color: #000; }
 .rv-loser { background: #ff3b5c; color: #fff; }
 .rv-vs { font-family: var(--font); font-size: 20px; color: #fff; opacity: .9; font-style: italic; }
+/* Fighter name under each VS-row avatar (LT 2026-10-29). */
+.rv-name { font-family: var(--font); font-size: 13px; line-height: 1.15; color: #fff; text-align: center; max-width: 120px; }
 .breakdown { background: #0003; border-radius: 14px; padding: 8px 12px; margin-bottom: 14px; font-size: 15px; }
 .breakdown div { display: flex; justify-content: space-between; padding: 3px 0; }
 .breakdown .total { border-top: 2px dashed #fff5; margin-top: 4px; padding-top: 6px; font-size: 20px; color: var(--yellow); }
