@@ -190,6 +190,18 @@ SAK.avatarSVG = function (look, opts) {
     ? `<g><path d="M18 100 L18 45 Q18 8 50 8 Q82 8 82 45 L82 100 Z" fill="#e03131" stroke="#0003" stroke-width="1.5"/><path d="M26 40 Q26 20 50 16 M74 40 Q74 20 50 16" stroke="#b81e28" stroke-width="2.5" fill="none" stroke-linecap="round" opacity="0.7"/><path d="M28 44 Q50 36 72 44 Q70 58 50 60 Q30 58 28 44 Z" fill="${s}"/><ellipse cx="41" cy="51" rx="8" ry="7" fill="#0a0a0a"/><ellipse cx="59" cy="51" rx="8" ry="7" fill="#0a0a0a"/><circle cx="39" cy="48" r="3" fill="#ffffff"/><circle cx="61" cy="48" r="3" fill="#ffffff"/><line x1="32" y1="42" x2="48" y2="46" stroke="#0a0a0a" stroke-width="3.5" stroke-linecap="round"/><line x1="68" y1="42" x2="52" y2="46" stroke="#0a0a0a" stroke-width="3.5" stroke-linecap="round"/></g>`
     : '';
 
+  // Sensei SOL (LT 2026-10-28): gold conical straw hat, panda eye
+  // patches kept (redrawn bigger, covering the base brows + base
+  // eyes) with glowing white slits, black nose on the BEAR muzzle
+  // (species is bear now — tan muzzle ellipse from speciesFx),
+  // gold pipe. No mouth cover: the base smile reads as the bear
+  // mouth on the muzzle.
+  // The shallow wide cone covers the base ears' tops; the ear bottoms
+  // peek below the brim, like the reference photo.
+  const senseiFx = look.parody === 'senseisol'
+    ? `<g><path d="M50 2 L98 30 Q50 22 2 30 Z" fill="#e8c547" stroke="#0003" stroke-width="1.5"/><line x1="50" y1="2" x2="20" y2="28" stroke="#c99327" stroke-width="1.5" opacity="0.6"/><line x1="50" y1="2" x2="80" y2="28" stroke="#c99327" stroke-width="1.5" opacity="0.6"/><line x1="32" y1="8" x2="24" y2="24" stroke="#ffffff" stroke-width="2" opacity="0.55" stroke-linecap="round"/><circle cx="50" cy="4" r="3" fill="#f5d76e"/><ellipse cx="38" cy="48" rx="9" ry="12" fill="#1a1a1a"/><ellipse cx="62" cy="48" rx="9" ry="12" fill="#1a1a1a"/><ellipse cx="38" cy="48" rx="4.5" ry="2.5" fill="#ffffff"/><ellipse cx="62" cy="48" rx="4.5" ry="2.5" fill="#ffffff"/><ellipse cx="50" cy="59" rx="5" ry="4" fill="#1a1a1a"/><line x1="56" y1="70" x2="70" y2="67" stroke="#d4af37" stroke-width="3" stroke-linecap="round"/><rect x="67" y="58" width="7" height="10" rx="2" fill="#d4af37" stroke="#0003" stroke-width="1"/></g>`
+    : '';
+
   // Animal species overlays (drawn right after the head circle, under hair/eyes).
   let speciesFx = '';
   const sp = look.species || 'human';
@@ -268,6 +280,7 @@ SAK.avatarSVG = function (look, opts) {
     ${choosepoorFx}
     ${growlingFx}
     ${kookedFx}
+    ${senseiFx}
     ${opts.blush ? '<ellipse cx="68" cy="62" rx="9" ry="6" fill="#ff2d2d" opacity="0.55"/>' : ''}
     ${dmgFx}
     ${tieFx}
@@ -331,6 +344,12 @@ SAK.avatarBodySVG = function (look) {
   const kookedShirt = look.parody === 'kooked'
     ? `<g><path d="M50 96 Q56 106 54 114 Q60 110 58 120 Q54 128 50 126 Q46 128 42 120 Q40 110 46 114 Q44 106 50 96 Z" fill="#ffffff"/><line x1="42" y1="88" x2="41" y2="104" stroke="#f2f2f2" stroke-width="2" stroke-linecap="round"/><line x1="58" y1="88" x2="59" y2="104" stroke="#f2f2f2" stroke-width="2" stroke-linecap="round"/><rect x="38" y="118" width="24" height="10" rx="3" fill="none" stroke="#b81e28" stroke-width="2"/></g>`
     : '';
+  // Sensei SOL (LT 2026-10-28): silvery grey robe — dark lapels,
+  // dark inner V, belt, knee-high skirt with center placket, dense
+  // small gold Solana marks (3 slanted bars) all over chest + skirt.
+  const senseiShirt = look.parody === 'senseisol'
+    ? `<g><polygon points="36,88 50,98 44,130 32,130" fill="#2a2a30"/><polygon points="64,88 50,98 56,130 68,130" fill="#2a2a30"/><polygon points="44,88 56,88 50,108" fill="#2a2a30"/><rect x="30" y="118" width="40" height="5" fill="#7d838c"/><polygon points="34,124 66,124 68,148 32,148" fill="#9aa0a8" stroke="#0003" stroke-width="1.5"/><polygon points="46,124 54,124 58,148 42,148" fill="#2a2a30"/><g fill="#d4af37"><path d="M0 0 L6 0 L4 2 L-2 2 Z M0 3 L6 3 L4 5 L-2 5 Z M0 6 L6 6 L4 8 L-2 8 Z" transform="translate(36,102) skewX(-20)"/><path d="M0 0 L6 0 L4 2 L-2 2 Z M0 3 L6 3 L4 5 L-2 5 Z M0 6 L6 6 L4 8 L-2 8 Z" transform="translate(60,96) skewX(-20)"/><path d="M0 0 L6 0 L4 2 L-2 2 Z M0 3 L6 3 L4 5 L-2 5 Z M0 6 L6 6 L4 8 L-2 8 Z" transform="translate(44,112) skewX(-20)"/><path d="M0 0 L6 0 L4 2 L-2 2 Z M0 3 L6 3 L4 5 L-2 5 Z M0 6 L6 6 L4 8 L-2 8 Z" transform="translate(38,132) skewX(-20)"/><path d="M0 0 L6 0 L4 2 L-2 2 Z M0 3 L6 3 L4 5 L-2 5 Z M0 6 L6 6 L4 8 L-2 8 Z" transform="translate(60,136) skewX(-20)"/><path d="M0 0 L6 0 L4 2 L-2 2 Z M0 3 L6 3 L4 5 L-2 5 Z M0 6 L6 6 L4 8 L-2 8 Z" transform="translate(38,141) skewX(-20)"/><path d="M0 0 L6 0 L4 2 L-2 2 Z M0 3 L6 3 L4 5 L-2 5 Z M0 6 L6 6 L4 8 L-2 8 Z" transform="translate(60,143) skewX(-20)"/></g></g>`
+    : '';
   return `<svg viewBox="0 0 100 170" xmlns="http://www.w3.org/2000/svg" class="avatar-body-svg">
     <g transform="rotate(8 30 92)"><rect x="24" y="90" width="11" height="26" rx="5" fill="${shirt}"/><rect x="24.5" y="112" width="10" height="18" rx="5" fill="${s}"/><circle cx="29.5" cy="134" r="6" fill="${s}"/></g>
     <g transform="rotate(-8 70 92)"><rect x="65" y="90" width="11" height="26" rx="5" fill="${shirt}"/><rect x="65.5" y="112" width="10" height="18" rx="5" fill="${s}"/><circle cx="70.5" cy="134" r="6" fill="${s}"/></g>
@@ -349,6 +368,7 @@ SAK.avatarBodySVG = function (look) {
     ${choosepoorShirt}
     ${growlingShirt}
     ${kookedShirt}
+    ${senseiShirt}
     <g>${head}</g>
   </svg>`;
 };

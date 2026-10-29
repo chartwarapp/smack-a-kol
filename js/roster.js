@@ -124,6 +124,13 @@ SAK.KOLS = [
     taunts: ['Feel the crystal sting.', 'Horns up, hands faster.', 'You just got iced. 🧊']
   },
   {
+    id: 'senseisol', name: 'Sensei SOL', handle: '@SenseiSOLSlaps', level: 9,
+    tagline: 'Go SOL, or go home.',
+    difficulty: 4, hp: 240, power: 25, accuracy: 0.82, winPts: 950, minBet: 750, payout: 3.1,
+    look: { skin: '#a8adb3', shirt: '#9aa0a8', hair: '#8a8f96', pants: '#2a2a30', accessory: 'none', accent: '#e8c547', body: 'chonk', hairStyle: 'bald', eyes: 'angry', eyeColor: '#1a1a1a', species: 'bear', outfit: 'tee', parody: 'senseisol', cardBg: '#1a1a22' },
+    taunts: ['Go SOL, or go home.', 'Class is in session. Hands up.', 'You just got schooled.']
+  },
+  {
     id: 'frankienogood', name: 'Frankie NoGood', handle: '@FrankieNoGood', level: 9,
     tagline: 'Blonde buzz. Beaded chains. Zero mercy.',
     difficulty: 4, hp: 220, power: 24, accuracy: 0.8, winPts: 900, minBet: 500, payout: 3.0,

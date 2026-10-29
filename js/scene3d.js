@@ -1464,6 +1464,7 @@ SAK.Scene3D = (function () {
       else if (P === 'choosepoornick') this.buildChoosepoor(add, tadd);
       else if (P === 'growlingkitty') this.buildGrowling(add, tadd);
       else if (P === 'kooked') this.buildKooked(add, tadd);
+      else if (P === 'senseisol') this.buildSensei(add, tadd);
     }
 
     /** Poor Goat (LT 2026-10-28): black goat — plain red baseball cap
@@ -1677,6 +1678,99 @@ SAK.Scene3D = (function () {
       const chestZ = (0.5 * B.w * Math.min(1.25, B.taper) + 0.035) * 0.68 * B.d + 0.012;
       const plate = tadd(new T.PlaneGeometry(0.45, 0.45), new T.MeshBasicMaterial({ map: tex, transparent: true }), 0, 0.50, chestZ + 0.03);
       plate.castShadow = false;
+    }
+
+    /** Sensei SOL: bear species base (ears + tan muzzle + dark
+     * nose) with the panda eye patches kept — re-added here as
+     * flattened dark spheres, since species bear draws none.
+     * Shiny gold conical straw hat + knob + red band,
+     * glowing white eye ovals on the patches, gold pipe at the
+     * mouth corner, silvery robe lapels + gold SOL-mark plates.
+     * Base brows hidden (UniBonker pattern) — the photo has none. */
+    buildSensei(add, tadd) {
+      for (const m of this.head.children) {
+        const g = m.geometry;
+        if (g && g.type === 'CylinderGeometry' && g.parameters && Math.abs(g.parameters.height - 0.32) < 0.01) m.visible = false;
+      }
+      // Panda eye patches, kept — flattened dark spheres hugging the
+      // face (speciesPanda's exact dims), behind the eye meshes.
+      for (const sx of [-1, 1]) {
+        add(new T.SphereGeometry(0.14, 12, 10), mat('#1a1a1a'), sx * 0.18, 0.5, 0.44, m => {
+          m.scale.set(1, 1.25, 0.4);
+        });
+      }
+      // Full matching uniform (LT 2026-10-28): the torso + arms read
+      // lighter than the skirt even though the hex matches, because
+      // the base shirt material has no metalness and the skirt does.
+      // Swap every shirt-colored mesh under the torso to the skirt's
+      // robe material so upper and lower render identically. Skin,
+      // dark lapels and gold are different hexes and stay untouched.
+      const robeMat = new T.MeshStandardMaterial({ color: '#9aa0a8', metalness: 0.4, roughness: 0.45 });
+      this.torso.traverse(m => {
+        if (m.isMesh && m.material && m.material.color && m.material.color.getHex() === 0x9aa0a8) m.material = robeMat;
+      });
+      const gold = new T.MeshStandardMaterial({ color: '#e8c547', metalness: 0.4, roughness: 0.35 });
+      // Straw hat, worn LOW (LT 2026-10-28): cone center 0.93 puts the
+      // brim at 0.72, just above the brows, and the cone surface at
+      // the ear radius (0.36) at 0.95 — below the ear tops (1.04) — so
+      // the panda ears poke out through the top of the hat.
+      add(new T.ConeGeometry(0.80, 0.42, 24), gold, 0, 0.93, 0);
+      add(new T.CylinderGeometry(0.06, 0.06, 0.10, 12), gold, 0, 1.19, 0);
+      add(new T.CylinderGeometry(0.065, 0.065, 0.03, 12), mat('#c1121f'), 0, 1.15, 0);
+      // Glowing eye ovals — flattened white spheres proud of the base
+      // eyes (front 0.573); they swallow the dark iris/pupil so the
+      // whole eye reads as a glow over the black patch.
+      const slitMat = new T.MeshBasicMaterial({ color: '#ffffff' });
+      for (const sx of [-1, 1]) {
+        add(new T.SphereGeometry(0.11, 14, 10), slitMat, sx * 0.18, 0.50, 0.56, m => { m.scale.set(1.1, 0.55, 0.25); });
+      }
+      // Gold pipe at the mouth corner (mouth at y 0.20, front 0.46).
+      add(new T.BoxGeometry(0.22, 0.035, 0.035), gold, 0.20, 0.17, 0.52, m => { m.rotation.z = -0.25; });
+      add(new T.CylinderGeometry(0.045, 0.035, 0.10, 10), gold, 0.32, 0.20, 0.52);
+      // Robe — dark lapels (like the new reference) + knee-high skirt
+      // in the shirt grey, hanging from the waist (torso-local 0.10)
+      // to the knees (torso-local -0.48, thigh mid in root coords).
+      const B = this.body || { w: 1, h: 1, d: 1, taper: 1 };
+      const chestZ = (0.5 * B.w * Math.min(1.25, B.taper) + 0.035) * 0.68 * B.d + 0.012;
+      const lapelMat = new T.MeshStandardMaterial({ color: '#2a2a30', metalness: 0.5, roughness: 0.4 });
+      for (const sx of [-1, 1]) {
+        tadd(new T.BoxGeometry(0.14, 0.42, 0.02), lapelMat, sx * 0.11, 0.50, chestZ + 0.02, m => { m.rotation.z = sx * -0.25; });
+      }
+      tadd(new T.BoxGeometry(0.50, 0.05, 0.02), lapelMat, 0, 0.25, chestZ + 0.02);
+      tadd(new T.CylinderGeometry(0.46, 0.52, 0.58, 20), robeMat, 0, -0.19, 0, m => { m.scale.z = 0.68 * B.d; });
+      // Dense gold SOL marks — chest plate (6 glyphs) + skirt plate
+      // (8 glyphs), so the whole robe reads patterned, not just the chest.
+      const [c, x] = cnv('rgba(0,0,0,0)');
+      x.fillStyle = '#d4af37';
+      for (const [gx, gy] of [[60, 50], [170, 60], [40, 130], [150, 130], [100, 190], [200, 180]]) {
+        for (let b = 0; b < 3; b++) {
+          x.beginPath();
+          x.moveTo(gx, gy + b * 16);
+          x.lineTo(gx + 42, gy + b * 16);
+          x.lineTo(gx + 30, gy + b * 16 + 10);
+          x.lineTo(gx - 12, gy + b * 16 + 10);
+          x.closePath(); x.fill();
+        }
+      }
+      const tex = mkTex(c);
+      const solPlate = tadd(new T.PlaneGeometry(0.40, 0.40), new T.MeshBasicMaterial({ map: tex, transparent: true }), 0, 0.48, chestZ + 0.03);
+      solPlate.castShadow = false;
+      const [c2, x2] = cnv('rgba(0,0,0,0)');
+      x2.fillStyle = '#d4af37';
+      for (const [gx, gy] of [[20, 20], [90, 20], [160, 20], [30, 90], [110, 90], [190, 90], [60, 160], [150, 160]]) {
+        for (let b = 0; b < 3; b++) {
+          x2.beginPath();
+          x2.moveTo(gx, gy + b * 12);
+          x2.lineTo(gx + 30, gy + b * 12);
+          x2.lineTo(gx + 22, gy + b * 12 + 8);
+          x2.lineTo(gx - 8, gy + b * 12 + 8);
+          x2.closePath(); x2.fill();
+        }
+      }
+      const tex2 = mkTex(c2);
+      const skirtFront = 0.51 * 0.68 * B.d + 0.02;
+      const skirtPlate = tadd(new T.PlaneGeometry(0.55, 0.45), new T.MeshBasicMaterial({ map: tex2, transparent: true }), 0, -0.22, skirtFront);
+      skirtPlate.castShadow = false;
     }
 
     /** UniBonker: yellow robot (LT 2026-10-26) — antenna, metallic
