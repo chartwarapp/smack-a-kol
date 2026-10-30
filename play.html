@@ -12,7 +12,7 @@
   <!-- Chunky game font (optional – falls back to system fonts offline) -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Lilita+One&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/style.css?v=xfeed-1" />
+  <link rel="stylesheet" href="css/style.css?v=glovesync-1" />
 </head>
 <body>
 <div id="app">
@@ -351,6 +351,7 @@
           </div>
         </div>
         <button class="btn btn-yellow" id="pvp-quick">⚡ QUICK MATCH (AI)</button>
+        <button class="btn btn-blue" id="pvp-sync-check">🔍 SYNC CHECK</button>
         <div class="pvp-card pvp-card-chain">
           <div class="pvp-card-head"><span class="pvp-card-icon">⛓️</span><div><div class="pvp-card-title">ON-CHAIN ESCROW</div><div class="pvp-card-sub">SOL locked in contract</div></div><span class="tag-devnet">DEVNET</span></div>
           <div class="bet-label dark-lbl">WAGER (SOL)</div>
@@ -386,6 +387,12 @@
         <div id="pvp-status" class="pvp-status">Finding opponent…</div>
         <div id="pvp-timer" class="pvp-timer">0:00</div>
         <button class="btn btn-grey" id="pvp-cancel">CANCEL</button>
+      </div>
+      <div id="pvp-sync-view" class="hidden">
+        <h3>🔍 SYNC CHECK</h3>
+        <p class="fine dark" id="pvp-sync-status"></p>
+        <div id="pvp-sync-body"></div>
+        <button class="btn btn-grey" id="pvp-sync-back" style="margin-top:12px">← BACK TO LOBBY</button>
       </div>
     </div>
   </div>
@@ -624,7 +631,7 @@
 <script src="js/leaderboard.js?v=https-fix-2"></script>
 <script src="js/audio.js?v=redzone-1"></script>
 <script src="js/avatars.js?v=traits-1"></script>
-<script src="js/scene3d.js?v=traits-1"></script>
+<script src="js/scene3d.js?v=glovesync-1"></script>
 <script src="js/meter.js?v=https-fix-2"></script>
 <script src="js/api.js?v=restore-1"></script>
 <script src="js/api-supabase.js?v=restore-1"></script>
@@ -636,7 +643,7 @@
 <script src="js/pvp-sync.js?v=stuck-1"></script>
 <script src="js/solana-house.js?v=7"></script>
 <script src="js/contracts.js?v=1"></script>
-<script src="js/game-v3.js?v=vsnames-1"></script>
+<script src="js/game-v3.js?v=glovesync-1"></script>
 <script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
 </body>
 </html>

@@ -748,9 +748,11 @@
   }
   function renderCreatorPreview() {
     // Preview shows the random draft (seeded from the saved fighter for
-    // returning players, fresh roll for new players)
+    // returning players, fresh roll for new players) wearing the EQUIPPED
+    // glove from the shop — the same layers as the fight hand.
     const look = pkCustomLook || crDraft;
-    if (crPreview) crPreview.apply(look || crDraft);
+    const equipped = (S.gloves && S.gloves.equipped) || 'wrap';
+    if (crPreview) crPreview.apply(look || crDraft, equipped);
     else $('#cr-fallback').innerHTML = SAK.avatarSVG(SAK.Account.toLook(look || crDraft));
   }
   $('#cr-next').addEventListener('click', () => {
@@ -1323,6 +1325,8 @@
       SAK.Storage.save(); haptic(20);
       toast(`🥊 ${gloveLabel(id)} equipped · win PTS +${Math.round(t.bonus * 100)}%`);
       renderGloves();
+      // If the creator preview is open, its hand follows the new tier at once.
+      if (crPreview && !$('#modal-fighter').classList.contains('hidden')) renderCreatorPreview();
       if (Scene && !(F && !['over', 'done', 'busy'].includes(F.turn))) { try { Scene.setPlayer(playerLook()); } catch (e) {} }
     }));
   }
@@ -3231,7 +3235,7 @@
       // Auto-refund any challenges past 24h unaccepted
       setTimeout(() => { try { sweepExpiredChallenges(); } catch (e) {} }, 3000);
     } catch (e) {}
-    $('#pvp-lobby').classList.remove('hidden'); $('#pvp-search').classList.add('hidden');
+    $('#pvp-lobby').classList.remove('hidden'); $('#pvp-search').classList.add('hidden'); $('#pvp-sync-view').classList.add('hidden');
     // v2: announce ourselves as online in the PvP lobby
     if (SAK.PvpSync && W.address) {
       const myLook = (S.profile && S.profile.avatar) || null;
@@ -3330,6 +3334,117 @@
   $('#pvp-cancel').addEventListener('click', () => {
     SAK.Matchmaking.cancel(); clearInterval(pvpTimer);
     $('#pvp-lobby').classList.remove('hidden'); $('#pvp-search').classList.add('hidden');
+  });
+
+  /* --- PvP sync check (one-tap, read-only) --------------------------- */
+  // Compares the shared challenge record against each wallet's live
+  // profile: the record's fighter snapshot vs the saved fighter look,
+  // plus the current round number from the shared rounds table. Green =
+  // match, red = mismatch. Never writes anything.
+  function syncNormLook(v) {
+    if (!v) return null;
+    return {
+      skin: v.skin || null, shirt: v.shirt || null,
+      hair: (v.hair !== undefined ? v.hair : v.hairColor) || null,
+      pants: v.pants || null, accessory: v.accessory || null,
+      print: v.print || null, body: v.body || null,
+      hairStyle: v.hairStyle || null, eyes: v.eyes || null,
+      eyeColor: v.eyeColor || null, species: v.species || null
+    };
+  }
+  function syncLooksEqual(a, b) {
+    const na = syncNormLook(a), nb = syncNormLook(b);
+    return !!na && !!nb && JSON.stringify(na) === JSON.stringify(nb);
+  }
+  function syncFaceSVG(v) {
+    if (!v) return '';
+    const look = v.hairColor !== undefined ? SAK.Account.toLook(v) : v;
+    return SAK.avatarSVG(look);
+  }
+  function syncShort(w) { return w ? w.slice(0, 4) + '…' + w.slice(-4) : ''; }
+  async function openPvpSyncCheck() {
+    A.click();
+    $('#pvp-lobby').classList.add('hidden'); $('#pvp-search').classList.add('hidden');
+    const view = $('#pvp-sync-view'), status = $('#pvp-sync-status'), body = $('#pvp-sync-body');
+    view.classList.remove('hidden');
+    status.textContent = 'Reading the shared challenge record…';
+    body.innerHTML = '';
+    try {
+      if (!W.address) { status.textContent = 'Connect your wallet to run a sync check.'; return; }
+      if (!SAK.PvpSync || !SAK.Api) { status.textContent = 'Sync is unavailable right now.'; return; }
+      const res = await SAK.PvpSync.getMyChallenges(W.address);
+      const seen = {};
+      const all = [].concat(res.fightReady || [], res.awaiting || [], res.incoming || [], res.accepted || [], res.acceptedAsOpponent || [])
+        .filter(c => c && c.challenge_addr && !seen[c.challenge_addr] && (seen[c.challenge_addr] = true));
+      const ch = all[0];
+      if (!ch) {
+        status.textContent = 'No open challenge found for this wallet.';
+        body.innerHTML = '<p class="sync-none">No open challenge — nothing to sync. Create or accept a challenge, then run the check again.</p>';
+        return;
+      }
+      let snapC = ch.challenger_look || null, snapA = ch.acceptor_look || null;
+      if ((!snapC || !snapA) && SAK.PvpSync.getFighterSnapshots) {
+        try {
+          const s2 = await SAK.PvpSync.getFighterSnapshots(ch.challenge_addr);
+          if (s2) { snapC = snapC || s2.challengerLook; snapA = snapA || s2.acceptorLook; }
+        } catch (e) {}
+      }
+      const [cp, ap] = await Promise.all([
+        SAK.Api.getProfile(ch.challenger).catch(() => null),
+        SAK.Api.getProfile(ch.opponent).catch(() => null)
+      ]);
+      let roundNum = 0, roundOk = true;
+      try {
+        const rounds = await SAK.Api._req('GET', `/pvp_rounds?challenge_addr=eq.${encodeURIComponent(ch.challenge_addr)}&select=round_num&order=round_num.desc&limit=1`);
+        if (rounds && rounds.length) roundNum = rounds[0].round_num || 0;
+      } catch (e) { roundOk = false; }
+      // Local round, only when this device is mid-fight in this challenge.
+      let localRound = null;
+      try {
+        if (F && F.opts && F.opts.chainChallenge === ch.challenge_addr && F.challenge) localRound = F.challenge.round;
+      } catch (e) {}
+      const card = (role, wallet, snap, prof) => {
+        const liveLook = prof && (prof.fighter_look || prof.fighterLook);
+        const liveName = prof && (prof.fighter_name || prof.name);
+        const lookOk = syncLooksEqual(snap, liveLook);
+        const nameOk = !!liveName;
+        const face = snap ? syncFaceSVG(snap) : (liveLook ? syncFaceSVG(liveLook) : '<div style="font-size:32px;line-height:72px">?</div>');
+        const lookPill = !snap
+          ? '<span class="sync-pill bad">NO SNAPSHOT</span>'
+          : (lookOk ? '<span class="sync-pill ok">LOOK MATCH</span>' : '<span class="sync-pill bad">LOOK MISMATCH</span>');
+        const namePill = nameOk ? '<span class="sync-pill ok">NAME SAVED</span>' : '<span class="sync-pill bad">NO PROFILE</span>';
+        return `<div class="sync-card"><div class="sync-face">${face}</div>` +
+          `<div class="sync-name">${esc(liveName || 'Unknown fighter')}</div>` +
+          `<div class="sync-wallet">${esc(syncShort(wallet))} · ${role}</div>` +
+          `${lookPill}<br>${namePill}</div>`;
+      };
+      const liveLookC = cp && (cp.fighter_look || cp.fighterLook);
+      const liveLookA = ap && (ap.fighter_look || ap.fighterLook);
+      const lookAllOk = syncLooksEqual(snapC, liveLookC) && syncLooksEqual(snapA, liveLookA);
+      const nameAllOk = !!((cp && (cp.fighter_name || cp.name)) && (ap && (ap.fighter_name || ap.name)));
+      const roundMatch = localRound === null || localRound === roundNum;
+      const allOk = lookAllOk && nameAllOk && roundOk && roundMatch;
+      status.innerHTML = allOk
+        ? '<span style="color:#3dff7a">✅ IN SYNC</span> — both phones will render the same fighters.'
+        : '<span style="color:#ff5a5a">❌ MISMATCH</span> — the record and the saved fighters disagree. Fix before the first slap.';
+      const roundLine = !roundOk
+        ? '<span class="sync-pill bad">ROUND UNREADABLE</span>'
+        : (localRound === null
+          ? `<span class="sync-pill ok">ROUND ${roundNum} IN RECORD</span>`
+          : (roundMatch
+            ? `<span class="sync-pill ok">ROUND ${roundNum} MATCHES THIS PHONE</span>`
+            : `<span class="sync-pill bad">RECORD ROUND ${roundNum} ≠ THIS PHONE ${localRound}</span>`));
+      body.innerHTML = `<div class="sync-grid">${card('CHALLENGER', ch.challenger, snapC, cp)}${card('ACCEPTOR', ch.opponent, snapA, ap)}</div>` +
+        `<div class="sync-round">CURRENT ROUND: ${roundOk ? roundNum : '?'}<br>${roundLine}</div>` +
+        `<p class="fine dark" style="text-align:center">Challenge ${esc(syncShort(ch.challenge_addr))} · ${esc(ch.status || '')} · record vs saved profile</p>`;
+    } catch (e) {
+      status.textContent = 'Could not read the challenge record. Try again.';
+    }
+  }
+  $('#pvp-sync-check').addEventListener('click', openPvpSyncCheck);
+  $('#pvp-sync-back').addEventListener('click', () => {
+    A.click();
+    $('#pvp-sync-view').classList.add('hidden'); $('#pvp-lobby').classList.remove('hidden');
   });
 
   /* --- challenge links (wager SOL, share on X) --------------------------- */

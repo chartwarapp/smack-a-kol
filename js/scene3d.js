@@ -4529,7 +4529,27 @@ SAK.Scene3D = (function () {
     }
     size(); requestAnimationFrame(tick);
     return {
-      apply(params) { applyAvatar(F, params); F.root.rotation.y = yaw; },
+      // apply(params, gloveType?): with gloveType, the preview wears the
+      // player's equipped glove on the hand — the same buildGloves layers
+      // as the fight hand (setPlayer path). Without it the preview stays
+      // bare-handed, so KOL/opponent previews are untouched.
+      apply(params, gloveType) {
+        if (gloveType !== undefined) {
+          F.showGloves = true;
+          const base = params && params.hairColor !== undefined ? SAK.Account.toLook(params) : params;
+          const look = base ? Object.assign({}, base, { gloves: gloveType }) : base;
+          F.rebuild(look);
+        } else {
+          applyAvatar(F, params);
+        }
+        F.root.rotation.y = yaw;
+      },
+      // Re-render the current preview look with a different equipped tier.
+      setGloves(gloveType) {
+        F.showGloves = true;
+        if (F.look) { F.look.gloves = gloveType; F.rebuild(F.look); }
+        F.root.rotation.y = yaw;
+      },
       setExpression(expr, dur) { try { F.setExpression(expr, dur); } catch (e) {} },
       get yaw() { return yaw; },
       dispose() {

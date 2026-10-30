@@ -1624,3 +1624,17 @@ body.on-menu #ticker { display: none; }
 /* Fallback look for the timeline anchor if the X widget script never
    converts it (offline / blocked): plain white text, no default blue link. */
 .m1-xfeed a.twitter-timeline { display: block; color: #fff; text-decoration: none; font-family: var(--font); font-size: 14px; opacity: .8; }
+
+/* PvP sync check (one-tap, read-only): record vs saved profile, green =
+   match, red = mismatch. Two fighter cards side by side + round row. */
+#pvp-sync-view .sync-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+.sync-card { background: rgba(0,0,0,.25); border-radius: 14px; padding: 10px; text-align: center; }
+.sync-face { width: 72px; height: 72px; margin: 0 auto 6px; border-radius: 14px; overflow: hidden; background: #1a1a2e; }
+.sync-face svg { width: 72px; height: 72px; display: block; }
+.sync-name { font-family: var(--font); font-size: 15px; line-height: 1.2; overflow-wrap: anywhere; }
+.sync-wallet { font-family: ui-monospace, monospace; font-size: 11px; opacity: .7; overflow-wrap: anywhere; }
+.sync-pill { display: inline-block; font-family: var(--font); font-size: 12px; letter-spacing: 1px; padding: 3px 10px; border-radius: 999px; border: 2px solid #fff; margin-top: 6px; }
+.sync-pill.ok { background: #1fae5f; color: #fff; }
+.sync-pill.bad { background: #d42a2a; color: #fff; }
+.sync-round { margin-top: 12px; background: rgba(0,0,0,.25); border-radius: 14px; padding: 10px; text-align: center; font-family: var(--font); font-size: 15px; }
+.sync-none { font-family: var(--font); font-size: 14px; opacity: .9; text-align: center; padding: 16px 6px; }
