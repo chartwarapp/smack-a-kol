@@ -1612,3 +1612,15 @@ body.on-menu #ticker { display: none; }
 /* Main menu disclaimer (LT 2026-10-29): wagering risk + parody note at
    the very bottom of the menu, below the existing fine print. */
 .m1-disclaimer { font-family: var(--font); font-size: 11px; opacity: .65; margin: 10px 0 0; text-align: center; line-height: 1.5; text-shadow: none; }
+
+/* Main menu X feed (LT 2026-10-30): follow link + embedded @smackakol
+   timeline at the very bottom of the menu, below the disclaimer. The
+   anchor itself is the link, so if the X widget script ever fails the
+   follow button still works. */
+.m1-xfeed { margin: 16px 0 0; }
+.m1-xlink { display: inline-block; font-family: var(--font); font-size: 16px; color: #fff; background: #000; border: 2px solid #ffffff55; border-radius: 999px; padding: 8px 18px; text-decoration: none; box-shadow: 0 3px 0 #0006; margin-bottom: 12px; }
+.m1-xlink:active { transform: translateY(2px); box-shadow: none; }
+.m1-xfeed iframe { border-radius: 16px; width: 100% !important; }
+/* Fallback look for the timeline anchor if the X widget script never
+   converts it (offline / blocked): plain white text, no default blue link. */
+.m1-xfeed a.twitter-timeline { display: block; color: #fff; text-decoration: none; font-family: var(--font); font-size: 14px; opacity: .8; }
