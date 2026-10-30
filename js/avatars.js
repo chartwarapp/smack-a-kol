@@ -34,7 +34,7 @@ SAK.avatarSVG = function (look, opts) {
 
   // hair (KOLs without hairStyle keep the classic cap)
   let hs = look.hairStyle || 'short';
-  if (['cap', 'beanie', 'tophat'].includes(look.accessory) && ['spiky', 'mohawk', 'afro', 'bun'].includes(hs)) hs = 'short';
+  if (['cap', 'beanie', 'tophat', 'buckethat', 'cowboyhat', 'partyhat'].includes(look.accessory) && ['spiky', 'mohawk', 'afro', 'bun'].includes(hs)) hs = 'short';
   const capPath = `<path d="M20 46 Q22 16 50 16 Q78 16 80 46 Q66 30 50 32 Q34 30 20 46Z" fill="${h}"/>`;
   let hairBack = '', hairFront = '';
   switch (hs) {
@@ -45,6 +45,12 @@ SAK.avatarSVG = function (look, opts) {
     case 'long': hairBack = `<path d="M18 46 Q16 86 26 92 L74 92 Q84 86 82 46Z" fill="${h}"/>`; hairFront = capPath; break;
     case 'afro': hairBack = `<circle cx="50" cy="36" r="34" fill="${h}"/>`; hairFront = `<path d="M22 44 Q24 22 50 24 Q76 22 78 44 Q66 32 50 34 Q34 32 22 44Z" fill="${h}"/>`; break;
     case 'bun': hairFront = capPath + `<circle cx="50" cy="12" r="9" fill="${h}"/>`; break;
+    case 'fringe': hairFront = capPath + `<rect x="22" y="30" width="56" height="12" rx="4" fill="${h}"/>`; break;
+    case 'ponytail': hairFront = capPath + `<path d="M64 30 Q82 44 76 88 Q68 90 66 48 Z" fill="${h}"/>`; break;
+    case 'curly': hairFront = capPath + `<circle cx="28" cy="34" r="7" fill="${h}"/><circle cx="40" cy="30" r="7" fill="${h}"/><circle cx="52" cy="29" r="7" fill="${h}"/><circle cx="64" cy="31" r="7" fill="${h}"/><circle cx="74" cy="35" r="6" fill="${h}"/>`; break;
+    case 'pigtails': hairFront = capPath + `<path d="M20 40 Q10 55 14 88 Q22 88 24 50 Z" fill="${h}"/><path d="M80 40 Q90 55 86 88 Q78 88 76 50 Z" fill="${h}"/>`; break;
+    case 'mullet': hairBack = `<path d="M20 44 Q18 72 28 78 L72 78 Q82 72 80 44 Z" fill="${h}"/>`; hairFront = capPath; break;
+    case 'dreads': hairFront = capPath + `<rect x="18" y="40" width="8" height="36" rx="3" fill="${h}"/><rect x="26" y="42" width="7" height="44" rx="3" fill="${h}"/><rect x="67" y="42" width="7" height="44" rx="3" fill="${h}"/><rect x="74" y="40" width="8" height="36" rx="3" fill="${h}"/>`; break;
     default: hairFront = capPath;
   }
   const sw = { chonk: [10, 90], gymbro: [8, 92], noodle: [26, 74], smol: [20, 80] }[look.body] || [18, 82];
@@ -71,6 +77,18 @@ SAK.avatarSVG = function (look, opts) {
       acc = `<path d="M44 22 L56 22 L52 -2 Z" fill="${a}" stroke="#0004" stroke-width="2"/><path d="M45 15h10M46 8h7" stroke="#fff8" stroke-width="2"/>`; break;
     case 'headband':
       acc = `<rect x="22" y="30" width="56" height="8" rx="3" fill="#ff3b3b"/>`; break;
+    case 'buckethat':
+      acc = `<path d="M26 36 Q50 8 74 36 Z" fill="${a}"/><ellipse cx="50" cy="37" rx="36" ry="6" fill="${a}" stroke="#0003" stroke-width="1"/>`; break;
+    case 'cowboyhat':
+      acc = `<ellipse cx="50" cy="38" rx="38" ry="7" fill="#8a5a2b"/><path d="M34 38 Q36 14 50 14 Q64 14 66 38 Z" fill="#8a5a2b"/><rect x="34" y="30" width="32" height="5" fill="${a}"/>`; break;
+    case 'eyepatch':
+      acc = `<line x1="14" y1="40" x2="72" y2="46" stroke="#111" stroke-width="3"/><ellipse cx="63" cy="49" rx="11" ry="9" fill="#111"/>`; break;
+    case 'halo':
+      acc = `<ellipse cx="50" cy="10" rx="20" ry="5" fill="none" stroke="#ffd23f" stroke-width="4"/>`; break;
+    case 'partyhat':
+      acc = `<path d="M38 34 L50 2 L62 34 Z" fill="${a}"/><path d="M42 24 L58 24 M45 16 L55 16" stroke="#fff" stroke-width="3"/><circle cx="50" cy="2" r="4" fill="#ff5a5a"/>`; break;
+    case 'vrheadset':
+      acc = `<rect x="20" y="42" width="60" height="15" rx="6" fill="#1a1a22"/><rect x="24" y="47" width="52" height="3" rx="1.5" fill="${a}" opacity="0.9"/>`; break;
   }
 
   const mouth = dead

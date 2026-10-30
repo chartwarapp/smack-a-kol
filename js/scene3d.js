@@ -1239,7 +1239,7 @@ SAK.Scene3D = (function () {
       const cap = (r, arc) => add(new T.SphereGeometry(r, 18, 12, 0, Math.PI * 2, 0, Math.PI * arc), 0, 0.47, -0.04, m => { m.rotation.x = -0.35; });
       let style = this.look.hairStyle || 'short';
       // tall styles get squashed under a hat (no clipping through cap/beanie/top hat)
-      if (['cap', 'beanie', 'tophat'].includes(this.look.accessory) && ['spiky', 'wild', 'mohawk', 'afro', 'bun'].includes(style)) style = 'short';
+      if (['cap', 'beanie', 'tophat', 'buckethat', 'cowboyhat', 'partyhat'].includes(this.look.accessory) && ['spiky', 'wild', 'mohawk', 'afro', 'bun'].includes(style)) style = 'short';
       switch (style) {
         case 'bald': break;
         case 'buzz': cap(0.515, 0.42); break;
@@ -1307,6 +1307,30 @@ SAK.Scene3D = (function () {
         case 'bun':
           cap(0.535, 0.5);
           add(new T.SphereGeometry(0.19, 14, 10), 0, 0.98, -0.3); break;
+        case 'fringe':
+          cap(0.535, 0.5);
+          add(new T.BoxGeometry(0.78, 0.14, 0.08), 0, 0.76, 0.50); break;
+        case 'ponytail':
+          cap(0.535, 0.5);
+          add(new T.BoxGeometry(0.18, 0.75, 0.18), 0.28, 0.30, -0.42, m => { m.rotation.x = 0.12; }); break;
+        case 'curly':
+          cap(0.535, 0.5);
+          for (let i = -3; i <= 3; i++) add(new T.SphereGeometry(0.10, 10, 8), i * 0.13, 0.86, 0.38);
+          break;
+        case 'pigtails':
+          cap(0.535, 0.5);
+          for (const sx of [-1, 1]) add(new T.BoxGeometry(0.18, 0.7, 0.18), sx * 0.52, 0.30, -0.10);
+          break;
+        case 'mullet':
+          cap(0.535, 0.5);
+          add(new T.BoxGeometry(0.85, 0.55, 0.18), 0, 0.28, -0.42); break;
+        case 'dreads':
+          cap(0.535, 0.5);
+          // back + sides only — front sector stays clear of the face
+          for (const a of [1.1, 1.65, 2.2, 2.75, 3.3, 3.85, 4.4, 4.95]) {
+            add(new T.CylinderGeometry(0.045, 0.045, 0.6, 6), Math.sin(a) * 0.52, 0.30, Math.cos(a) * 0.52 - 0.04);
+          }
+          break;
         default: cap(0.535, 0.5);   // 'short' (classic cap, forehead visible)
       }
     }
@@ -1430,6 +1454,23 @@ SAK.Scene3D = (function () {
         case 'headband':
           add(new T.CylinderGeometry(0.52, 0.52, 0.1, 10), '#ff3b3b', 0, 0.68, 0);
           add(new T.BoxGeometry(0.06, 0.3, 0.06), '#ff3b3b', 0.1, 0.55, -0.52, m => { m.rotation.z = 0.5; }); break;
+        case 'buckethat':
+          add(new T.SphereGeometry(0.55, 12, 8, 0, Math.PI * 2, 0, Math.PI * 0.5), a, 0, 0.52, 0);
+          add(new T.CylinderGeometry(0.70, 0.70, 0.05, 16), a, 0, 0.74, 0); break;
+        case 'cowboyhat':
+          add(new T.CylinderGeometry(0.74, 0.74, 0.05, 16), '#8a5a2b', 0, 0.76, 0);
+          add(new T.CylinderGeometry(0.34, 0.38, 0.38, 12), '#8a5a2b', 0, 0.96, 0);
+          add(new T.CylinderGeometry(0.385, 0.385, 0.08, 12), a, 0, 0.82, 0); break;
+        case 'eyepatch':
+          add(new T.BoxGeometry(0.24, 0.18, 0.06), '#111111', 0.18, 0.50, 0.56); break;
+        case 'halo':
+          add(new T.TorusGeometry(0.42, 0.035, 8, 24), '#ffd23f', 0, 1.50, 0, m => { m.rotation.x = Math.PI / 2; m.rotation.z = 0.1; }); break;
+        case 'partyhat':
+          add(new T.ConeGeometry(0.30, 0.60, 12), a, 0, 1.15, 0);
+          add(new T.SphereGeometry(0.08, 10, 8), '#ff5a5a', 0, 1.48, 0); break;
+        case 'vrheadset':
+          add(new T.BoxGeometry(0.64, 0.20, 0.10), '#1a1a22', 0, 0.50, 0.56);
+          add(new T.BoxGeometry(0.56, 0.04, 0.02), a, 0, 0.50, 0.615); break;
       }
     }
 
