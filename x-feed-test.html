@@ -1,0 +1,51 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="robots" content="noindex, nofollow" />
+<title>X feed test (temporary diagnostic)</title>
+</head>
+<body style="background:#111;color:#fff;font-family:sans-serif;margin:16px">
+<h2 id="status">waiting for widgets.js…</h2>
+<p>Auto-scan anchor (same markup as play.html):</p>
+<div id="auto"><a class="twitter-timeline" data-height="420" data-theme="dark" data-chrome="noheader nofooter noborders transparent" href="https://twitter.com/smackakol?ref_src=twsrc%5Etfw">Posts by @smackakol</a></div>
+<p>Programmatic timeline container:</p>
+<div id="prog"></div>
+<script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
+<script>
+(function () {
+  var t0 = Date.now();
+  var tried = false;
+  function secs() { return Math.round((Date.now() - t0) / 1000) + 's'; }
+  function set(msg) { document.getElementById('status').textContent = msg; }
+  function counts() {
+    return 'twttr=' + (!!window.twttr) +
+      ' autoIframes=' + document.querySelectorAll('#auto iframe').length +
+      ' progIframes=' + document.querySelectorAll('#prog iframe').length;
+  }
+  function tick() {
+    set(secs() + ' ' + counts());
+    if (window.twttr && !tried) {
+      tried = true;
+      try {
+        window.twttr.widgets.createTimeline(
+          { sourceType: 'profile', screenName: 'smackakol' },
+          document.getElementById('prog'),
+          { theme: 'dark', height: 420, chrome: 'noheader nofooter noborders transparent' }
+        ).then(function () {
+          set(secs() + ' createTimeline OK — ' + counts());
+        }).catch(function (e) {
+          set(secs() + ' createTimeline FAILED: ' + e + ' — ' + counts());
+        });
+      } catch (e) {
+        set(secs() + ' createTimeline threw: ' + e + ' — ' + counts());
+      }
+    }
+  }
+  var iv = setInterval(tick, 1000);
+  setTimeout(function () { clearInterval(iv); tick(); }, 20000);
+})();
+</script>
+</body>
+</html>
