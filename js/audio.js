@@ -137,6 +137,7 @@ SAK.Audio = (function () {
     loadCommentaryBank();
     loadRedBank();
     loadMissBank();
+    loadYellowBank();
     loadOpeningBank();
     // A custom slap replaces the entire random bank with the one upload
     loadCustomInto('slap', {}).then(ok => {
@@ -605,6 +606,70 @@ SAK.Audio = (function () {
     src.start(ctx.currentTime + 0.08);
   }
 
+  /* ---- Smack King yellow commentary (LT 2026-10-30) ----
+     SEPARATE bank — celebrates GOOD (yellow-zone) slaps only, layered
+     over the slap like the main bank. Player good slaps only (same rule
+     as the red/miss banks: a KOL good slap falls back to the main bank).
+     Same conventions: shared commentarySrc guard, random pick never the
+     same line twice in a row, gain 0.8 * soundCfg.commentary, +0.08s
+     delay, silent on load failure, no synth fallback.
+     NOTE 2026-10-30: yellow-04 is a tightened splice — the take had a
+     ~2s dead gap between "Solid!" and the rest; the gap is cut, the
+     words are untouched. ---- */
+  const YELLOW_COMMENTARY_BANK = [
+    { id: 'smackking-yellow-01', file: 'assets/sfx/smackking-yellow-01.mp3' }, // Whoa!!! His side wallets just got exposed!
+    { id: 'smackking-yellow-02', file: 'assets/sfx/smackking-yellow-02.mp3' }, // Huge paper hand slap!
+    { id: 'smackking-yellow-03', file: 'assets/sfx/smackking-yellow-03.mp3' }, // He just got pumped AND dumped by one hand!
+    { id: 'smackking-yellow-04', file: 'assets/sfx/smackking-yellow-04.mp3' }, // Solid! His bags just got a little lighter!
+  ];
+  const yellowBufs = {};
+  let yellowLoading = false, lastYellowIdx = -1;
+  function loadYellowBank() {
+    if (!ctx) return;
+    YELLOW_COMMENTARY_BANK.forEach(b => {
+      fetch(b.file).then(r => { if (!r.ok) throw 0; return r.arrayBuffer(); })
+        .then(ab => ctx.decodeAudioData(ab))
+        .then(buf => { yellowBufs[b.id] = buf; })
+        .catch(() => { /* silent — a missing line just never plays */ });
+    });
+  }
+  // One yellow line per player good slap, random (never the same line
+  // twice in a row), never overlapping another Smack King line (shared
+  // commentarySrc guard).
+  function playYellowCommentary() {
+    if (!ready() || commentarySrc || yellowLoading) return;
+    let idx = Math.floor(Math.random() * YELLOW_COMMENTARY_BANK.length);
+    if (YELLOW_COMMENTARY_BANK.length > 1 && idx === lastYellowIdx) idx = (idx + 1) % YELLOW_COMMENTARY_BANK.length;
+    const entry = YELLOW_COMMENTARY_BANK[idx];
+    const buf = yellowBufs[entry.id];
+    if (!buf) {
+      // Not preloaded yet — fetch on demand, play only if nothing started since.
+      yellowLoading = true;
+      fetch(entry.file).then(r => { if (!r.ok) throw 0; return r.arrayBuffer(); })
+        .then(ab => ctx.decodeAudioData(ab))
+        .then(b => {
+          yellowBufs[entry.id] = b;
+          yellowLoading = false;
+          if (!commentarySrc) playYellowCommentaryBuf(entry.id);
+        })
+        .catch(() => { yellowLoading = false; });
+      return;
+    }
+    playYellowCommentaryBuf(entry.id);
+  }
+  function playYellowCommentaryBuf(id) {
+    const buf = yellowBufs[id];
+    if (!buf || !ctx || commentarySrc) return;
+    const idx = YELLOW_COMMENTARY_BANK.findIndex(b => b.id === id);
+    if (idx >= 0) lastYellowIdx = idx;
+    const src = ctx.createBufferSource(); src.buffer = buf;
+    const g = ctx.createGain(); g.gain.value = 0.8 * soundCfg.commentary;
+    src.connect(g); g.connect(master);
+    commentarySrc = src;
+    src.onended = () => { if (commentarySrc === src) commentarySrc = null; };
+    src.start(ctx.currentTime + 0.08);
+  }
+
   /* ---- Smack King fight-opening lines (LT 2026-10-27) ----
      SEPARATE bank from the slap COMMENTARY_BANK — one line per fight,
      played at the very start of a fight before the ROUND 1 card, never
@@ -785,6 +850,7 @@ SAK.Audio = (function () {
       // LT rule 2026-10-28: the red troll line ONLY plays when the PLAYER slaps soft.
       // A weak slap from the KOL falls back to the main bank like any other slap.
       if (grade === 'weak' && byPlayer) playRedCommentary();  // player soft slap in the red — Smack King trolls it
+      else if (grade === 'good' && byPlayer) playYellowCommentary();  // player good slap in the yellow — Smack King celebrates it
       else playCommentary();                      // Smack King line, layered over the slap, never overlapping another line
       if (playSlapBuf(strength)) return;   // real recorded slap
       // synth fallback (bank not loaded yet / fetch failed) — noise only, no tones
@@ -843,6 +909,9 @@ SAK.Audio = (function () {
     /** Smack King miss line — one per player whiff, called from the
         fight's brace path only. KOL whiffs stay silent. */
     playMissCommentary,
+    /** Smack King yellow line — one per player good slap, called from
+        slap() only. KOL good slaps fall back to the main bank. */
+    playYellowCommentary,
     /** Boxing ring bell — three classic dings with metallic partials. */
     bell() {
       if (!ready()) return;
