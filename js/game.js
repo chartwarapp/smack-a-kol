@@ -972,9 +972,33 @@
     } catch (e) { console.warn('[SAK] forge palette sampling failed', e); }
     return av;
   }
+  // Forge color + skin-tone mapping (fix, 2026-10-30): a color/tone word
+  // next to an attribute word sets THAT attribute — "blue eyes" sets
+  // eyeColor, "blond hair" sets hairColor, "dark skin" sets skin. Bare
+  // color words keep the old behavior (shirt). Skin tones map to exact
+  // SAK.Traits.LAYERS.skin hexes; other scoped colors snap to the target
+  // attribute's real palette via nearestHex. Blond uses a light canonical
+  // so it snaps to Platinum hair instead of Ember.
+  const FORGE_ATTR_WORDS = {
+    skin: 'skin', hair: 'hairColor', eye: 'eyeColor', eyes: 'eyeColor',
+    shirt: 'shirt', pants: 'pants',
+  };
+  const FORGE_COLOR_HEX = {
+    red: '#ff3b5c', blue: '#2f80ff', green: '#2ee6a6', black: '#1f1f2e',
+    white: '#ffffff', blond: '#e9e9f5', blonde: '#e9e9f5', yellow: '#ffe23d',
+    brown: '#7a4a24', orange: '#ff7a1a', pink: '#ff4fa3', purple: '#9b5cff',
+    grey: '#808080', gray: '#808080', gold: '#ffd23f',
+    dark: '#1f1f2e', light: '#e9e9f5', pale: '#ffe0c4', fair: '#f6c9a0',
+    tan: '#e0a77a', olive: '#8a8f5c',
+  };
+  const FORGE_SKIN_TONES = {
+    pale: '#ffe0c4', fair: '#f6c9a0', light: '#f6c9a0', tan: '#e0a77a',
+    medium: '#e0a77a', olive: '#c98b5f', brown: '#7a4a2e', dark: '#7a4a2e',
+    deep: '#7a4a2e',
+  };
   // Keyword hints: exact word match only; unmatched words are ignored,
-  // never guessed. Colors here are shirt colors only ("blue eyes" sets a
-  // blue shirt, not blue eyes — the tweak rows fix that).
+  // never guessed. The color entries below are the bare-word fallback
+  // (shirt); scoped phrases are resolved before this table is consulted.
   const FORGE_KEYWORDS = {
     cap: ['accessory', 'cap'], beanie: ['accessory', 'beanie'], shades: ['accessory', 'shades'], glasses: ['accessory', 'shades'],
     crown: ['accessory', 'crown'], headphones: ['accessory', 'headphones'], cans: ['accessory', 'headphones'],
@@ -1006,11 +1030,53 @@
     if (!pkCustomLook) return [];
     const words = String(text || '').toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
     const applied = [];
-    for (const w of words) {
+    const used = new Set();
+    const setVal = (key, val, w) => { if (pkCustomLook[key] !== val) { pkCustomLook[key] = val; applied.push(w); } };
+    // Pass 1 — scoped: a color/tone word beside an attribute word sets
+    // that attribute (following word wins, then preceding).
+    for (let i = 0; i < words.length; i++) {
+      const w = words[i];
+      const canon = FORGE_COLOR_HEX[w];
+      const isTone = w in FORGE_SKIN_TONES;
+      if (!canon && !isTone) continue;
+      const attr = FORGE_ATTR_WORDS[words[i + 1]] || FORGE_ATTR_WORDS[words[i - 1]];
+      if (!attr) continue;
+      let val = null;
+      if (attr === 'skin') val = isTone ? FORGE_SKIN_TONES[w] : nearestHex(canon, forgeValues({ layer: 'skin', kind: 'color' }));
+      else {
+        const list = forgeValues({ layer: attr, kind: 'color' });
+        if (list.length) val = nearestHex(canon, list);
+      }
+      if (!val) continue;
+      setVal(attr, val, w);
+      used.add(i);
+    }
+    // Pass 2 — skin tones: any tone word when 'skin' appears in the text
+    // (non-adjacent phrasing like "skin tone dark"), plus bare tone words,
+    // which most naturally describe skin and previously mapped to nothing.
+    // Bare "brown" stays a shirt color (pass 3) unless 'skin' is present.
+    const hasSkinWord = words.includes('skin');
+    for (let i = 0; i < words.length; i++) {
+      if (used.has(i)) continue;
+      const w = words[i];
+      if (!(w in FORGE_SKIN_TONES)) continue;
+      if (w === 'brown' && !hasSkinWord) continue;
+      setVal('skin', FORGE_SKIN_TONES[w], w);
+      used.add(i);
+    }
+    // Pass 3 — single-word keywords (existing behavior) for the rest.
+    // Bare color words new to the table snap to the shirt palette; old
+    // bare colors keep their exact hex via FORGE_KEYWORDS above.
+    for (let i = 0; i < words.length; i++) {
+      if (used.has(i)) continue;
+      const w = words[i];
       const hit = FORGE_KEYWORDS[w];
-      if (!hit) continue;
-      const [key, val] = hit;
-      if (pkCustomLook[key] !== val) { pkCustomLook[key] = val; applied.push(w); }
+      if (hit) { const [key, val] = hit; setVal(key, val, w); continue; }
+      const canon = FORGE_COLOR_HEX[w];
+      if (canon) {
+        const list = forgeValues({ layer: 'shirt', kind: 'color' });
+        if (list.length) setVal('shirt', nearestHex(canon, list), w);
+      }
     }
     if (applied.length) { pkLocked = false; updateLockButton(); renderCustomTraits(); renderForgeRows(); renderCreatorPreview(); }
     return applied;
