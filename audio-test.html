@@ -81,5 +81,42 @@ function playBank(name) {
   log(name + ' playing: ' + f + ' (' + bufs[f].duration.toFixed(2) + 's)');
 }
 </script>
+<div class="bank">
+  <h2>GAME WHIFF SIMULATION (uses the real game audio code)</h2>
+  <p>This loads the game's own audio file and calls the exact whiff sound the game calls on your attack rounds. If you hear a miss line here but not in the game, the game is never making the call. If you hear nothing here either, the miss path itself is broken on this phone.</p>
+  <button id="unlock-game">🔊 UNLOCK GAME AUDIO</button>
+  <div class="st" id="game-st">Game audio: not started (tap UNLOCK, wait 10 seconds, then SIMULATE)</div>
+  <button id="sim-whiff">🥊 SIMULATE MY WHIFF</button>
+  <button id="sim-kol">🛡 SIMULATE OPPONENT WHIFF (should stay silent)</button>
+  <div class="st" id="whiff-result" style="font-size:16px;color:#ffd23f;min-height:22px"></div>
+</div>
+<script>
+  window.SAK = { Storage: { state: { settings: { sound: true, battleMusic: false, slapSound: 'crack' } } } };
+</script>
+<script src="js/audio.js?v=missfix-1"></script>
+<script>
+  document.getElementById('unlock-game').addEventListener('click', () => {
+    try {
+      window.SAK.Audio.unlock();
+      document.getElementById('game-st').textContent = 'Game audio: unlocked — wait 10 seconds for banks, then SIMULATE.';
+    } catch (e) { document.getElementById('game-st').textContent = 'Game audio unlock FAILED: ' + e.message; }
+  });
+  function readDbg() {
+    const el = document.getElementById('sak-miss-dbg');
+    return el ? el.textContent : '(no MISS DBG box yet)';
+  }
+  document.getElementById('sim-whiff').addEventListener('click', () => {
+    try {
+      window.SAK.Audio.brace(true);
+      setTimeout(() => { document.getElementById('whiff-result').textContent = 'My whiff result: ' + readDbg(); }, 500);
+    } catch (e) { document.getElementById('whiff-result').textContent = 'My whiff THREW: ' + e.message; }
+  });
+  document.getElementById('sim-kol').addEventListener('click', () => {
+    try {
+      window.SAK.Audio.brace(false);
+      setTimeout(() => { document.getElementById('whiff-result').textContent = 'Opponent whiff result: ' + readDbg() + ' (should be unchanged, no miss line)'; }, 500);
+    } catch (e) { document.getElementById('whiff-result').textContent = 'Opponent whiff THREW: ' + e.message; }
+  });
+</script>
 </body>
 </html>
