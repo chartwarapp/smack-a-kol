@@ -16,7 +16,12 @@ SAK.avatarSVG = function (look, opts) {
   // (which turned the card's unicorn horn black while the 3D horn is
   // white). Other accessories keep the dark default, as in 3D.
   const s = look.skin, h = look.hair || look.hairColor || '#111';
-  const a = look.accent || (look.accessory === 'laser' ? '#ff1a1a' : look.accessory === 'crown' ? '#ffd23f' : look.accessory === 'unicorn' ? '#ffffff' : '#111');
+  // Trait split (LT 2026-10-30): headwear lives in `head` now; old
+  // saves + KOL looks still carry it in `accessory`, so resolve it
+  // (head wins, accessory headwear falls back) and render from that.
+  const head = (SAK.Traits && SAK.Traits.resolveHead) ? SAK.Traits.resolveHead(look) : (look.head || 'none');
+  const aSrc = (head === 'laser' || head === 'crown' || head === 'unicorn') ? head : look.accessory;
+  const a = look.accent || (aSrc === 'laser' ? '#ff1a1a' : aSrc === 'crown' ? '#ffd23f' : aSrc === 'unicorn' ? '#ffffff' : '#111');
   const dead = !!opts.ko;
 
   const ec = look.eyeColor || '#222', es = look.eyes || 'round';
@@ -34,7 +39,7 @@ SAK.avatarSVG = function (look, opts) {
 
   // hair (KOLs without hairStyle keep the classic cap)
   let hs = look.hairStyle || 'short';
-  if (['cap', 'beanie', 'tophat', 'buckethat', 'cowboyhat', 'partyhat'].includes(look.accessory) && ['spiky', 'mohawk', 'afro', 'bun'].includes(hs)) hs = 'short';
+  if (['cap', 'beanie', 'tophat', 'buckethat', 'cowboyhat', 'partyhat'].includes(head) && ['spiky', 'mohawk', 'afro', 'bun'].includes(hs)) hs = 'short';
   const capPath = `<path d="M20 46 Q22 16 50 16 Q78 16 80 46 Q66 30 50 32 Q34 30 20 46Z" fill="${h}"/>`;
   let hairBack = '', hairFront = '';
   switch (hs) {
@@ -56,7 +61,7 @@ SAK.avatarSVG = function (look, opts) {
   const sw = { chonk: [10, 90], gymbro: [8, 92], noodle: [26, 74], smol: [20, 80] }[look.body] || [18, 82];
 
   let acc = '';
-  switch (look.accessory) {
+  switch (head) {
     case 'shades':
       acc = `<rect x="25" y="42" width="22" height="12" rx="4" fill="${a}"/><rect x="53" y="42" width="22" height="12" rx="4" fill="${a}"/><rect x="45" y="45" width="10" height="3" fill="${a}"/>`; break;
     case 'cap':
@@ -281,6 +286,17 @@ SAK.avatarSVG = function (look, opts) {
     dmgFx += `<path d="M60 68 l5 3" stroke="#d42a2a" stroke-width="2" stroke-linecap="round"/>`;
   }
 
+  // Trait split (LT 2026-10-30): chains show on the face portrait as
+  // an arc across the lower chest. Sword/watch/backpack are not
+  // visible on a head portrait, so they stay body-view only.
+  const faceChain = look.accessory === 'goldchain'
+    ? `<path d="M30 86 Q50 98 70 86" fill="none" stroke="#ffd23f" stroke-width="3" stroke-linecap="round"/><circle cx="42" cy="93" r="2" fill="#ffe27a"/><circle cx="50" cy="95" r="2" fill="#ffe27a"/><circle cx="58" cy="93" r="2" fill="#ffe27a"/>`
+    : look.accessory === 'silverchain'
+    ? `<path d="M30 86 Q50 98 70 86" fill="none" stroke="#c0c8d0" stroke-width="3" stroke-linecap="round"/><circle cx="42" cy="93" r="2" fill="#e8ecf2"/><circle cx="50" cy="95" r="2" fill="#e8ecf2"/><circle cx="58" cy="93" r="2" fill="#e8ecf2"/>`
+    : look.accessory === 'icedchain'
+    ? `<path d="M30 86 Q50 98 70 86" fill="none" stroke="#dff4ff" stroke-width="3" stroke-linecap="round"/><path d="M50 91 l1.5 3.5 3.5 1.5 -3.5 1.5 -1.5 3.5 -1.5 -3.5 -3.5 -1.5 3.5 -1.5 Z" fill="#aee6ff"/><path d="M38 90 l1 2.5 2.5 1 -2.5 1 -1 2.5 -1 -2.5 -2.5 -1 2.5 -1 Z" fill="#aee6ff"/>`
+    : '';
+
   return `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" class="avatar-svg">
     <rect width="100" height="100" rx="18" fill="${bg}"/>
     <rect y="80" width="100" height="20" fill="#0002"/>
@@ -316,6 +332,7 @@ SAK.avatarSVG = function (look, opts) {
     ${opts.blush ? '<ellipse cx="68" cy="62" rx="9" ry="6" fill="#ff2d2d" opacity="0.55"/>' : ''}
     ${dmgFx}
     ${tieFx}
+    ${faceChain}
     ${acc}
   </svg>`;
 };
@@ -398,8 +415,32 @@ SAK.avatarBodySVG = function (look) {
   const elonmarsShirt = look.parody === 'elonmars'
     ? `<g><rect x="20" y="92" width="6" height="30" rx="2" fill="#d8d8e0" stroke="#0003" stroke-width="1.5"/><rect x="74" y="92" width="6" height="30" rx="2" fill="#d8d8e0" stroke="#0003" stroke-width="1.5"/><rect x="36" y="78" width="28" height="8" rx="3" fill="#e8e8f0" stroke="#0003" stroke-width="1.5"/><line x1="36" y1="88" x2="38" y2="128" stroke="#3a3a44" stroke-width="3" stroke-linecap="round"/><line x1="64" y1="88" x2="62" y2="128" stroke="#3a3a44" stroke-width="3" stroke-linecap="round"/><rect x="38" y="94" width="24" height="18" rx="3" fill="#d8d8e0" stroke="#0003" stroke-width="1.5"/><g><rect x="47" y="97" width="6" height="12" rx="3" fill="#ffffff" stroke="#0003" stroke-width="1"/><path d="M47 97 L53 97 L50 91 Z" fill="#e03131"/><circle cx="50" cy="102" r="1.8" fill="#22d3ee"/><path d="M44 107 L47 105 L47 110 Z" fill="#e03131"/><path d="M56 107 L53 105 L53 110 Z" fill="#e03131"/><path d="M47 109 L53 109 L50 114 Z" fill="#ff6a1a"/></g><rect x="24" y="80" width="10" height="12" rx="3" fill="#d8d8e0" stroke="#0003" stroke-width="1.5"/><rect x="66" y="80" width="10" height="12" rx="3" fill="#d8d8e0" stroke="#0003" stroke-width="1.5"/><rect x="22" y="122" width="4" height="8" fill="#3a3a44"/><rect x="76" y="122" width="4" height="8" fill="#3a3a44"/><g transform="rotate(-8 70 92)"><circle cx="70.5" cy="134" r="11" fill="#2a7bff" opacity="0.35"/><circle cx="70.5" cy="134" r="6.5" fill="#f2f2f2"/><path d="M65 131 Q70.5 127 76 131" fill="none" stroke="#1a1a22" stroke-width="2.5" stroke-linecap="round"/><rect x="65.5" y="125" width="10" height="6" fill="#1a1a22"/></g></g>`
     : '';
+  // Trait split (LT 2026-10-30): general accessories on the body.
+  // Sword is sheathed on the BACK — drawn BEFORE the torso like
+  // minhSword, so the torso covers its middle and only the shoulder
+  // hilt + hip tip peek out. Hands stay free for slapping.
+  const swordBack = look.accessory === 'sword'
+    ? `<g><line x1="24" y1="132" x2="76" y2="64" stroke="#8a919c" stroke-width="6" stroke-linecap="round"/><line x1="24" y1="132" x2="76" y2="64" stroke="#d8dce2" stroke-width="2" stroke-linecap="round"/><g transform="rotate(-53 76 64)"><rect x="74" y="61" width="9" height="6" fill="#ffd23f"/><rect x="81" y="61" width="8" height="6" rx="2" fill="#1a1a22"/></g></g>`
+    : '';
+  const chainArc = look.accessory === 'goldchain'
+    ? `<path d="M34 92 Q50 106 66 92" fill="none" stroke="#ffd23f" stroke-width="3.5" stroke-linecap="round"/><circle cx="44" cy="99" r="2.2" fill="#ffe27a"/><circle cx="50" cy="101" r="2.2" fill="#ffe27a"/><circle cx="56" cy="99" r="2.2" fill="#ffe27a"/>`
+    : look.accessory === 'silverchain'
+    ? `<path d="M34 92 Q50 106 66 92" fill="none" stroke="#c0c8d0" stroke-width="3.5" stroke-linecap="round"/><circle cx="44" cy="99" r="2.2" fill="#e8ecf2"/><circle cx="50" cy="101" r="2.2" fill="#e8ecf2"/><circle cx="56" cy="99" r="2.2" fill="#e8ecf2"/>`
+    : look.accessory === 'icedchain'
+    ? `<path d="M34 92 Q50 106 66 92" fill="none" stroke="#dff4ff" stroke-width="3.5" stroke-linecap="round"/><path d="M50 96 l1.5 3.5 3.5 1.5 -3.5 1.5 -1.5 3.5 -1.5 -3.5 -3.5 -1.5 3.5 -1.5 Z" fill="#aee6ff"/><path d="M40 95 l1 2.5 2.5 1 -2.5 1 -1 2.5 -1 -2.5 -2.5 -1 2.5 -1 Z" fill="#aee6ff"/>`
+    : '';
+  // Backpack: shoulder straps over the torso + pack sides peeking out
+  // past it (front view of a back-worn pack).
+  const backpackSvg = look.accessory === 'backpack'
+    ? `<g><rect x="24" y="92" width="7" height="30" rx="3" fill="#6b7c3f" stroke="#0003" stroke-width="1.5"/><rect x="69" y="92" width="7" height="30" rx="3" fill="#6b7c3f" stroke="#0003" stroke-width="1.5"/><rect x="36" y="88" width="5" height="40" fill="#2a2a30"/><rect x="59" y="88" width="5" height="40" fill="#2a2a30"/></g>`
+    : '';
+  // Gold watch on the viewer's-left wrist (inside the rotated arm group,
+  // so it follows the arm): band across the lower forearm + face.
+  const watchSvg = look.accessory === 'goldwatch'
+    ? `<rect x="23" y="124" width="13" height="6" rx="2" fill="#ffd23f" stroke="#0003" stroke-width="1"/><circle cx="29.5" cy="127" r="2.5" fill="#ffffff" stroke="#0003" stroke-width="1"/>`
+    : '';
   return `<svg viewBox="0 0 100 170" xmlns="http://www.w3.org/2000/svg" class="avatar-body-svg">
-    <g transform="rotate(8 30 92)"><rect x="24" y="90" width="11" height="26" rx="5" fill="${shirt}"/><rect x="24.5" y="112" width="10" height="18" rx="5" fill="${s}"/><circle cx="29.5" cy="134" r="6" fill="${s}"/></g>
+    <g transform="rotate(8 30 92)"><rect x="24" y="90" width="11" height="26" rx="5" fill="${shirt}"/><rect x="24.5" y="112" width="10" height="18" rx="5" fill="${s}"/><circle cx="29.5" cy="134" r="6" fill="${s}"/>${watchSvg}</g>
     <g transform="rotate(-8 70 92)"><rect x="65" y="90" width="11" height="26" rx="5" fill="${shirt}"/><rect x="65.5" y="112" width="10" height="18" rx="5" fill="${s}"/><circle cx="70.5" cy="134" r="6" fill="${s}"/></g>
     <rect x="36" y="132" width="12" height="28" rx="4" fill="${pants}"/>
     <rect x="52" y="132" width="12" height="28" rx="4" fill="${pants}"/>
@@ -407,6 +448,7 @@ SAK.avatarBodySVG = function (look) {
     <ellipse cx="58" cy="162" rx="9" ry="5" fill="${shoe}"/>
     <rect x="44" y="76" width="12" height="12" fill="${s}"/>
     ${minhSword}
+    ${swordBack}
     <rect x="${tx0}" y="86" width="${tw}" height="44" rx="10" fill="${shirt}" stroke="#0003" stroke-width="2"/>
     <rect x="${tx0}" y="128" width="${tw}" height="7" fill="#1a1a22"/>
     ${printImg}
@@ -419,6 +461,8 @@ SAK.avatarBodySVG = function (look) {
     ${senseiShirt}
     ${supertrumpShirt}
     ${elonmarsShirt}
+    ${chainArc}
+    ${backpackSvg}
     <g>${head}</g>
   </svg>`;
 };

@@ -845,6 +845,7 @@ SAK.Scene3D = (function () {
       this.buildGloves();
       this.buildFlameHand(); // Super Trump: permanent flame hand (post-arms — buildParody runs before arms exist)
       this.buildElonGlove(); // Elon Mars: white-black glove + blue glow (same reason)
+      this.buildGear(); // Trait split: general accessories (post-arms — the watch needs a wrist)
       this.root.traverse(o => { o.userData.fighter = this; });
       // V6: establish the fierce default expression (grin + teeth) right away
       try { this.setExpression('neutral', 0.01); } catch (e) {}
@@ -1239,7 +1240,7 @@ SAK.Scene3D = (function () {
       const cap = (r, arc) => add(new T.SphereGeometry(r, 18, 12, 0, Math.PI * 2, 0, Math.PI * arc), 0, 0.47, -0.04, m => { m.rotation.x = -0.35; });
       let style = this.look.hairStyle || 'short';
       // tall styles get squashed under a hat (no clipping through cap/beanie/top hat)
-      if (['cap', 'beanie', 'tophat', 'buckethat', 'cowboyhat', 'partyhat'].includes(this.look.accessory) && ['spiky', 'wild', 'mohawk', 'afro', 'bun'].includes(style)) style = 'short';
+      if (['cap', 'beanie', 'tophat', 'buckethat', 'cowboyhat', 'partyhat'].includes(SAK.Traits.resolveHead(this.look)) && ['spiky', 'wild', 'mohawk', 'afro', 'bun'].includes(style)) style = 'short';
       switch (style) {
         case 'bald': break;
         case 'buzz': cap(0.515, 0.42); break;
@@ -1394,10 +1395,14 @@ SAK.Scene3D = (function () {
 
     buildAccessory() {
       const L = this.look, a = L.accent || '#111', H = this.head;
+      // Trait split (LT 2026-10-30): headwear lives in `head` now;
+      // resolve it (head wins, accessory headwear falls back) so old
+      // saves + KOL looks render identically.
+      const head = SAK.Traits.resolveHead(L);
       // V3: Patty Spice builds its own superior visor in buildPatty() — skip the standard one
-      if (L.parody === 'patty' && L.accessory === 'visor') return;
+      if (L.parody === 'patty' && head === 'visor') return;
       const add = (geo, color, x, y, z, opts) => { const m = mesh(geo, typeof color === 'string' ? mat(color) : color, x, y, z); if (opts) opts(m); H.add(m); return m; };
-      switch (L.accessory) {
+      switch (head) {
         case 'shades':
           for (const sx of [-1, 1]) add(new T.BoxGeometry(0.28, 0.16, 0.06), a, sx * 0.18, 0.5, 0.53);
           add(new T.BoxGeometry(0.14, 0.04, 0.04), a, 0, 0.53, 0.54); break;
@@ -1471,6 +1476,78 @@ SAK.Scene3D = (function () {
         case 'vrheadset':
           add(new T.BoxGeometry(0.64, 0.20, 0.10), '#1a1a22', 0, 0.50, 0.56);
           add(new T.BoxGeometry(0.56, 0.04, 0.02), a, 0, 0.50, 0.615); break;
+      }
+    }
+
+    /* =====================================================================
+     * Trait split (LT 2026-10-30): GENERAL accessories — non-head items
+     * only. Headwear lives in buildAccessory via resolveHead; this switch
+     * has no headwear cases, so an unmigrated look (headwear still in
+     * `accessory`) can never double-render. Emissive + sprites only,
+     * never new dynamic lights. The sword is sheathed on the BACK,
+     * never in the hand — hands stay open for slapping.
+     * ===================================================================== */
+    buildGear() {
+      const L = this.look, acc = L.accessory;
+      if (!acc || acc === 'none') return;
+      const B = this.body || { h: 1 };
+      const yBase = 0.82 * (B.h || 1); // upper chest, below the neck (same as buildNecklace)
+      const addT = (geo, material, x, y, z, fn) => {
+        const m = mesh(geo, material, x, y, z);
+        m.userData.accessory = true; if (fn) fn(m); this.torso.add(m); return m;
+      };
+      const goldMat = new T.MeshStandardMaterial({ color: '#ffd23f', metalness: 0.85, roughness: 0.3 });
+      const silverMat = new T.MeshStandardMaterial({ color: '#c0c8d0', metalness: 0.9, roughness: 0.25 });
+      const chain = (material, sparkle) => {
+        // U-drape on the chest front (matching the 2D chain arc): a flat
+        // neck torus reads as a thin line from the front, so the chain
+        // hangs as a half-torus arc, ends at the neck, bottom mid-chest.
+        // z sits proud of the chest front so the torso occludes it
+        // from behind.
+        const ch = addT(new T.TorusGeometry(0.26, 0.032, 8, 24, Math.PI), material, 0, yBase + 0.02, 0.36, m => { m.rotation.z = Math.PI; });
+        outline(ch, 1.15);
+        if (sparkle) {
+          for (const [sx, sy] of [[-0.18, -0.16], [0, -0.24], [0.18, -0.16]]) {
+            addT(new T.OctahedronGeometry(0.04),
+              new T.MeshStandardMaterial({ color: '#dff4ff', metalness: 0.3, roughness: 0.1, emissive: new T.Color('#66ccff'), emissiveIntensity: 0.8 }),
+              sx, yBase + sy, 0.38);
+          }
+        }
+      };
+      switch (acc) {
+        case 'goldchain': chain(goldMat, false); break;
+        case 'silverchain': chain(silverMat, false); break;
+        case 'icedchain': chain(new T.MeshStandardMaterial({ color: '#e8f4ff', metalness: 0.6, roughness: 0.2, emissive: new T.Color('#66ccff'), emissiveIntensity: 0.5 }), true); break;
+        case 'goldwatch': {
+          // Watch on one wrist: torus around the forearm + gold face.
+          // Elbow-group space: forearm runs y 0 → -0.4, but the cartoon
+          // palm is huge (top edge near y -0.28), so a wrist-position
+          // ring lands ON the palm — the band sits mid-forearm instead.
+          const arm = this.arms[-1] || this.arms[1];
+          if (arm && arm.elbow) {
+            const w = new T.Mesh(new T.TorusGeometry(0.15, 0.03, 8, 20), goldMat);
+            w.position.set(0, -0.18, 0); w.rotation.x = Math.PI / 2; w.userData.accessory = true; arm.elbow.add(w);
+            const face = new T.Mesh(new T.CylinderGeometry(0.07, 0.07, 0.03, 12), new T.MeshStandardMaterial({ color: '#ffffff', metalness: 0.4, roughness: 0.2 }));
+            face.position.set(0, -0.18, 0.14); face.rotation.x = Math.PI / 2; face.userData.accessory = true; arm.elbow.add(face);
+          }
+          break; }
+        case 'sword': {
+          // Sheathed broadsword diagonal across the BACK (z negative):
+          // blade tilted so the top end sits by the upper-right shoulder.
+          const steel = new T.MeshStandardMaterial({ color: '#c0c8d0', metalness: 0.9, roughness: 0.25 });
+          const blade = addT(new T.BoxGeometry(0.09, 1.05, 0.03), steel, 0.02, 0.85, -0.42, m => { m.rotation.z = -0.6; });
+          outline(blade, 1.1);
+          addT(new T.BoxGeometry(0.24, 0.05, 0.05), goldMat, 0.3, 1.32, -0.42, m => { m.rotation.z = -0.6; });
+          addT(new T.CylinderGeometry(0.045, 0.045, 0.16, 8), mat('#1a1a22'), 0.37, 1.4, -0.42, m => { m.rotation.z = -0.6; });
+          break; }
+        case 'backpack': {
+          // Pack on the back + straps over the shoulders onto the chest.
+          const pack = addT(new T.BoxGeometry(0.56, 0.62, 0.24), mat('#6b7c3f'), 0, 0.85, -0.42);
+          outline(pack, 1.05);
+          for (const sx of [-1, 1]) {
+            addT(new T.BoxGeometry(0.09, 0.55, 0.04), mat('#2a2a30'), sx * 0.22, 1.05, 0.38);
+          }
+          break; }
       }
     }
 

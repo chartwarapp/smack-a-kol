@@ -64,7 +64,7 @@
     return Object.assign({
       id: c.id, name: c.name, handle: '@' + c.name.replace(/[^a-z0-9]/gi, '') + '_fanmade', level: 'FAN',
       tagline: c.phrase, custom: true,
-      look: { skin: c.skin, shirt: c.shirt, hair: c.hair, pants: '#2a2a40', accessory: c.accessory, accent: c.accessory === 'laser' ? '#ff1a1a' : '#ffd23f' },
+      look: { skin: c.skin, shirt: c.shirt, hair: c.hair, pants: '#2a2a40', head: c.head, accessory: c.accessory, accent: (c.head === 'laser' || c.accessory === 'laser') ? '#ff1a1a' : (c.head === 'crown' || c.accessory === 'crown') ? '#ffd23f' : '#ffd23f' },
       taunts: [c.phrase, 'Fan-made and fully unhinged.', 'Community-submitted slap incoming!']
     }, SAK.customKolStats(Math.max(1, Math.min(5, c.difficulty || 2))));
   }
@@ -552,8 +552,9 @@
     playAfterFighter = !!thenPlay;
     crIsNew = !S.profile;
     const p = profile();
-    // Always start from the current fighter when editing (not blank)
-    crDraft = Object.assign({}, p.avatar || {});
+    // Always start from the current fighter when editing (not blank).
+    // Sanitize so pre-split saves migrate (headwear accessory → head).
+    crDraft = SAK.Account.sanitize(Object.assign({}, p.avatar || {}));
     // If local avatar is missing, try to recover from Supabase
     if (!crIsNew && !p.avatar && W.address && SAK.Api && SAK.Api.getProfile) {
       SAK.Api.getProfile(W.address).then(sp => {
@@ -699,7 +700,7 @@
     pkLocked = false;
     // Profile-first: a returning player's preview opens on THEIR fighter;
     // a new player gets a fresh random draft to roll from.
-    if (S.profile && S.profile.avatar) pkCustomLook = Object.assign({}, S.profile.avatar);
+    if (S.profile && S.profile.avatar) pkCustomLook = SAK.Account.sanitize(Object.assign({}, S.profile.avatar));
     else pkCustomLook = SAK.Account.randomAvatar();
     updateLockButton();
     // Refresh lock button when wallet connects/disconnects while picker is open
@@ -754,6 +755,7 @@
       ['Shirt', swatch(L.shirt || '#888888') + (L.shirt || '').toUpperCase()],
       idRow('Shirt Print', 'print', L.print, 'none'),
       colorRow('Pants', 'pants', L.pants),
+      idRow('Head', 'head', L.head, 'none'),
       idRow('Accessory', 'accessory', L.accessory, 'none'),
     ];
     box.innerHTML = rows.map(([k, v]) => `<div><span style="opacity:.6">${k}:</span> <b>${v}</b></div>`).join('');
@@ -872,6 +874,7 @@
     { layer: 'outfit', key: 'outfit', kind: 'id' },
     { layer: 'print', key: 'print', kind: 'id' },
     { layer: 'pants', key: 'pants', kind: 'color' },
+    { layer: 'head', key: 'head', kind: 'id' },
     { layer: 'accessory', key: 'accessory', kind: 'id' },
     { layer: 'shirt', key: 'shirt', kind: 'color' },
   ];
@@ -1000,12 +1003,16 @@
   // never guessed. The color entries below are the bare-word fallback
   // (shirt); scoped phrases are resolved before this table is consulted.
   const FORGE_KEYWORDS = {
-    cap: ['accessory', 'cap'], beanie: ['accessory', 'beanie'], shades: ['accessory', 'shades'], glasses: ['accessory', 'shades'],
-    crown: ['accessory', 'crown'], headphones: ['accessory', 'headphones'], cans: ['accessory', 'headphones'],
-    visor: ['accessory', 'visor'], tophat: ['accessory', 'tophat'], halo: ['accessory', 'halo'],
-    vr: ['accessory', 'vrheadset'], cowboy: ['accessory', 'cowboyhat'], bucket: ['accessory', 'buckethat'],
-    party: ['accessory', 'partyhat'], eyepatch: ['accessory', 'eyepatch'], patch: ['accessory', 'eyepatch'],
-    unicorn: ['accessory', 'unicorn'], headband: ['accessory', 'headband'],
+    cap: ['head', 'cap'], beanie: ['head', 'beanie'], shades: ['head', 'shades'], glasses: ['head', 'shades'],
+    crown: ['head', 'crown'], headphones: ['head', 'headphones'], cans: ['head', 'headphones'],
+    visor: ['head', 'visor'], tophat: ['head', 'tophat'], halo: ['head', 'halo'],
+    vr: ['head', 'vrheadset'], cowboy: ['head', 'cowboyhat'], bucket: ['head', 'buckethat'],
+    party: ['head', 'partyhat'], eyepatch: ['head', 'eyepatch'], patch: ['head', 'eyepatch'],
+    unicorn: ['head', 'unicorn'], headband: ['head', 'headband'],
+    chain: ['accessory', 'goldchain'], goldchain: ['accessory', 'goldchain'],
+    silverchain: ['accessory', 'silverchain'], icedchain: ['accessory', 'icedchain'], iced: ['accessory', 'icedchain'],
+    sword: ['accessory', 'sword'], katana: ['accessory', 'sword'],
+    watch: ['accessory', 'goldwatch'], backpack: ['accessory', 'backpack'],
     bald: ['hairStyle', 'bald'], afro: ['hairStyle', 'afro'], mohawk: ['hairStyle', 'mohawk'],
     dreads: ['hairStyle', 'dreads'], dread: ['hairStyle', 'dreads'], long: ['hairStyle', 'long'],
     curly: ['hairStyle', 'curly'], mullet: ['hairStyle', 'mullet'], pigtails: ['hairStyle', 'pigtails'],
@@ -1494,9 +1501,9 @@
     let look;
     if (subRoll) {
       const av = SAK.Traits.toAvatar(subRoll);
-      look = { skin: av.skin, shirt: draft.shirt, hair: av.hairColor, hairStyle: av.hairStyle, eyes: av.eyes, accessory: av.accessory, accent: av.accessory === 'laser' ? '#ff1a1a' : '#ffd23f', gloves: av.gloves, outfit: av.outfit };
+      look = { skin: av.skin, shirt: draft.shirt, hair: av.hairColor, hairStyle: av.hairStyle, eyes: av.eyes, head: av.head, accessory: av.accessory, accent: (av.head === 'laser' || av.accessory === 'laser') ? '#ff1a1a' : (av.head === 'crown' || av.accessory === 'crown') ? '#ffd23f' : '#ffd23f', gloves: av.gloves, outfit: av.outfit };
     } else {
-      look = { skin: L.skin, shirt: L.shirt, hair: L.hair, accessory: L.accessory, accent: L.accessory === 'laser' ? '#ff1a1a' : '#ffd23f' };
+      look = { skin: L.skin, shirt: L.shirt, hair: L.hair, accessory: L.accessory, accent: (L.head === 'laser' || L.accessory === 'laser') ? '#ff1a1a' : (L.head === 'crown' || L.accessory === 'crown') ? '#ffd23f' : '#ffd23f' };
     }
     $('#sub-preview').innerHTML = SAK.avatarSVG(look) + `<div class="sub-stats">${'★'.repeat(L.difficulty)} ❤${st.hp} ✊${st.power}</div>`;
     $$('.swatches[data-key="shirt"] button').forEach(b => b.classList.toggle('on', b.dataset.c === draft.shirt));
@@ -1523,7 +1530,7 @@
     if (subRoll) {
       const av = SAK.Traits.toAvatar(subRoll);
       base.gloves = av.gloves; base.outfit = av.outfit; base.print = av.print;
-      base.accessory = av.accessory; base.hairStyle = av.hairStyle;
+      base.head = av.head; base.accessory = av.accessory; base.hairStyle = av.hairStyle;
       base.traits = subRoll; // save the full roll for NFT metadata later
     }
     const entry = Object.assign(base, { id: 'ugc_' + Date.now().toString(36), name: n.ok, phrase: ph.ok, createdAt: Date.now() });
@@ -3652,10 +3659,16 @@
   // match, red = mismatch. Never writes anything.
   function syncNormLook(v) {
     if (!v) return null;
+    // Trait split (2026-10-30): normalize through the migration lens,
+    // or an old snapshot (headwear in accessory) vs a migrated profile
+    // (head set, accessory none) would false-mismatch on the same fighter.
+    const HW = (SAK.Traits && SAK.Traits.HEADWEAR) || [];
+    const head = v.head || (HW.includes(v.accessory) ? v.accessory : null);
+    const acc = HW.includes(v.accessory) ? null : (v.accessory || null);
     return {
       skin: v.skin || null, shirt: v.shirt || null,
       hair: (v.hair !== undefined ? v.hair : v.hairColor) || null,
-      pants: v.pants || null, accessory: v.accessory || null,
+      pants: v.pants || null, head, accessory: acc,
       print: v.print || null, body: v.body || null,
       hairStyle: v.hairStyle || null, eyes: v.eyes || null,
       eyeColor: v.eyeColor || null, species: v.species || null

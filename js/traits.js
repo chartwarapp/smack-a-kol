@@ -145,7 +145,10 @@ SAK.Traits = (() => {
       { id: 'stonks', label: 'STONKS', rarity: 'rare' },
       { id: 'pumpfun', label: 'PUMPFUN', rarity: 'epic' },
     ],
-    accessory: [
+    // Trait split (LT 2026-10-30): the old `accessory` layer was really
+    // a headwear layer — every item in it is worn on the head. It moves
+    // to `head` below; `accessory` becomes general (non-head) items.
+    head: [
       { id: 'none', label: 'None', rarity: 'common' },
       { id: 'headband', label: 'Headband', rarity: 'common' },
       { id: 'cap', label: 'Cap', rarity: 'uncommon' },
@@ -163,13 +166,40 @@ SAK.Traits = (() => {
       { id: 'crown', label: 'Crown 👑', rarity: 'legendary' },
       { id: 'unicorn', label: 'Unicorn', rarity: 'legendary' },
     ],
+    // General accessories (LT 2026-10-30): non-head items only.
+    // Rarities are a first pass (flagged adjustable): chains/watch/
+    // backpack uncommon, sword rare, iced chain epic.
+    accessory: [
+      { id: 'none', label: 'None', rarity: 'common' },
+      { id: 'goldchain', label: 'Gold Chain', rarity: 'uncommon' },
+      { id: 'silverchain', label: 'Silver Chain', rarity: 'uncommon' },
+      { id: 'goldwatch', label: 'Gold Watch', rarity: 'uncommon' },
+      { id: 'backpack', label: 'Backpack', rarity: 'uncommon' },
+      { id: 'sword', label: 'Sword', rarity: 'rare' },
+      { id: 'icedchain', label: 'Iced Chain', rarity: 'epic' },
+    ],
   };
 
-  const LAYER_ORDER = ['species', 'body', 'skin', 'eyes', 'eyeColor', 'hairStyle', 'hairColor', 'outfit', 'print', 'pants', 'accessory'];
+  // Headwear ids, for the old-save migration + render fallback: a look
+  // with no `head` but a headwear `accessory` (every pre-split save and
+  // every KOL look) resolves its head from the accessory value.
+  // 'laser' is legacy head-rendered (glowing eyes) but not a rolled
+  // layer item — it still resolves so old laser looks keep rendering.
+  const HEADWEAR = ['headband', 'cap', 'beanie', 'buckethat', 'cowboyhat',
+    'shades', 'headphones', 'eyepatch', 'partyhat', 'visor', 'tophat',
+    'halo', 'vrheadset', 'crown', 'unicorn', 'laser'];
+  function resolveHead(look) {
+    if (!look) return 'none';
+    if (look.head) return look.head;
+    if (look.accessory && HEADWEAR.includes(look.accessory)) return look.accessory;
+    return 'none';
+  }
+
+  const LAYER_ORDER = ['species', 'body', 'skin', 'eyes', 'eyeColor', 'hairStyle', 'hairColor', 'outfit', 'print', 'pants', 'head', 'accessory'];
   const LAYER_LABELS = {
     species: 'Species', body: 'Body', skin: 'Skin', eyes: 'Eyes', eyeColor: 'Eye Color',
     hairStyle: 'Hair', hairColor: 'Hair Color', gloves: 'Gloves',
-    outfit: 'Outfit', print: 'Shirt Print', pants: 'Pants', accessory: 'Accessory',
+    outfit: 'Outfit', print: 'Shirt Print', pants: 'Pants', head: 'Head', accessory: 'Accessory',
   };
 
   const MAX_REROLLS = 5;
@@ -241,6 +271,7 @@ SAK.Traits = (() => {
       outfit: get('outfit', 'tee'),
       print: get('print', 'none'),
       pants: get('pants', '#1d2a4d'),
+      head: get('head', 'none'),
       accessory: get('accessory', 'none'),
       shirt: '#2f80ff', // derived from outfit in Phase 2
     };
@@ -248,6 +279,7 @@ SAK.Traits = (() => {
 
   return {
     RARITY, RARITY_ORDER, LAYERS, LAYER_ORDER, LAYER_LABELS, MAX_REROLLS,
+    HEADWEAR, resolveHead,
     rollLayer, rollFighter, getRarity, rarityBreakdown, toAvatar,
   };
 })();

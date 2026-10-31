@@ -35,10 +35,19 @@ SAK.Account = (function () {
       { id: 'round', label: 'Round' }, { id: 'big', label: 'Big' }, { id: 'sleepy', label: 'Sleepy' },
       { id: 'angry', label: 'Angry' }, { id: 'dot', label: 'Dot' }
     ],
-    accessory: [
+    // Trait split (LT 2026-10-30): headwear is its own layer now.
+    // OPTIONS.head keeps the OLD accessory roll list verbatim so roll
+    // behavior for hats is unchanged; OPTIONS.accessory is the new
+    // general-items list (non-head only).
+    head: [
       { id: 'headband', label: 'Headband' }, { id: 'none', label: 'None' }, { id: 'cap', label: 'Cap' }, { id: 'shades', label: 'Shades' },
       { id: 'crown', label: 'Crown' }, { id: 'headphones', label: 'Cans' }, { id: 'beanie', label: 'Beanie' }, { id: 'visor', label: 'Visor' },
       { id: 'laser', label: 'Laser eyes' }, { id: 'tophat', label: 'Top hat' }, { id: 'unicorn', label: 'Unicorn' }
+    ],
+    accessory: [
+      { id: 'none', label: 'None' }, { id: 'goldchain', label: 'Gold Chain' }, { id: 'silverchain', label: 'Silver Chain' },
+      { id: 'goldwatch', label: 'Gold Watch' }, { id: 'backpack', label: 'Backpack' }, { id: 'sword', label: 'Sword' },
+      { id: 'icedchain', label: 'Iced Chain' }
     ],
     print: [
       { id: 'none', label: 'None' }, { id: 'btc', label: 'Bitcoin' }, { id: 'sol', label: 'Solana' },
@@ -55,28 +64,36 @@ SAK.Account = (function () {
 
   function defaultAvatar() {
     const L = SAK.PLAYER.look;
-    return { species: 'human', body: 'classic', hairStyle: 'short', hairColor: L.hair, skin: L.skin, eyes: 'round', eyeColor: '#1a1a1a', accessory: L.accessory, shirt: L.shirt, pants: L.pants, print: 'none', outfit: 'tee' };
+    return { species: 'human', body: 'classic', hairStyle: 'short', hairColor: L.hair, skin: L.skin, eyes: 'round', eyeColor: '#1a1a1a', head: 'none', accessory: L.accessory, shirt: L.shirt, pants: L.pants, print: 'none', outfit: 'tee' };
   }
 
   /** Clamp any (possibly old / hand-edited) avatar to valid values.
    * Forge (2026-10-30): id layers also accept SAK.Traits.LAYERS values
    * (e.g. the 2026-10-29 hair/accessory variants the randomizer never
    * rolls) so a forged fighter survives saving. This does NOT change
-   * randomAvatar — it still picks from OPTIONS only. */
+   * randomAvatar — it still picks from OPTIONS only.
+   * Trait split (2026-10-30): old saves carry headwear in `accessory`.
+   * If the sanitized head is 'none' and the raw accessory is a headwear
+   * item, move it (head = accessory, accessory = 'none') so no fighter
+   * loses its hat. If head is already set, a headwear accessory is
+   * dropped to 'none' — it cannot render anywhere post-split. */
   function sanitize(a) {
     const d = defaultAvatar(), out = {};
     a = a || {};
     const hex = v => typeof v === 'string' && /^#[0-9a-f]{6}$/i.test(v);
-    const PICK = ['species', 'body', 'hairStyle', 'eyes', 'accessory', 'print', 'outfit'];
+    const PICK = ['species', 'body', 'hairStyle', 'eyes', 'head', 'accessory', 'print', 'outfit'];
     const okId = (k, v) => {
       const base = OPTIONS[k] ? ids(k) : [];
       if (base.includes(v)) return true;
       const L = (SAK.Traits && SAK.Traits.LAYERS && SAK.Traits.LAYERS[k]) || [];
       return L.some(t => t.id === v);
     };
-    for (const k of ['species', 'body', 'hairStyle', 'hairColor', 'skin', 'eyes', 'eyeColor', 'accessory', 'shirt', 'pants', 'print', 'outfit']) {
+    for (const k of ['species', 'body', 'hairStyle', 'hairColor', 'skin', 'eyes', 'eyeColor', 'head', 'accessory', 'shirt', 'pants', 'print', 'outfit']) {
       out[k] = PICK.includes(k) ? (okId(k, a[k]) ? a[k] : d[k]) : (hex(a[k]) ? a[k] : d[k]);
     }
+    const HW = (SAK.Traits && SAK.Traits.HEADWEAR) || [];
+    if (out.head === 'none' && HW.includes(a.accessory)) out.head = a.accessory;
+    if (HW.includes(a.accessory)) out.accessory = 'none';
     return out;
   }
 
@@ -94,16 +111,17 @@ SAK.Account = (function () {
     return {
       species: pickSpecies(),
       body: pick(ids('body')), hairStyle: pick(ids('hairStyle')), hairColor: pick(OPTIONS.hairColor), skin: pick(OPTIONS.skin),
-      eyes: pick(ids('eyes')), eyeColor: pick(OPTIONS.eyeColor), accessory: pick(ids('accessory')), shirt: pick(OPTIONS.shirt), pants: pick(OPTIONS.pants), print: pick(ids('print'))
+      eyes: pick(ids('eyes')), eyeColor: pick(OPTIONS.eyeColor), head: pick(ids('head')), accessory: pick(ids('accessory')), shirt: pick(OPTIONS.shirt), pants: pick(OPTIONS.pants), print: pick(ids('print'))
     };
   }
 
   /** Avatar params → `look` consumed by Scene3D Fighter + SAK.avatarSVG. */
   function toLook(avatar) {
     const a = sanitize(avatar);
+    const accent = a.head === 'laser' || a.accessory === 'laser' ? '#ff1a1a' : a.head === 'crown' || a.accessory === 'crown' ? '#ffd23f' : '#ffffff';
     return {
-      skin: a.skin, shirt: a.shirt, hair: a.hairColor, pants: a.pants, accessory: a.accessory, print: a.print,
-      accent: a.accessory === 'laser' ? '#ff1a1a' : a.accessory === 'crown' ? '#ffd23f' : '#ffffff',
+      skin: a.skin, shirt: a.shirt, hair: a.hairColor, pants: a.pants, head: a.head, accessory: a.accessory, print: a.print,
+      accent,
       body: a.body, hairStyle: a.hairStyle, eyes: a.eyes, eyeColor: a.eyeColor, species: a.species, outfit: a.outfit
     };
   }
