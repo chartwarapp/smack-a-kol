@@ -492,7 +492,7 @@ SAK.Audio = (function () {
     { id: 'smackking-red-07', file: 'assets/sfx/smackking-red-07.mp3' }, // Couldn't hear a SMACK
   ];
   const redBufs = {};
-  let redLoading = false, lastRedIdx = -1;
+  let redLoading = false, lastRedIdx = -1, queuedRed = false;
   function loadRedBank() {
     if (!ctx) return;
     RED_COMMENTARY_BANK.forEach(b => {
@@ -504,8 +504,18 @@ SAK.Audio = (function () {
   }
   // One red line per weak slap, random (never the same line twice in a row),
   // never overlapping another Smack King line (shared commentarySrc guard).
+  // If a line is already playing, the red line QUEUES behind it (same as
+  // the miss queue) instead of dropping silently.
   function playRedCommentary() {
-    if (!ready() || commentarySrc || redLoading) return;
+    if (!ready() || redLoading) return;
+    if (commentarySrc) {
+      if (!queuedRed) {
+        queuedRed = true;
+        const cur = commentarySrc, prevEnded = cur.onended;
+        cur.onended = () => { if (prevEnded) prevEnded(); queuedRed = false; if (!commentarySrc) playRedCommentary(); };
+      }
+      return;
+    }
     let idx = Math.floor(Math.random() * RED_COMMENTARY_BANK.length);
     if (RED_COMMENTARY_BANK.length > 1 && idx === lastRedIdx) idx = (idx + 1) % RED_COMMENTARY_BANK.length;
     const entry = RED_COMMENTARY_BANK[idx];
@@ -569,6 +579,22 @@ SAK.Audio = (function () {
         .catch(() => { /* silent — a missing line just never plays */ });
     });
   }
+  // TEMP MISS DEBUG (remove when the in-game miss silence is resolved):
+  // on-screen readout of what playMissCommentary does on a whiff.
+  // Observation only — it never changes playback.
+  let missDbgEl = null;
+  function missDbg(msg) {
+    try {
+      if (!missDbgEl) {
+        missDbgEl = document.createElement('div');
+        missDbgEl.id = 'sak-miss-dbg';
+        missDbgEl.style.cssText = 'position:fixed;top:64px;left:50%;transform:translateX(-50%);z-index:99999;pointer-events:none;background:rgba(0,0,0,.85);color:#ffd23f;border:1px solid #ffd23f;border-radius:8px;padding:6px 10px;font:12px system-ui;max-width:92vw;text-align:center;';
+        document.body.appendChild(missDbgEl);
+      }
+      missDbgEl.textContent = 'MISS DBG: ' + msg;
+      console.log('[miss-dbg]', msg);
+    } catch (e) {}
+  }
   // One miss line per player whiff, random (never the same line twice in
   // a row), never overlapping another Smack King line (shared
   // commentarySrc guard). If a line is already playing, the miss line
@@ -576,12 +602,16 @@ SAK.Audio = (function () {
   // the current line ends. Further whiffs while one is queued just drop
   // (one queued line is enough for a busy window).
   function playMissCommentary() {
-    if (!ready() || missLoading) return;
+    if (!ready()) { missDbg('called but audio NOT READY → dropped'); return; }
+    if (missLoading) { missDbg('called while a miss file is still loading → dropped'); return; }
     if (commentarySrc) {
       if (!queuedMiss) {
         queuedMiss = true;
         const cur = commentarySrc, prevEnded = cur.onended;
         cur.onended = () => { if (prevEnded) prevEnded(); queuedMiss = false; if (!commentarySrc) playMissCommentary(); };
+        missDbg('called while a line is playing → QUEUED behind it');
+      } else {
+        missDbg('called while a line is playing, one already queued → dropped');
       }
       return;
     }
@@ -592,14 +622,16 @@ SAK.Audio = (function () {
     if (!buf) {
       // Not preloaded yet — fetch on demand, play only if nothing started since.
       missLoading = true;
+      missDbg('called, ' + entry.id + ' not preloaded → fetching on demand…');
       fetch(entry.file).then(r => { if (!r.ok) throw 0; return r.arrayBuffer(); })
         .then(ab => ctx.decodeAudioData(ab))
         .then(b => {
           missBufs[entry.id] = b;
           missLoading = false;
           if (!commentarySrc) playMissCommentaryBuf(entry.id);
+          else missDbg('on-demand decoded ' + entry.id + ' but a line started meanwhile → DROPPED');
         })
-        .catch(() => { missLoading = false; });
+        .catch(() => { missLoading = false; missDbg('on-demand FETCH/DECODE FAILED ' + entry.file); });
       return;
     }
     playMissCommentaryBuf(entry.id);
@@ -607,6 +639,7 @@ SAK.Audio = (function () {
   function playMissCommentaryBuf(id) {
     const buf = missBufs[id];
     if (!buf || !ctx || commentarySrc) return;
+    missDbg('PLAYING ' + id);
     const idx = MISS_COMMENTARY_BANK.findIndex(b => b.id === id);
     if (idx >= 0) lastMissIdx = idx;
     const src = ctx.createBufferSource(); src.buffer = buf;
@@ -634,7 +667,7 @@ SAK.Audio = (function () {
     { id: 'smackking-yellow-04', file: 'assets/sfx/smackking-yellow-04.mp3' }, // Solid! His bags just got a little lighter!
   ];
   const yellowBufs = {};
-  let yellowLoading = false, lastYellowIdx = -1;
+  let yellowLoading = false, lastYellowIdx = -1, queuedYellow = false;
   function loadYellowBank() {
     if (!ctx) return;
     YELLOW_COMMENTARY_BANK.forEach(b => {
@@ -646,9 +679,18 @@ SAK.Audio = (function () {
   }
   // One yellow line per player good slap, random (never the same line
   // twice in a row), never overlapping another Smack King line (shared
-  // commentarySrc guard).
+  // commentarySrc guard). If a line is already playing, the yellow line
+  // QUEUES behind it (same as the miss/red queues) instead of dropping.
   function playYellowCommentary() {
-    if (!ready() || commentarySrc || yellowLoading) return;
+    if (!ready() || yellowLoading) return;
+    if (commentarySrc) {
+      if (!queuedYellow) {
+        queuedYellow = true;
+        const cur = commentarySrc, prevEnded = cur.onended;
+        cur.onended = () => { if (prevEnded) prevEnded(); queuedYellow = false; if (!commentarySrc) playYellowCommentary(); };
+      }
+      return;
+    }
     let idx = Math.floor(Math.random() * YELLOW_COMMENTARY_BANK.length);
     if (YELLOW_COMMENTARY_BANK.length > 1 && idx === lastYellowIdx) idx = (idx + 1) % YELLOW_COMMENTARY_BANK.length;
     const entry = YELLOW_COMMENTARY_BANK[idx];
