@@ -559,7 +559,7 @@ SAK.Audio = (function () {
     { id: 'smackking-miss-06', file: 'assets/sfx/smackking-miss-06.mp3' }, // He paid gas to slap NOTHING!
   ];
   const missBufs = {};
-  let missLoading = false, lastMissIdx = -1;
+  let missLoading = false, lastMissIdx = -1, queuedMiss = false;
   function loadMissBank() {
     if (!ctx) return;
     MISS_COMMENTARY_BANK.forEach(b => {
@@ -571,9 +571,20 @@ SAK.Audio = (function () {
   }
   // One miss line per player whiff, random (never the same line twice in
   // a row), never overlapping another Smack King line (shared
-  // commentarySrc guard).
+  // commentarySrc guard). If a line is already playing, the miss line
+  // QUEUES behind it instead of dropping silently — it plays the moment
+  // the current line ends. Further whiffs while one is queued just drop
+  // (one queued line is enough for a busy window).
   function playMissCommentary() {
-    if (!ready() || commentarySrc || missLoading) return;
+    if (!ready() || missLoading) return;
+    if (commentarySrc) {
+      if (!queuedMiss) {
+        queuedMiss = true;
+        const cur = commentarySrc, prevEnded = cur.onended;
+        cur.onended = () => { if (prevEnded) prevEnded(); queuedMiss = false; if (!commentarySrc) playMissCommentary(); };
+      }
+      return;
+    }
     let idx = Math.floor(Math.random() * MISS_COMMENTARY_BANK.length);
     if (MISS_COMMENTARY_BANK.length > 1 && idx === lastMissIdx) idx = (idx + 1) % MISS_COMMENTARY_BANK.length;
     const entry = MISS_COMMENTARY_BANK[idx];
