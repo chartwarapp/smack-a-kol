@@ -5831,7 +5831,15 @@
       const box = $('#admin-beta-new');
       const shown = code.slice(0, 4) + '-' + code.slice(4);
       box.hidden = false;
-      box.innerHTML = `New code for <b>${escBeta(label)}</b>: <b style="font-size:20px;letter-spacing:2px;">${shown}</b><br/>Copy this now — it can't be shown again.`;
+      box.innerHTML = `New code for <b>${escBeta(label)}</b>: <b style="font-size:20px;letter-spacing:2px;">${shown}</b> <button class="btn btn-small" id="admin-beta-copy" style="width:auto;">📋 COPY</button><br/>Copy this now — it can't be shown again.`;
+      const copyBtn = $('#admin-beta-copy');
+      if (copyBtn) copyBtn.onclick = async () => {
+        try {
+          await navigator.clipboard.writeText(shown);
+          copyBtn.textContent = '✓ COPIED';
+          setTimeout(() => { if (copyBtn.isConnected) copyBtn.textContent = '📋 COPY'; }, 2000);
+        } catch (e) { prompt('Copy this beta code:', shown); }
+      };
       if (labelEl) labelEl.value = '';
       toast('Beta code created ✓', 2000);
       refreshAdminBetaCodes();
