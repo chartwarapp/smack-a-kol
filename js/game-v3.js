@@ -2284,6 +2284,9 @@
         }
       } else {
         A.brace();
+        // LT 2026-10-30: a player whiff gets a Smack King miss line, layered
+        // over the brace sound. KOL whiffs stay silent (same rule as red).
+        if (slapWho === 'player') A.playMissCommentary();
         haptic(25);
         flash('#2ee66b');
         if (playerWonRound) sayPlayer('BRACED TO THE MOON 🛡'); else say('STUFFED. NGMI swing.');

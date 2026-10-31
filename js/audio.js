@@ -136,6 +136,7 @@ SAK.Audio = (function () {
     loadCrowdBank();
     loadCommentaryBank();
     loadRedBank();
+    loadMissBank();
     loadOpeningBank();
     // A custom slap replaces the entire random bank with the one upload
     loadCustomInto('slap', {}).then(ok => {
@@ -536,6 +537,74 @@ SAK.Audio = (function () {
     src.start(ctx.currentTime + 0.08);
   }
 
+  /* ---- Smack King miss commentary (LT 2026-10-30) ----
+     SEPARATE bank from COMMENTARY_BANK and RED_COMMENTARY_BANK — trolls
+     for MISSED (red-zone) slaps only, layered over the brace sound like
+     the other banks layer over the slap. Player whiffs only (same rule
+     as the red bank: a KOL whiff stays silent). Same conventions: the
+     shared commentarySrc guard means a miss line never overlaps another
+     Smack King line, random pick never the same line twice in a row,
+     gain 0.8 * soundCfg.commentary, +0.08s delay, silent on load
+     failure, no synth fallback.
+     NOTE 2026-10-30: miss-04 ships as the first sentence only ("All
+     wind, no slap!") — the video take clipped "Somebody check his
+     AIM!". Full line 4 is a file swap when re-recorded. ---- */
+  const MISS_COMMENTARY_BANK = [
+    { id: 'smackking-miss-01', file: 'assets/sfx/smackking-miss-01.mp3' }, // Swing and a MISS! He slapped the air and the air DODGED!
+    { id: 'smackking-miss-02', file: 'assets/sfx/smackking-miss-02.mp3' }, // That slap missed so bad, it hit the CROWD!
+    { id: 'smackking-miss-03', file: 'assets/sfx/smackking-miss-03.mp3' }, // NGMI swing! He couldn't hit a whole FIGHTER!
+    { id: 'smackking-miss-04', file: 'assets/sfx/smackking-miss-04.mp3' }, // All wind, no slap! (full line + "Somebody check his AIM!" pending re-record)
+    { id: 'smackking-miss-05', file: 'assets/sfx/smackking-miss-05.mp3' }, // He missed! Even the TABLE ducked that one!
+    { id: 'smackking-miss-06', file: 'assets/sfx/smackking-miss-06.mp3' }, // He paid gas to slap NOTHING!
+  ];
+  const missBufs = {};
+  let missLoading = false, lastMissIdx = -1;
+  function loadMissBank() {
+    if (!ctx) return;
+    MISS_COMMENTARY_BANK.forEach(b => {
+      fetch(b.file).then(r => { if (!r.ok) throw 0; return r.arrayBuffer(); })
+        .then(ab => ctx.decodeAudioData(ab))
+        .then(buf => { missBufs[b.id] = buf; })
+        .catch(() => { /* silent — a missing line just never plays */ });
+    });
+  }
+  // One miss line per player whiff, random (never the same line twice in
+  // a row), never overlapping another Smack King line (shared
+  // commentarySrc guard).
+  function playMissCommentary() {
+    if (!ready() || commentarySrc || missLoading) return;
+    let idx = Math.floor(Math.random() * MISS_COMMENTARY_BANK.length);
+    if (MISS_COMMENTARY_BANK.length > 1 && idx === lastMissIdx) idx = (idx + 1) % MISS_COMMENTARY_BANK.length;
+    const entry = MISS_COMMENTARY_BANK[idx];
+    const buf = missBufs[entry.id];
+    if (!buf) {
+      // Not preloaded yet — fetch on demand, play only if nothing started since.
+      missLoading = true;
+      fetch(entry.file).then(r => { if (!r.ok) throw 0; return r.arrayBuffer(); })
+        .then(ab => ctx.decodeAudioData(ab))
+        .then(b => {
+          missBufs[entry.id] = b;
+          missLoading = false;
+          if (!commentarySrc) playMissCommentaryBuf(entry.id);
+        })
+        .catch(() => { missLoading = false; });
+      return;
+    }
+    playMissCommentaryBuf(entry.id);
+  }
+  function playMissCommentaryBuf(id) {
+    const buf = missBufs[id];
+    if (!buf || !ctx || commentarySrc) return;
+    const idx = MISS_COMMENTARY_BANK.findIndex(b => b.id === id);
+    if (idx >= 0) lastMissIdx = idx;
+    const src = ctx.createBufferSource(); src.buffer = buf;
+    const g = ctx.createGain(); g.gain.value = 0.8 * soundCfg.commentary;
+    src.connect(g); g.connect(master);
+    commentarySrc = src;
+    src.onended = () => { if (commentarySrc === src) commentarySrc = null; };
+    src.start(ctx.currentTime + 0.08);
+  }
+
   /* ---- Smack King fight-opening lines (LT 2026-10-27) ----
      SEPARATE bank from the slap COMMENTARY_BANK — one line per fight,
      played at the very start of a fight before the ROUND 1 card, never
@@ -771,6 +840,9 @@ SAK.Audio = (function () {
     /** Smack King fight-opening line — one per fight, awaited by the
         fight intro so it plays before the bell + ROUND 1 card. */
     playOpening,
+    /** Smack King miss line — one per player whiff, called from the
+        fight's brace path only. KOL whiffs stay silent. */
+    playMissCommentary,
     /** Boxing ring bell — three classic dings with metallic partials. */
     bell() {
       if (!ready()) return;
