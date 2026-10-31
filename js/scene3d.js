@@ -5031,14 +5031,6 @@ SAK.Scene3D = (function () {
    * @param opts     { grade:'perfect'|'good'|'weak'|'miss', fire:bool, dist:number, windup:sec, onImpact:fn }
    */
   async function slap(who, opts) {
-    // TEMP SLAP DBG (missfix-2): report slap entry into the same readout.
-    // If SLAP shows but WHIFF DBG never follows, doImpact never ran
-    // (onImpact not firing for this slap). Remove with the other temp
-    // debug bits once diagnosed.
-    try {
-      const el = document.getElementById('sak-whiff-dbg');
-      if (el) el.textContent = 'SLAP: who=' + who + ' grade=' + opts.grade + ' landed=' + opts.landed;
-    } catch (e) {}
     const A = who === 'player' ? player : kol, D = who === 'player' ? kol : player;
     const p = A.pose, E = SAK.Ease, sd = A.armSide;
     const tier = reactTier(opts.grade, opts.fire, opts.dist);
@@ -5135,11 +5127,9 @@ SAK.Scene3D = (function () {
     };
     if (opts.grade === 'miss') {
       doTauntShake(D);
-      // FIX 2026-10-31 (missfix-3): misses NEVER called onImpact before —
-      // the miss branch only shook the defender's head, so doImpact (and
-      // with it the miss voice, the brace tick and the WHIFF DBG update)
-      // never ran on any whiff. Call it with null, like the tier-falsy
-      // branch below, so a whiff reaches doImpact exactly once.
+      // Misses call onImpact(null) so doImpact runs (brace + miss voice);
+      // before missfix-3 this branch only shook the defender's head and
+      // whiffs were silently voiceless.
       if (opts.onImpact) opts.onImpact(null);
     } else if (opts.grade !== 'miss' && tier) {
       const R = applyHitReact(D, tier, !!opts.fire);
