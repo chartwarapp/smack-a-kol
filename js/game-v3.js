@@ -2258,6 +2258,15 @@
       slapLands = atkZoneId !== 'miss';
     }
     const doImpact = () => {
+      // TEMP WHIFF DBG (missfix-2): report what the game thinks on every
+      // impact, before any audio. If this never updates, doImpact never
+      // runs; if slapWho=kol on a YOUR ATTACK whiff, C.attacker is wrong;
+      // if the div itself is absent, the game file is stale. Remove with
+      // the other temp debug bits once diagnosed.
+      try {
+        const el = document.getElementById('sak-whiff-dbg');
+        if (el) el.textContent = 'WHIFF DBG: lands=' + slapLands + ' slapWho=' + slapWho + ' attacker=' + C.attacker + ' atkZone=' + atkZoneId + ' grade=' + slapGrade;
+      } catch (e) {}
       if (slapLands) {
         A.slap(grade.mult * (fire ? 1.4 : 1), slapGrade, slapWho === 'player'); // 'weak' + player attacking → red-zone troll line, else main bank
         hapticSlap(slapGrade, fire, atk.dist);
