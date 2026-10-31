@@ -2283,10 +2283,10 @@
           else say(pick(Math.random() < 0.5 ? F.kol.taunts : SAK.COPY.smackReactions));
         }
       } else {
-        A.brace();
-        // LT 2026-10-30: a player whiff gets a Smack King miss line, layered
-        // over the brace sound. KOL whiffs stay silent (same rule as red).
-        if (slapWho === 'player') A.playMissCommentary();
+        // Miss line rides inside brace() (player whiffs only) so it cannot
+        // be lost between brace() and a separate call site. KOL whiffs
+        // stay silent (same rule as red).
+        A.brace(slapWho === 'player');
         haptic(25);
         flash('#2ee66b');
         if (playerWonRound) sayPlayer('BRACED TO THE MOON 🛡'); else say('STUFFED. NGMI swing.');

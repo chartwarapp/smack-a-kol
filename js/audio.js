@@ -947,7 +947,14 @@ SAK.Audio = (function () {
     win() { if (!ready()) return; [523, 659, 784, 1046].forEach((f, i) => tone(f, 0.35, 'triangle', 0.2, i * 0.11)); crowdWin(); },
     realCheer() { playRealCheer(); }, // real victory recording only, no synth
     lose() { if (!ready()) return; [392, 330, 262].forEach((f, i) => tone(f, 0.45, 'sine', 0.2, i * 0.18)); crowdLose(); },
-    brace() {
+    brace(byPlayer) {
+      // Miss line rides inside brace(): brace() provably runs on every
+      // whiff (the tick is heard), so the miss call can no longer be
+      // lost between brace() and a separate call site. Called FIRST so
+      // even a later tick-audio failure cannot swallow it. Player whiffs
+      // only; KOL whiffs (byPlayer falsy, incl. the helmet brace) stay
+      // silent, same rule as before.
+      if (byPlayer) playMissCommentary();
       if (!ready()) return;
       // Braced hit: play a real slap at reduced intensity (palm hits guard)
       crowdSlap(0.5);
