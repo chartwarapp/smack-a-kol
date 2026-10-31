@@ -5135,6 +5135,12 @@ SAK.Scene3D = (function () {
     };
     if (opts.grade === 'miss') {
       doTauntShake(D);
+      // FIX 2026-10-31 (missfix-3): misses NEVER called onImpact before —
+      // the miss branch only shook the defender's head, so doImpact (and
+      // with it the miss voice, the brace tick and the WHIFF DBG update)
+      // never ran on any whiff. Call it with null, like the tier-falsy
+      // branch below, so a whiff reaches doImpact exactly once.
+      if (opts.onImpact) opts.onImpact(null);
     } else if (opts.grade !== 'miss' && tier) {
       const R = applyHitReact(D, tier, !!opts.fire);
       // Faces: light slap = taunting head shake, no pain. Heavier = shock then pain/dizzy.
