@@ -5031,6 +5031,14 @@ SAK.Scene3D = (function () {
    * @param opts     { grade:'perfect'|'good'|'weak'|'miss', fire:bool, dist:number, windup:sec, onImpact:fn }
    */
   async function slap(who, opts) {
+    // TEMP SLAP DBG (missfix-2): report slap entry into the same readout.
+    // If SLAP shows but WHIFF DBG never follows, doImpact never ran
+    // (onImpact not firing for this slap). Remove with the other temp
+    // debug bits once diagnosed.
+    try {
+      const el = document.getElementById('sak-whiff-dbg');
+      if (el) el.textContent = 'SLAP: who=' + who + ' grade=' + opts.grade + ' landed=' + opts.landed;
+    } catch (e) {}
     const A = who === 'player' ? player : kol, D = who === 'player' ? kol : player;
     const p = A.pose, E = SAK.Ease, sd = A.armSide;
     const tier = reactTier(opts.grade, opts.fire, opts.dist);
