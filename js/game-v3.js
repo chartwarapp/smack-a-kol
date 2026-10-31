@@ -675,6 +675,12 @@
     $('#modal-fighter').classList.add('hidden');
     if (crPreview) { crPreview.dispose(); crPreview = null; }
     if (welcomePending) { welcomePending = false; setTimeout(() => toast(`🎁 Welcome bonus: +${fmt(SAK.POINTS.welcomeBonus)} PTS to get slapping`, 2600), 2000); }
+    // FORGE reset: the photo reference is session-only, never persisted.
+    forgeUsed = false;
+    const fp = $('#forge-panel'); if (fp) fp.classList.add('hidden');
+    const fph = $('#forge-photo'); if (fph) { fph.classList.add('hidden'); fph.removeAttribute('src'); }
+    $('#cr-preview').classList.remove('forge-on');
+    const fob = $('#forge-open'); if (fob) fob.classList.remove('hidden');
   }
   /* ---- Fighter picker: random only (premade starters removed 2026-10-25).
    * Returning players open on their SAVED fighter in the 3D preview;
@@ -716,7 +722,13 @@
     const optLabel = (key, id) => {
       const list = (SAK.Account.OPTIONS && SAK.Account.OPTIONS[key]) || [];
       const hit = list.find(o => (typeof o === 'string' ? o : o.id) === id);
-      return hit ? (typeof hit === 'string' ? hit : hit.label) : null;
+      if (hit) return (typeof hit === 'string' ? hit : hit.label);
+      // Forge values (Traits.LAYERS) not in OPTIONS: show the trait label
+      // instead of a raw id. Only affects Forge-only values; existing
+      // fighters are all in OPTIONS and render exactly as before.
+      const L = (SAK.Traits && SAK.Traits.LAYERS && SAK.Traits.LAYERS[key]) || [];
+      const th = L.find(t => t.id === id);
+      return th ? th.label : null;
     };
     const layerLabel = (layer, hex) => {
       const list = (SAK.Traits && SAK.Traits.LAYERS && SAK.Traits.LAYERS[layer]) || [];
@@ -794,6 +806,20 @@
       // Stamp the name/quote the user typed (validated on save path too)
       const nm = $('#cr-name').value.trim(), q = $('#fit-phrase').value.trim();
       await saveFighterProfile(nm || undefined, q || undefined, { starter_id: null, custom: true });
+      // FORGE Phase 1 marker (local only): a fighter mapped from an
+      // uploaded photo keeps its forge note on the profile. The photo
+      // itself is never saved; the lock path above is unchanged.
+      // Stamp BOTH references: saveFighterProfile's verify-load swaps
+      // the storage state object, so the game's captured `S` goes stale
+      // and a stamp on `S` alone would be overwritten by the next save.
+      if (forgeUsed) {
+        const det = ($('#forge-details') ? $('#forge-details').value.trim() : '');
+        const marker = { fromUpload: true, details: det, at: Date.now() };
+        if (S.profile) S.profile.forge = marker;
+        const st = SAK.Storage.state;
+        if (st && st.profile) st.profile.forge = marker;
+        try { SAK.Storage.save(); } catch (_) {}
+      }
       btn.textContent = '✅ LOCKED!';
       A.perfect();
       // Auto-sync to Supabase when wallet is connected (for PvP visibility)
@@ -825,6 +851,223 @@
       toast('⚠️ Lock failed, try again', 2000);
       updateLockButton();
     }
+  });
+  /* ---- FORGE FROM PHOTO (Phase 1, off-chain prototype, FREE) --------
+   * Additive creator path: upload a reference photo + a few words, get a
+   * STARTING fighter from a client-side heuristic (palette sampling +
+   * keyword hints), then fix anything with per-layer prev/next controls
+   * and LOCK through the existing lock path. The photo NEVER leaves the
+   * device in Phase 1: no network calls, no uploads, no external APIs.
+   * The saved fighter carries a local-only profile.forge marker
+   * (fromUpload + details text); the photo itself is never persisted. */
+  let forgeUsed = false;
+  const FORGE_LAYERS = [
+    { layer: 'species', key: 'species', kind: 'id' },
+    { layer: 'body', key: 'body', kind: 'id' },
+    { layer: 'skin', key: 'skin', kind: 'color' },
+    { layer: 'eyes', key: 'eyes', kind: 'id' },
+    { layer: 'eyeColor', key: 'eyeColor', kind: 'color' },
+    { layer: 'hairStyle', key: 'hairStyle', kind: 'id' },
+    { layer: 'hairColor', key: 'hairColor', kind: 'color' },
+    { layer: 'outfit', key: 'outfit', kind: 'id' },
+    { layer: 'print', key: 'print', kind: 'id' },
+    { layer: 'pants', key: 'pants', kind: 'color' },
+    { layer: 'accessory', key: 'accessory', kind: 'id' },
+    { layer: 'shirt', key: 'shirt', kind: 'color' },
+  ];
+  function forgeValues(entry) {
+    if (entry.layer === 'shirt') return (SAK.Account.OPTIONS.shirt || []).slice();
+    const L = (SAK.Traits && SAK.Traits.LAYERS && SAK.Traits.LAYERS[entry.layer]) || [];
+    if (entry.kind === 'color') return L.map(t => t.value).filter(Boolean);
+    return L.map(t => t.id);
+  }
+  function forgeLabel(entry, val) {
+    const L = (SAK.Traits && SAK.Traits.LAYERS && SAK.Traits.LAYERS[entry.layer]) || [];
+    if (entry.kind === 'color') {
+      const hit = L.find(t => t.value === val);
+      const sw = `<span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:${val};border:1px solid #0005;vertical-align:-1px;margin-right:4px"></span>`;
+      return sw + (hit ? hit.label : String(val || '').toUpperCase());
+    }
+    const hit = L.find(t => t.id === val);
+    return (hit ? hit.label : String(val || '')).toUpperCase();
+  }
+  function forgeRowLabel(entry) {
+    const L = (SAK.Traits && SAK.Traits.LAYER_LABELS && SAK.Traits.LAYER_LABELS[entry.layer]);
+    if (L) return L;
+    return entry.layer === 'shirt' ? 'Shirt' : entry.layer;
+  }
+  function forgeCycle(layer, dir) {
+    if (!pkCustomLook) return;
+    const entry = FORGE_LAYERS.find(e => e.layer === layer);
+    if (!entry) return;
+    const vals = forgeValues(entry);
+    if (!vals.length) return;
+    const cur = pkCustomLook[entry.key];
+    let i = vals.indexOf(cur);
+    i = i < 0 ? (dir > 0 ? 0 : vals.length - 1) : (i + dir + vals.length) % vals.length;
+    pkCustomLook[entry.key] = vals[i];
+    pkLocked = false;
+    updateLockButton();
+    renderCustomTraits();
+    renderForgeRows();
+    renderCreatorPreview();
+  }
+  function renderForgeRows() {
+    const box = $('#forge-tweaks');
+    if (!box) return;
+    if (!pkCustomLook) { box.innerHTML = ''; return; }
+    box.innerHTML = FORGE_LAYERS.map(e =>
+      `<div class="forge-row"><span class="forge-row-label">${forgeRowLabel(e)}</span>` +
+      `<button type="button" class="forge-step" data-forge-layer="${e.layer}" data-forge-dir="-1">◀</button>` +
+      `<span class="forge-row-val" data-forge-val="${e.layer}">${forgeLabel(e, pkCustomLook[e.key])}</span>` +
+      `<button type="button" class="forge-step" data-forge-layer="${e.layer}" data-forge-dir="1">▶</button></div>`
+    ).join('');
+    box.querySelectorAll('.forge-step').forEach(b => b.addEventListener('click', () => {
+      A.click();
+      forgeCycle(b.dataset.forgeLayer, parseInt(b.dataset.forgeDir, 10));
+    }));
+  }
+  function hexDist(a, b) {
+    const pa = [parseInt(a.slice(1, 3), 16), parseInt(a.slice(3, 5), 16), parseInt(a.slice(5, 7), 16)];
+    const pb = [parseInt(b.slice(1, 3), 16), parseInt(b.slice(3, 5), 16), parseInt(b.slice(5, 7), 16)];
+    return (pa[0] - pb[0]) ** 2 + (pa[1] - pb[1]) ** 2 + (pa[2] - pb[2]) ** 2;
+  }
+  function nearestHex(target, list) {
+    let best = list[0], bd = Infinity;
+    for (const h of list) { const d = hexDist(target, h); if (d < bd) { bd = d; best = h; } }
+    return best;
+  }
+  function rgbToHex(r, g, b) {
+    return '#' + [r, g, b].map(v => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, '0')).join('');
+  }
+  function bandColor(ctx, w, y0, y1) {
+    const data = ctx.getImageData(0, y0, w, y1 - y0).data;
+    let r = 0, g = 0, b = 0, n = 0;
+    for (let i = 0; i < data.length; i += 4) {
+      if (data[i + 3] < 128) continue; // skip transparent pixels
+      r += data[i]; g += data[i + 1]; b += data[i + 2]; n++;
+    }
+    if (!n) return null;
+    return rgbToHex(r / n, g / n, b / n);
+  }
+  // Starting look from a photo: top band -> hair color, middle -> shirt,
+  // bottom -> pants, each snapped to the nearest palette hex. Deliberately
+  // rough — the tweak rows exist to fix it.
+  function forgeMapFromPhoto(imgEl) {
+    const av = SAK.Account.defaultAvatar();
+    try {
+      const cv = document.createElement('canvas');
+      cv.width = 48; cv.height = 48;
+      const ctx = cv.getContext('2d');
+      ctx.drawImage(imgEl, 0, 0, 48, 48);
+      const hairHex = bandColor(ctx, 48, 0, 16);
+      const shirtHex = bandColor(ctx, 48, 16, 32);
+      const pantsHex = bandColor(ctx, 48, 32, 48);
+      const hairList = forgeValues({ layer: 'hairColor', kind: 'color' });
+      const pantsList = forgeValues({ layer: 'pants', kind: 'color' });
+      const shirtList = forgeValues({ layer: 'shirt', kind: 'color' });
+      if (hairHex && hairList.length) av.hairColor = nearestHex(hairHex, hairList);
+      if (shirtHex && shirtList.length) av.shirt = nearestHex(shirtHex, shirtList);
+      if (pantsHex && pantsList.length) av.pants = nearestHex(pantsHex, pantsList);
+    } catch (e) { console.warn('[SAK] forge palette sampling failed', e); }
+    return av;
+  }
+  // Keyword hints: exact word match only; unmatched words are ignored,
+  // never guessed. Colors here are shirt colors only ("blue eyes" sets a
+  // blue shirt, not blue eyes — the tweak rows fix that).
+  const FORGE_KEYWORDS = {
+    cap: ['accessory', 'cap'], beanie: ['accessory', 'beanie'], shades: ['accessory', 'shades'], glasses: ['accessory', 'shades'],
+    crown: ['accessory', 'crown'], headphones: ['accessory', 'headphones'], cans: ['accessory', 'headphones'],
+    visor: ['accessory', 'visor'], tophat: ['accessory', 'tophat'], halo: ['accessory', 'halo'],
+    vr: ['accessory', 'vrheadset'], cowboy: ['accessory', 'cowboyhat'], bucket: ['accessory', 'buckethat'],
+    party: ['accessory', 'partyhat'], eyepatch: ['accessory', 'eyepatch'], patch: ['accessory', 'eyepatch'],
+    unicorn: ['accessory', 'unicorn'], headband: ['accessory', 'headband'],
+    bald: ['hairStyle', 'bald'], afro: ['hairStyle', 'afro'], mohawk: ['hairStyle', 'mohawk'],
+    dreads: ['hairStyle', 'dreads'], dread: ['hairStyle', 'dreads'], long: ['hairStyle', 'long'],
+    curly: ['hairStyle', 'curly'], mullet: ['hairStyle', 'mullet'], pigtails: ['hairStyle', 'pigtails'],
+    ponytail: ['hairStyle', 'ponytail'], spiky: ['hairStyle', 'spiky'], spiked: ['hairStyle', 'spiky'],
+    buzz: ['hairStyle', 'buzz'], bun: ['hairStyle', 'bun'], fringe: ['hairStyle', 'fringe'], bangs: ['hairStyle', 'fringe'],
+    angry: ['eyes', 'angry'], sleepy: ['eyes', 'sleepy'],
+    chonk: ['body', 'chonk'], chubby: ['body', 'chonk'], gym: ['body', 'gymbro'], smol: ['body', 'smol'],
+    tiny: ['body', 'smol'], noodle: ['body', 'noodle'], skinny: ['body', 'noodle'],
+    bear: ['species', 'bear'], bull: ['species', 'bull'], ape: ['species', 'ape'], monkey: ['species', 'ape'],
+    dog: ['species', 'dog'], cat: ['species', 'cat'], rabbit: ['species', 'rabbit'], bunny: ['species', 'rabbit'],
+    panda: ['species', 'panda'],
+    bitcoin: ['print', 'btc'], btc: ['print', 'btc'], solana: ['print', 'sol'], fomo: ['print', 'fomo'],
+    stonks: ['print', 'stonks'], pump: ['print', 'pumpfun'], zcash: ['print', 'zec'], zec: ['print', 'zec'],
+    hoodie: ['outfit', 'hoodie'], suit: ['outfit', 'suit'], tank: ['outfit', 'tank'], gi: ['outfit', 'gi'],
+    robe: ['outfit', 'royal'], flames: ['outfit', 'flames'], flame: ['outfit', 'flames'], money: ['outfit', 'money'],
+    chart: ['outfit', 'chart'],
+    red: ['shirt', '#ff3b5c'], blue: ['shirt', '#2f80ff'], green: ['shirt', '#2ee6a6'],
+    pink: ['shirt', '#ff4fa3'], yellow: ['shirt', '#ffe23d'], gold: ['shirt', '#ffe23d'],
+    purple: ['shirt', '#9b5cff'], orange: ['shirt', '#ff7a1a'], black: ['shirt', '#1f1f2e'], white: ['shirt', '#ffffff'],
+  };
+  function forgeApplyDetails(text) {
+    if (!pkCustomLook) return [];
+    const words = String(text || '').toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
+    const applied = [];
+    for (const w of words) {
+      const hit = FORGE_KEYWORDS[w];
+      if (!hit) continue;
+      const [key, val] = hit;
+      if (pkCustomLook[key] !== val) { pkCustomLook[key] = val; applied.push(w); }
+    }
+    if (applied.length) { pkLocked = false; updateLockButton(); renderCustomTraits(); renderForgeRows(); renderCreatorPreview(); }
+    return applied;
+  }
+  const forgeOpenBtn = $('#forge-open');
+  if (forgeOpenBtn) forgeOpenBtn.addEventListener('click', () => {
+    A.click();
+    const panel = $('#forge-panel');
+    if (!panel) return;
+    panel.classList.remove('hidden');
+    $('#cr-preview').classList.add('forge-on');
+    forgeOpenBtn.classList.add('hidden');
+    renderForgeRows();
+  });
+  const forgeCloseBtn = $('#forge-close');
+  if (forgeCloseBtn) forgeCloseBtn.addEventListener('click', () => {
+    A.click();
+    const panel = $('#forge-panel');
+    if (panel) panel.classList.add('hidden');
+    $('#cr-preview').classList.remove('forge-on');
+    const photo = $('#forge-photo');
+    if (photo) photo.classList.add('hidden');
+    if (forgeOpenBtn) forgeOpenBtn.classList.remove('hidden');
+  });
+  const forgeFile = $('#forge-file');
+  if (forgeFile) forgeFile.addEventListener('change', () => {
+    const file = forgeFile.files && forgeFile.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const url = String(reader.result);
+      const photo = $('#forge-photo');
+      if (!photo) return;
+      photo.onload = () => {
+        pkCustomLook = forgeMapFromPhoto(photo);
+        forgeUsed = true;
+        const det = $('#forge-details') ? $('#forge-details').value.trim() : '';
+        if (det) forgeApplyDetails(det); // keywords overlay the mapped look
+        pkLocked = false;
+        updateLockButton();
+        renderCustomTraits();
+        renderForgeRows();
+        renderCreatorPreview();
+        toast('📸 Forge look mapped — tweak anything, then LOCK', 2600);
+      };
+      photo.src = url;
+      photo.classList.remove('hidden');
+    };
+    reader.readAsDataURL(file);
+  });
+  const forgeDetailsBtn = $('#forge-details-apply');
+  if (forgeDetailsBtn) forgeDetailsBtn.addEventListener('click', () => {
+    A.click();
+    const det = $('#forge-details') ? $('#forge-details').value.trim() : '';
+    if (!pkCustomLook) { toast('🎲 Upload a photo first', 2000); return; }
+    const applied = forgeApplyDetails(det);
+    toast(applied.length ? `✨ Applied: ${applied.join(', ')}` : 'No matching traits — tweak manually', 2200);
   });
   $('#cr-later').addEventListener('click', () => { closeCreator(); if (playAfterFighter) setTimeout(openSolo, 50); });   // play as guest
   $('#cr-cancel').addEventListener('click', () => { if (crIsNew) showCreatorStep('name'); else closeCreator(); });

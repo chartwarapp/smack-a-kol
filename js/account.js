@@ -55,17 +55,27 @@ SAK.Account = (function () {
 
   function defaultAvatar() {
     const L = SAK.PLAYER.look;
-    return { species: 'human', body: 'classic', hairStyle: 'short', hairColor: L.hair, skin: L.skin, eyes: 'round', eyeColor: '#1a1a1a', accessory: L.accessory, shirt: L.shirt, pants: L.pants, print: 'none' };
+    return { species: 'human', body: 'classic', hairStyle: 'short', hairColor: L.hair, skin: L.skin, eyes: 'round', eyeColor: '#1a1a1a', accessory: L.accessory, shirt: L.shirt, pants: L.pants, print: 'none', outfit: 'tee' };
   }
 
-  /** Clamp any (possibly old / hand-edited) avatar to valid values. */
+  /** Clamp any (possibly old / hand-edited) avatar to valid values.
+   * Forge (2026-10-30): id layers also accept SAK.Traits.LAYERS values
+   * (e.g. the 2026-10-29 hair/accessory variants the randomizer never
+   * rolls) so a forged fighter survives saving. This does NOT change
+   * randomAvatar — it still picks from OPTIONS only. */
   function sanitize(a) {
     const d = defaultAvatar(), out = {};
     a = a || {};
     const hex = v => typeof v === 'string' && /^#[0-9a-f]{6}$/i.test(v);
-    const PICK = ['species', 'body', 'hairStyle', 'eyes', 'accessory', 'print'];
-    for (const k of ['species', 'body', 'hairStyle', 'hairColor', 'skin', 'eyes', 'eyeColor', 'accessory', 'shirt', 'pants', 'print']) {
-      out[k] = PICK.includes(k) ? (ids(k).includes(a[k]) ? a[k] : d[k]) : (hex(a[k]) ? a[k] : d[k]);
+    const PICK = ['species', 'body', 'hairStyle', 'eyes', 'accessory', 'print', 'outfit'];
+    const okId = (k, v) => {
+      const base = OPTIONS[k] ? ids(k) : [];
+      if (base.includes(v)) return true;
+      const L = (SAK.Traits && SAK.Traits.LAYERS && SAK.Traits.LAYERS[k]) || [];
+      return L.some(t => t.id === v);
+    };
+    for (const k of ['species', 'body', 'hairStyle', 'hairColor', 'skin', 'eyes', 'eyeColor', 'accessory', 'shirt', 'pants', 'print', 'outfit']) {
+      out[k] = PICK.includes(k) ? (okId(k, a[k]) ? a[k] : d[k]) : (hex(a[k]) ? a[k] : d[k]);
     }
     return out;
   }
@@ -94,7 +104,7 @@ SAK.Account = (function () {
     return {
       skin: a.skin, shirt: a.shirt, hair: a.hairColor, pants: a.pants, accessory: a.accessory, print: a.print,
       accent: a.accessory === 'laser' ? '#ff1a1a' : a.accessory === 'crown' ? '#ffd23f' : '#ffffff',
-      body: a.body, hairStyle: a.hairStyle, eyes: a.eyes, eyeColor: a.eyeColor, species: a.species
+      body: a.body, hairStyle: a.hairStyle, eyes: a.eyes, eyeColor: a.eyeColor, species: a.species, outfit: a.outfit
     };
   }
 

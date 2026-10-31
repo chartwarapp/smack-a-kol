@@ -12,7 +12,7 @@
   <!-- Chunky game font (optional – falls back to system fonts offline) -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Lilita+One&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/style.css?v=glovesync-1" />
+  <link rel="stylesheet" href="css/style.css?v=forge-1" />
 </head>
 <body>
 <div id="app">
@@ -421,6 +421,7 @@
           <div class="cr-preview" id="cr-preview">
             <canvas id="cr-canvas" aria-label="3D fighter preview, drag to spin"></canvas>
             <div class="cr-fallback hidden" id="cr-fallback"></div>
+            <img id="forge-photo" class="hidden" alt="Forge reference photo" />
             <span class="cr-spin-hint">⟲ drag to spin</span>
           </div>
           <div id="pk-traits" class="pk-traits"></div>
@@ -429,6 +430,21 @@
           </div>
           <div class="row" style="margin-top:8px">
             <button type="button" class="btn btn-green" id="pk-lock" style="flex:1">🔒 LOCK</button>
+          </div>
+          <div class="row" style="margin-top:8px">
+            <button type="button" class="btn btn-blue" id="forge-open" style="flex:1">📸 FORGE FROM PHOTO</button>
+          </div>
+          <!-- FORGE FROM PHOTO (Phase 1, off-chain prototype, FREE):
+               photo stays on this device, never uploaded, never saved. -->
+          <div id="forge-panel" class="hidden">
+            <p class="fine dark" style="margin:6px 0">📸 <b>Forge from photo</b> — upload a reference, get a starting fighter, tweak every layer, then LOCK. <b>FREE prototype</b> — no payment. Your photo never leaves this device.</p>
+            <label class="cr-label">REFERENCE PHOTO<input type="file" id="forge-file" accept="image/*" /></label>
+            <label class="cr-label">DETAILS (optional)<input id="forge-details" maxlength="120" placeholder="e.g. angry, cowboy hat, gold chain" autocapitalize="off" spellcheck="false" /></label>
+            <div class="row" style="margin-top:8px">
+              <button type="button" class="btn btn-purple" id="forge-details-apply" style="flex:1">✨ APPLY DETAILS</button>
+              <button type="button" class="btn btn-grey" id="forge-close">Hide Forge</button>
+            </div>
+            <div id="forge-tweaks" class="forge-tweaks"></div>
           </div>
           <!-- error text removed -->
         </div>
@@ -622,7 +638,7 @@
 <script src="js/config.js?v=gloves-1"></script>
 <script src="js/roster.js?v=maxkol-1"></script>
 <script src="js/storage.js?v=maxkol-1"></script>
-<script src="js/account.js?v=print-1"></script>
+<script src="js/account.js?v=forge-1"></script>
 <script src="js/traits.js?v=traits-1"></script>
 <script src="js/wallet.js?v=https-fix-2"></script>
 <script src="js/walletconnect.js?v=wc-2"></script>
@@ -643,7 +659,7 @@
 <script src="js/pvp-sync.js?v=stuck-1"></script>
 <script src="js/solana-house.js?v=7"></script>
 <script src="js/contracts.js?v=1"></script>
-<script src="js/game-v3.js?v=glovesync-1"></script>
+<script src="js/game-v3.js?v=forge-1"></script>
 <script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
 </body>
 </html>

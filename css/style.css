@@ -1638,3 +1638,17 @@ body.on-menu #ticker { display: none; }
 .sync-pill.bad { background: #d42a2a; color: #fff; }
 .sync-round { margin-top: 12px; background: rgba(0,0,0,.25); border-radius: 14px; padding: 10px; text-align: center; font-family: var(--font); font-size: 15px; }
 .sync-none { font-family: var(--font); font-size: 14px; opacity: .9; text-align: center; padding: 16px 6px; }
+
+/* FORGE FROM PHOTO (Phase 1, off-chain prototype, FREE — 2026-10-30):
+   photo sits side-by-side with the 3D preview while the Forge panel is
+   open; the photo never leaves the device and is never persisted. */
+#cr-preview.forge-on { display: flex; gap: 8px; align-items: stretch; }
+#cr-preview.forge-on #cr-canvas { flex: 1 1 0; min-width: 0; }
+#forge-photo { width: 38%; object-fit: cover; border-radius: 12px; border: 2px solid #ffd23f55; align-self: stretch; }
+#forge-panel { margin-top: 10px; background: rgba(0,0,0,.25); border-radius: 14px; padding: 10px; }
+.forge-tweaks { margin-top: 10px; }
+.forge-row { display: flex; align-items: center; gap: 6px; margin: 4px 0; font-family: var(--font); font-size: 13px; }
+.forge-row-label { flex: 0 0 84px; opacity: .7; }
+.forge-row-val { flex: 1; text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.forge-step { font-family: var(--font); font-size: 14px; background: #ffffff22; color: #fff; border: 1px solid #ffffff44; border-radius: 8px; padding: 3px 9px; }
+.forge-step:active { transform: translateY(1px); }
